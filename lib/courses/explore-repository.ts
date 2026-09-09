@@ -1,0 +1,3 @@
+import type { CourseSummary } from "./contracts";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+export async function listDiscoverableCourses(): Promise<{ courses: CourseSummary[]; envRequired: boolean }> { const client = await createServerSupabaseClient(); if (!client) return { courses: [], envRequired: true }; const { data, error } = await client.from("courses").select("id, slug, title, description, domain, status").eq("status", "published").order("created_at", { ascending: false }); if (error) throw new Error("Unable to read published courses from Supabase."); return { courses: (data ?? []) as CourseSummary[], envRequired: false }; }

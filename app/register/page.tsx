@@ -1,0 +1,7 @@
+"use client";
+import Link from "next/link";
+import { useState } from "react";
+import { PublicShell } from "@/components/shell/PublicShell";
+import { Button } from "@/components/ui/Button";
+import { createBrowserClient } from "@/lib/supabase/browser";
+export default function RegisterPage() { const [message, setMessage] = useState(""); async function register(form: FormData) { const client = createBrowserClient(); if (!client) return setMessage("ENV REQUIRED : Supabase local n'est pas configuré."); const { error } = await client.auth.signUp({ email: String(form.get("email")), password: String(form.get("password")), options: { emailRedirectTo: `${location.origin}/auth/callback` } }); setMessage(error ? error.message : "Vérifiez votre email pour confirmer votre compte."); } return <PublicShell><main className="auth-page surface"><h1>Créer un compte Forge</h1><form className="form" action={register}><label>Email<input name="email" type="email" required /></label><label>Mot de passe<input name="password" type="password" minLength={8} required /></label>{message && <p className="form-error">{message}</p>}<Button type="submit">Créer mon compte</Button></form><p className="caption">Déjà un compte ? <Link href="/login">Se connecter</Link></p></main></PublicShell>; }

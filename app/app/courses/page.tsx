@@ -1,0 +1,3 @@
+import Link from "next/link";
+import { Surface } from "@/components/ui/Surface";
+export default function CoursesPage() { return <><header className="page-header"><div><p className="eyebrow">Mes parcours</p><h1>Vos relations aux parcours</h1><p>Apprendre, créer et contribuer restent les facettes d&apos;un même espace.</p></div></header><Surface className="empty-state"><h2>Connexion aux relations à venir</h2><p>Les relations réelles seront raccordées au backend partagé à partir de F1. Explore permet déjà de vérifier la lecture des parcours publiés.</p><Link className="button button--secondary" href="/app/explore">Explorer les parcours</Link></Surface></>; }

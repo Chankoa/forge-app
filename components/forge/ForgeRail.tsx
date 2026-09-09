@@ -1,0 +1,3 @@
+import { Sparkles } from "lucide-react";
+import type { ForgeContext } from "@/lib/forge/contracts";
+export function ForgeRail({ context }: { context: ForgeContext }) { const verb = context.mode === "learn" ? "comprendre" : "créer et améliorer"; return <aside className="forge-rail" aria-label="Forge"><p className="eyebrow"><Sparkles size={15} /> Forge</p><h2>Vous aider à {verb}</h2><p className="caption">Contexte : {context.lessonTitle ?? context.courseTitle}</p><p className="caption">Les interactions IA seront branchées dans une prochaine étape.</p></aside>; }

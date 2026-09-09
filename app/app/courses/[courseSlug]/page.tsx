@@ -1,0 +1,5 @@
+import { CourseWorkspace } from "@/components/course/CourseWorkspace";
+import { resolveCourseCapabilities } from "@/lib/capabilities/course-capabilities";
+const course = { id: "dev-fixture", slug: "fondations-forge", title: "Fondations de Forge", description: "Fixture DEV explicite : démonstration du Course Workspace.", domain: "Produit", status: "development" };
+const outline = [{ moduleTitle: "Commencer", lessons: [{ slug: "une-intention", title: "Partir d'une intention" }, { slug: "un-espace", title: "Un seul espace" }] }];
+export default function CoursePage() { return <CourseWorkspace course={course} mode="view" capabilities={resolveCourseCapabilities({ isOwner: true, isEnrolled: true })} outline={outline} forgeContext={{ mode: "learn", courseTitle: course.title }} content={<><p className="eyebrow">FIXTURE DEV</p><h2>Un parcours, un espace</h2><p>Cette page établit le contrat structurel de Forge. Les données réelles par slug seront raccordées lorsque le repository de cours aura été porté.</p></>} />; }

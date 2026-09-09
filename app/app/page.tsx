@@ -1,0 +1,4 @@
+import Link from "next/link";
+import { ArrowRight, Compass, PenLine } from "lucide-react";
+import { Surface } from "@/components/ui/Surface";
+export default function AppHome() { return <><header className="page-header"><div><p className="eyebrow">Votre espace</p><h1>Construire en apprenant.</h1><p>Vos parcours, les découvertes et les prochaines intentions sont réunis ici.</p></div></header><div className="workspace-home__grid"><Link href="/app/courses"><Surface className="course-card"><Compass size={20} /><h2>Mes parcours</h2><p>Retrouvez les parcours auxquels vous êtes relié.</p><span className="caption">Ouvrir <ArrowRight size={14} /></span></Surface></Link><Link href="/app/create"><Surface className="course-card"><PenLine size={20} /><h2>Créer</h2><p>Donnez une intention à votre prochain parcours.</p><span className="caption">Commencer <ArrowRight size={14} /></span></Surface></Link></div></>; }

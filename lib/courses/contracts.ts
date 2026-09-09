@@ -1,0 +1,2 @@
+export type CourseSummary = { id: string; slug: string; title: string; description: string | null; domain: string | null; status: string | null; lessonCount?: number; };
+export type CourseOutline = { moduleTitle: string; lessons: { slug: string; title: string }[] }[];

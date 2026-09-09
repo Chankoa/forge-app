@@ -1,0 +1,1 @@
+export type ForgeContext = { mode: "learn" | "edit"; courseTitle: string; lessonTitle?: string; };

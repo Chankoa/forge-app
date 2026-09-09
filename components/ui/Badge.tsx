@@ -1,0 +1,2 @@
+import type { ReactNode } from "react";
+export function Badge({ children, success = false }: { children: ReactNode; success?: boolean }) { return <span className={`badge${success ? " badge--success" : ""}`}>{children}</span>; }

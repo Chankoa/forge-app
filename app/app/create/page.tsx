@@ -1,0 +1,2 @@
+import { Surface } from "@/components/ui/Surface";
+export default function CreatePage() { return <><header className="page-header"><div><p className="eyebrow">Créer</p><h1>Partir d&apos;une intention</h1><p>La proposition Forge et l&apos;édition de parcours seront ajoutées dans F2.</p></div></header><Surface className="intent-preview"><p className="eyebrow">Forge</p><p className="intent-preview__prompt">Quel parcours voulez-vous rendre possible ?</p><p className="caption">Cette surface est intentionnellement locale et ne simule aucune réponse IA.</p></Surface></>; }

@@ -1,0 +1,7 @@
+import type { ReactNode } from "react";
+import type { CourseCapabilities } from "@/lib/capabilities/course-capabilities";
+import type { CourseOutline, CourseSummary } from "@/lib/courses/contracts";
+import { CourseOutlineRail } from "./CourseOutlineRail";
+import { ForgeRail } from "@/components/forge/ForgeRail";
+import { Badge } from "@/components/ui/Badge";
+export function CourseWorkspace({ course, mode, capabilities, outline, content, forgeContext, selectedLesson }: { course: CourseSummary; mode: "view" | "learn" | "edit"; capabilities: CourseCapabilities; outline: CourseOutline; content: ReactNode; forgeContext: { mode: "learn" | "edit"; courseTitle: string; lessonTitle?: string }; selectedLesson?: string }) { return <section className="course-workspace"><header className="course-context"><Badge>{mode === "edit" ? "Édition" : mode === "learn" ? "Apprentissage" : "Parcours"}</Badge><h1>{course.title}</h1>{capabilities.canEdit && <p className="caption">Édition disponible pour votre relation à ce parcours.</p>}</header><div className="workspace-columns"><CourseOutlineRail courseSlug={course.slug} outline={outline} selectedLesson={selectedLesson} /><article className="workspace-content">{content}</article><ForgeRail context={forgeContext} /></div></section>; }

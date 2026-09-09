@@ -1,0 +1,7 @@
+"use client";
+import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useState } from "react";
+import type { CourseOutline } from "@/lib/courses/contracts";
+import { IconButton } from "@/components/ui/IconButton";
+export function CourseOutlineRail({ courseSlug, outline, selectedLesson }: { courseSlug: string; outline: CourseOutline; selectedLesson?: string }) { const [expanded, setExpanded] = useState(true); return <aside className="outline-rail" aria-label="Parcours"><div className="rail-header">{expanded && <strong>Parcours</strong>}<IconButton label={expanded ? "Réduire le parcours" : "Ouvrir le parcours"} onClick={() => setExpanded(!expanded)}>{expanded ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}</IconButton></div>{expanded && <ul className="outline-list">{outline.map((module) => <li className="outline-module" key={module.moduleTitle}>{module.moduleTitle}{module.lessons.map((lesson) => <Link className="outline-lesson" aria-current={selectedLesson === lesson.slug ? "page" : undefined} href={`/app/courses/${courseSlug}/lessons/${lesson.slug}`} key={lesson.slug}>{lesson.title}</Link>)}</li>)}</ul>}</aside>; }
