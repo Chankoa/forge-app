@@ -15,6 +15,7 @@ export async function listDiscoverableCourses(): Promise<{ courses: Array<Course
 		.from("courses")
 		.select("id, slug, title, status")
 		.eq("status", "published")
+		.eq("visibility", "public")
 		.order("created_at", { ascending: false });
 
 	if (error) return { courses: [], envRequired: false, unavailable: true };
