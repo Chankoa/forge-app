@@ -1,3 +1,4 @@
 export type CourseCapabilities = { canView: boolean; canLearn: boolean; canEdit: boolean; canPublish: boolean; canManageParticipants: boolean; };
 export type CourseRelationship = { isOwner: boolean; isEnrolled: boolean; canManageParticipants?: boolean; };
 export function resolveCourseCapabilities(relationship: CourseRelationship): CourseCapabilities { const isOwner = relationship.isOwner; return { canView: isOwner || relationship.isEnrolled, canLearn: relationship.isEnrolled, canEdit: isOwner, canPublish: isOwner, canManageParticipants: isOwner && Boolean(relationship.canManageParticipants) }; }
+export function canAccessLessonMode(capabilities: CourseCapabilities, mode: string | undefined) { return mode === "edit" ? capabilities.canEdit : capabilities.canLearn; }

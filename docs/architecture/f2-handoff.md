@@ -31,3 +31,11 @@ Publication controls, participants, invitations and the complete dual-capability
 ## DEBT
 
 Provider-backed structured proposals, source-aware authoring, source upload/ingestion, rename/reorder/delete tools and full Markdown preview remain follow-up work. Migration DB: none.
+
+## F2.1 Lesson Authoring Completion
+
+Lesson edit access now resolves the requested mode before its gate: `mode=edit` requires `canEdit` and does not require enrollment; learn mode requires `canLearn`. CourseOutlineRail preserves `?mode=edit` when selecting a lesson, so the selected authoring surface and Forge lesson context survive navigation and reload.
+
+The lesson editor now separates **Informations**, **Contenu** and deferred **Ressources**. It persists title, summary, type, duration, status, objectives and Markdown through the existing owner-gated server action. Each tab only updates fields submitted by that tab, preventing an information-only save from clearing lesson content. Publication remains deferred to F3.
+
+Authenticated save/reload validation still requires a session for the shared Supabase project; no credentials were requested or simulated.

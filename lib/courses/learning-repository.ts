@@ -7,7 +7,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 type CourseRow = { id: string; slug: string; title: string; subtitle: string | null; description: string | null; status: string | null; visibility: string | null; duration_minutes: number | null; domains: { name: string }[] | null };
 type ModuleRow = { id: string; title: string; display_order: number };
-type LessonRow = { id: string; module_id: string; slug: string; title: string; description: string | null; content: string | null; objectives: string[] | null; duration_minutes: number | null; display_order: number };
+type LessonRow = { id: string; module_id: string; slug: string; title: string; description: string | null; content: string | null; objectives: string[] | null; duration_minutes: number | null; type: string; status: string; display_order: number };
 type EnrollmentRow = { id: string; course_id: string; status: EnrollmentState["status"]; current_lesson_id: string | null };
 type ProgressRow = { lesson_id: string; completed: boolean; updated_at: string };
 
@@ -21,11 +21,11 @@ export async function getCourseDetail(courseSlug: string): Promise<CourseDetail 
   const course = courseData as CourseRow;
   const [{ data: moduleData, error: moduleError }, { data: lessonData, error: lessonError }] = await Promise.all([
     client.from("course_modules").select("id,title,display_order").eq("course_id", course.id).order("display_order"),
-    client.from("lessons").select("id,module_id,slug,title,description,content,objectives,duration_minutes,display_order").eq("course_id", course.id).order("display_order"),
+    client.from("lessons").select("id,module_id,slug,title,description,content,objectives,duration_minutes,type,status,display_order").eq("course_id", course.id).order("display_order"),
   ]);
   if (moduleError || lessonError) return null;
   const lessons = (lessonData ?? []) as LessonRow[];
-  const outline: CourseOutline = ((moduleData ?? []) as ModuleRow[]).map((module) => ({ id: module.id, moduleTitle: module.title, lessons: lessons.filter((lesson) => lesson.module_id === module.id).map((lesson): CourseLesson => ({ id: lesson.id, slug: lesson.slug, title: lesson.title, description: lesson.description, content: lesson.content, objectives: lesson.objectives ?? [], durationMinutes: lesson.duration_minutes, status: "not-started" })) }));
+  const outline: CourseOutline = ((moduleData ?? []) as ModuleRow[]).map((module) => ({ id: module.id, moduleTitle: module.title, lessons: lessons.filter((lesson) => lesson.module_id === module.id).map((lesson): CourseLesson => ({ id: lesson.id, slug: lesson.slug, title: lesson.title, description: lesson.description, content: lesson.content, objectives: lesson.objectives ?? [], durationMinutes: lesson.duration_minutes, contentType: lesson.type, publishingStatus: lesson.status, status: "not-started" })) }));
   return { ...mapSummary(course), subtitle: course.subtitle, visibility: course.visibility, outline };
 }
 

@@ -3,8 +3,8 @@ import test from "node:test";
 import { progressPercentage, resolveContinueLessonId } from "../lib/learning/progress";
 
 const outline = [{ id: "module-1", moduleTitle: "Module", lessons: [
-  { id: "lesson-1", slug: "one", title: "One", description: null, content: null, objectives: [], durationMinutes: null, status: "not-started" as const },
-  { id: "lesson-2", slug: "two", title: "Two", description: null, content: null, objectives: [], durationMinutes: null, status: "not-started" as const },
+  { id: "lesson-1", slug: "one", title: "One", description: null, content: null, objectives: [], durationMinutes: null, contentType: "reading", publishingStatus: "draft", status: "not-started" as const },
+  { id: "lesson-2", slug: "two", title: "Two", description: null, content: null, objectives: [], durationMinutes: null, contentType: "reading", publishingStatus: "draft", status: "not-started" as const },
 ] }];
 
 test("resumes the current incomplete lesson", () => assert.equal(resolveContinueLessonId(outline, [], "lesson-2"), "lesson-2"));
