@@ -7,7 +7,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 type CourseRow = { id: string; slug: string; title: string; subtitle: string | null; description: string | null; status: string | null; visibility: string | null; duration_minutes: number | null; domains: { name: string }[] | null };
 type ModuleRow = { id: string; title: string; display_order: number };
-type LessonRow = { id: string; module_id: string; slug: string; title: string; description: string | null; content: string | null; objectives: string[] | null; duration_minutes: number | null; display_order: number };
+type LessonRow = { id: string; module_id: string; slug: string; title: string; description: string | null; content: string | null; objectives: string[] | null; duration_minutes: number | null; type: string; status: string; display_order: number };
 type EnrollmentRow = { id: string; course_id: string; status: EnrollmentState["status"]; current_lesson_id: string | null };
 type ProgressRow = { lesson_id: string; completed: boolean; updated_at: string };
 
@@ -21,11 +21,11 @@ export async function getCourseDetail(courseSlug: string): Promise<CourseDetail 
   const course = courseData as CourseRow;
   const [{ data: moduleData, error: moduleError }, { data: lessonData, error: lessonError }] = await Promise.all([
     client.from("course_modules").select("id,title,display_order").eq("course_id", course.id).order("display_order"),
-    client.from("lessons").select("id,module_id,slug,title,description,content,objectives,duration_minutes,display_order").eq("course_id", course.id).order("display_order"),
+    client.from("lessons").select("id,module_id,slug,title,description,content,objectives,duration_minutes,type,status,display_order").eq("course_id", course.id).order("display_order"),
   ]);
   if (moduleError || lessonError) return null;
   const lessons = (lessonData ?? []) as LessonRow[];
-  const outline: CourseOutline = ((moduleData ?? []) as ModuleRow[]).map((module) => ({ id: module.id, moduleTitle: module.title, lessons: lessons.filter((lesson) => lesson.module_id === module.id).map((lesson): CourseLesson => ({ id: lesson.id, slug: lesson.slug, title: lesson.title, description: lesson.description, content: lesson.content, objectives: lesson.objectives ?? [], durationMinutes: lesson.duration_minutes, status: "not-started" })) }));
+  const outline: CourseOutline = ((moduleData ?? []) as ModuleRow[]).map((module) => ({ id: module.id, moduleTitle: module.title, lessons: lessons.filter((lesson) => lesson.module_id === module.id).map((lesson): CourseLesson => ({ id: lesson.id, slug: lesson.slug, title: lesson.title, description: lesson.description, content: lesson.content, objectives: lesson.objectives ?? [], durationMinutes: lesson.duration_minutes, contentType: lesson.type, publishingStatus: lesson.status, status: "not-started" })) }));
   return { ...mapSummary(course), subtitle: course.subtitle, visibility: course.visibility, outline };
 }
 
@@ -50,4 +50,22 @@ export async function listMyLearningCourses(): Promise<Array<{ course: CourseDet
   const courseIds = Array.from(new Set((enrollments ?? []).map((item: { course_id: string }) => item.course_id)));
   const details = await Promise.all(courseIds.map(async (courseId) => { const { data } = await client.from("courses").select("slug").eq("id", courseId).maybeSingle(); return data?.slug ? getCourseDetail(data.slug) : null; }));
   return (await Promise.all(details.filter((detail): detail is CourseDetail => Boolean(detail)).map(async (course) => ({ course, state: await getLearningState(course) }))));
+}
+
+export async function listMyCourses(): Promise<Array<{ course: CourseDetail; state: LearningState; isOwner: boolean }>> {
+  const client = await createServerSupabaseClient();
+  if (!client) return [];
+  const { data: { user } } = await client.auth.getUser();
+  if (!user) return [];
+  const [{ data: enrollments }, { data: authored }] = await Promise.all([
+    client.from("enrollments").select("course_id"),
+    client.from("courses").select("id,slug").eq("teacher_id", user.id),
+  ]);
+  const authoredById = new Map((authored ?? []).map((course: { id: string; slug: string }) => [course.id, course.slug]));
+  const courseIds = new Set([...(enrollments ?? []).map((item: { course_id: string }) => item.course_id), ...authoredById.keys()]);
+  const details = await Promise.all([...courseIds].map(async (courseId) => {
+    const slug = authoredById.get(courseId) ?? (await client.from("courses").select("slug").eq("id", courseId).maybeSingle()).data?.slug;
+    return slug ? getCourseDetail(slug) : null;
+  }));
+  return Promise.all(details.filter((course): course is CourseDetail => Boolean(course)).map(async (course) => ({ course, state: await getLearningState(course), isOwner: authoredById.has(course.id) })));
 }
