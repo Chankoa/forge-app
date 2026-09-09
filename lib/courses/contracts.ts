@@ -1,2 +1,4 @@
-export type CourseSummary = { id: string; slug: string; title: string; description: string | null; domain: string | null; status: string | null; lessonCount?: number; };
-export type CourseOutline = { moduleTitle: string; lessons: { slug: string; title: string }[] }[];
+export type CourseSummary = { id: string; slug: string; title: string; description: string | null; domain: string | null; status: string | null; lessonCount?: number; durationMinutes?: number | null; };
+export type CourseLesson = { id: string; slug: string; title: string; description: string | null; content: string | null; objectives: string[]; durationMinutes: number | null; status: "not-started" | "in-progress" | "completed"; };
+export type CourseOutline = { id: string; moduleTitle: string; lessons: CourseLesson[] }[];
+export type CourseDetail = CourseSummary & { subtitle: string | null; visibility: string | null; outline: CourseOutline; };
