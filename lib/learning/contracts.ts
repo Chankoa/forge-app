@@ -1,0 +1,3 @@
+export type EnrollmentState = { id: string; courseId: string; status: "not-started" | "in-progress" | "completed"; currentLessonId: string | null; };
+export type LessonProgress = { lessonId: string; completed: boolean; updatedAt: string; };
+export type LearningState = { enrollment: EnrollmentState | null; progress: LessonProgress[]; completedLessonIds: Set<string>; percentage: number; continueLessonId: string | null; };
