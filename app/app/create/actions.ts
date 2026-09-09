@@ -1,0 +1,27 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { courseMetadataSchema, lessonSchema, moduleSchema } from "@/lib/forge/authoring-contracts";
+
+function slugify(value: string) { return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 72) || "nouveau-parcours"; }
+async function authorClient() { const client = await createServerSupabaseClient(); if (!client) throw new Error("Supabase local n'est pas configuré."); const { data: { user } } = await client.auth.getUser(); if (!user) throw new Error("Votre session a expiré. Connectez-vous à nouveau."); return { client, user }; }
+async function requireOwner(courseId: string) { const { client, user } = await authorClient(); const { data: course } = await client.from("courses").select("id,teacher_id").eq("id", courseId).maybeSingle(); if (!course || course.teacher_id !== user.id) throw new Error("Vous ne pouvez pas modifier ce parcours."); return { client, user }; }
+
+export async function createCourseAction(formData: FormData) {
+  const { client, user } = await authorClient(); const parsed = courseMetadataSchema.safeParse({ title: formData.get("title"), description: formData.get("description"), subtitle: formData.get("subtitle") || undefined }); const domainId = String(formData.get("domainId") || "");
+  if (!parsed.success || !domainId) throw new Error("Titre, description et domaine sont requis.");
+  const baseSlug = slugify(parsed.data.title); let slug = baseSlug;
+  for (let suffix = 2; suffix < 20; suffix += 1) { const { data } = await client.from("courses").select("id").eq("slug", slug).maybeSingle(); if (!data) break; slug = `${baseSlug}-${suffix}`; }
+  const { data: course, error } = await client.from("courses").insert({ teacher_id: user.id, domain_id: domainId, slug, title: parsed.data.title, subtitle: parsed.data.subtitle || null, description: parsed.data.description, status: "draft", visibility: "private", availability: "preview" }).select("id,slug").single();
+  if (error || !course) throw new Error("Le parcours n'a pas pu être créé.");
+  redirect(`/app/courses/${course.slug}?mode=edit`);
+}
+
+export async function saveCourseMetadataAction(courseId: string, formData: FormData) { const { client } = await requireOwner(courseId); const parsed = courseMetadataSchema.safeParse({ title: formData.get("title"), description: formData.get("description"), subtitle: formData.get("subtitle") || undefined }); if (!parsed.success) throw new Error("Les informations du parcours sont invalides."); const { error } = await client.from("courses").update({ title: parsed.data.title, description: parsed.data.description, subtitle: parsed.data.subtitle || null }).eq("id", courseId); if (error) throw new Error("Les informations n'ont pas pu être sauvegardées."); }
+
+export async function addModuleAction(courseId: string, formData: FormData) { const { client } = await requireOwner(courseId); const parsed = moduleSchema.safeParse({ title: formData.get("title") }); if (!parsed.success) throw new Error("Le titre du module est requis."); const { count } = await client.from("course_modules").select("id", { count: "exact", head: true }).eq("course_id", courseId); const { error } = await client.from("course_modules").insert({ course_id: courseId, slug: `${slugify(parsed.data.title)}-${Date.now()}`, title: parsed.data.title, display_order: count ?? 0, status: "draft" }); if (error) throw new Error("Le module n'a pas pu être ajouté."); }
+
+export async function addLessonAction(courseId: string, moduleId: string, formData: FormData) { const { client } = await requireOwner(courseId); const parsed = lessonSchema.safeParse({ title: formData.get("title"), description: formData.get("description") || undefined }); if (!parsed.success) throw new Error("Le titre de la leçon est requis."); const { count } = await client.from("lessons").select("id", { count: "exact", head: true }).eq("module_id", moduleId); const { error } = await client.from("lessons").insert({ course_id: courseId, module_id: moduleId, slug: `${slugify(parsed.data.title)}-${Date.now()}`, title: parsed.data.title, description: parsed.data.description || null, display_order: count ?? 0, status: "draft", type: "reading", objectives: [] }); if (error) throw new Error("La leçon n'a pas pu être ajoutée."); }
+
+export async function saveLessonAction(courseId: string, lessonId: string, formData: FormData) { const { client } = await requireOwner(courseId); const parsed = lessonSchema.safeParse({ title: formData.get("title"), description: formData.get("description") || undefined, content: formData.get("content") || undefined, objectives: String(formData.get("objectives") || "").split("\n").map((item) => item.trim()).filter(Boolean) }); if (!parsed.success) throw new Error("Les informations de la leçon sont invalides."); const { error } = await client.from("lessons").update({ title: parsed.data.title, description: parsed.data.description || null, content: parsed.data.content || null, objectives: parsed.data.objectives ?? [] }).eq("id", lessonId).eq("course_id", courseId); if (error) throw new Error("La leçon n'a pas pu être sauvegardée."); }

@@ -51,3 +51,21 @@ export async function listMyLearningCourses(): Promise<Array<{ course: CourseDet
   const details = await Promise.all(courseIds.map(async (courseId) => { const { data } = await client.from("courses").select("slug").eq("id", courseId).maybeSingle(); return data?.slug ? getCourseDetail(data.slug) : null; }));
   return (await Promise.all(details.filter((detail): detail is CourseDetail => Boolean(detail)).map(async (course) => ({ course, state: await getLearningState(course) }))));
 }
+
+export async function listMyCourses(): Promise<Array<{ course: CourseDetail; state: LearningState; isOwner: boolean }>> {
+  const client = await createServerSupabaseClient();
+  if (!client) return [];
+  const { data: { user } } = await client.auth.getUser();
+  if (!user) return [];
+  const [{ data: enrollments }, { data: authored }] = await Promise.all([
+    client.from("enrollments").select("course_id"),
+    client.from("courses").select("id,slug").eq("teacher_id", user.id),
+  ]);
+  const authoredById = new Map((authored ?? []).map((course: { id: string; slug: string }) => [course.id, course.slug]));
+  const courseIds = new Set([...(enrollments ?? []).map((item: { course_id: string }) => item.course_id), ...authoredById.keys()]);
+  const details = await Promise.all([...courseIds].map(async (courseId) => {
+    const slug = authoredById.get(courseId) ?? (await client.from("courses").select("slug").eq("id", courseId).maybeSingle()).data?.slug;
+    return slug ? getCourseDetail(slug) : null;
+  }));
+  return Promise.all(details.filter((course): course is CourseDetail => Boolean(course)).map(async (course) => ({ course, state: await getLearningState(course), isOwner: authoredById.has(course.id) })));
+}
