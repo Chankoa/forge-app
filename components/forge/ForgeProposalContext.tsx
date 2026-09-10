@@ -1,36 +1,18 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import type { ForgeResult } from "@/lib/forge/contracts";
 
+type ForgeProposalResult = Extract<ForgeResult, { proposal: unknown }>;
 type ForgeProposalContextValue = {
-  proposal: Extract<ForgeResult, { mode: "edit" }> | null;
-  setProposal(proposal: Extract<ForgeResult, { mode: "edit" }> | null): void;
+  proposal: ForgeProposalResult | null;
+  setProposal(proposal: ForgeProposalResult | null): void;
 };
 
 const ForgeProposalContext = createContext<ForgeProposalContextValue | null>(null);
 
 export function ForgeProposalProvider({ children }: { children: ReactNode }) {
-  const [proposal, setProposal] = useState<Extract<ForgeResult, { mode: "edit" }> | null>(null);
-  useEffect(() => {
-    if (!proposal) return;
-    const field = proposal.proposal.field;
-    if (field === "outline") return;
-    const tabIndex = field === "content" ? 1 : 0;
-    document.querySelectorAll<HTMLButtonElement>(`[role="tab"]`)[tabIndex]?.click();
-    requestAnimationFrame(() => {
-      const name = field === "content" ? "content" : field === "description" ? "description" : "objectives";
-      const target = document.querySelector<HTMLTextAreaElement>(`textarea[name="${name}"]`);
-      const value = field === "objectives" ? proposal.proposal.objectives?.join("\n") : proposal.proposal.suggestedContent;
-      if (target && value) {
-        const setValue = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
-        setValue?.call(target, value);
-        target.dispatchEvent(new Event("input", { bubbles: true }));
-        target.focus();
-      }
-      setProposal(null);
-    });
-  }, [proposal]);
+  const [proposal, setProposal] = useState<ForgeProposalResult | null>(null);
   return <ForgeProposalContext value={{ proposal, setProposal }}>{children}</ForgeProposalContext>;
 }
 

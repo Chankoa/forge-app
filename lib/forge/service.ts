@@ -30,6 +30,12 @@ export async function runForge(raw: unknown, deps: ForgeDependencies): Promise<F
       result = { ...common, mode: "learn", kind: "answer" };
     } else {
       const field = request.intent === "objectives" ? "objectives" : request.intent === "structure" ? "outline" : request.intent === "summarize" ? "description" : "content";
+      if (request.intent === "ask") {
+        if (value.suggestedContent !== null && value.objectives !== null) throw new ForgeError("invalid_result");
+        if (value.suggestedContent === null && value.objectives === null) result = { ...common, mode: "edit", kind: "answer" };
+        else result = { ...common, mode: "edit", kind: "answer_with_proposal", proposal: { target: { courseId: context.course.id, lessonId: context.lesson?.id }, field: value.objectives ? "objectives" : "content", suggestedContent: value.suggestedContent, objectives: value.objectives, application: "explicit_only" } };
+        return { ok: true, result };
+      }
       if (field === "objectives" ? !value.objectives?.length || value.suggestedContent !== null : !value.suggestedContent || value.objectives !== null) throw new ForgeError("invalid_result");
       if (field === "description" && value.suggestedContent!.length > (context.lesson ? 1000 : 4000)) throw new ForgeError("invalid_result");
       result = { ...common, mode: "edit", kind: "proposal", proposal: { target: { courseId: context.course.id, lessonId: context.lesson?.id }, field, suggestedContent: value.suggestedContent, objectives: value.objectives, application: "explicit_only" } };

@@ -3,8 +3,9 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { ForgeError, forgeRequestSchema, type ForgeProviderOutput } from "../lib/forge/contracts";
 import { buildForgeContext, type ForgeReader } from "../lib/forge/context";
-import { parseForgeConfig } from "../lib/forge/config";
+import { getForgeConfigDiagnostic, parseForgeConfig } from "../lib/forge/config";
 import { createForgeRateLimiter } from "../lib/forge/rate-limit";
+import { classifyProviderError } from "../lib/forge/provider-errors";
 import { runForge, type ForgeDependencies } from "../lib/forge/service";
 import type { ForgeSourceRow } from "../lib/forge/sources";
 
@@ -48,6 +49,22 @@ test("course scope only allows explicit overview intentions", () => {
   assert.equal(forgeRequestSchema.safeParse({ mode: "learn", intent: "quiz", courseSlug: "course" }).success, false);
   assert.equal(forgeRequestSchema.safeParse({ mode: "edit", intent: "improve", courseSlug: "course" }).success, false);
   assert.equal(forgeRequestSchema.safeParse({ mode: "edit", intent: "structure", courseSlug: "course" }).success, true);
+});
+test("free question is allowed in Learn and Edit without an automatic proposal", async () => {
+  const { deps } = fixture();
+  const learn = await runForge({ ...request, intent: "ask", input: "De quoi parle cette leçon ?" }, deps);
+  assert.ok(learn.ok && learn.result.mode === "learn");
+  deps.provider.generate = async () => ({ output: { text: "Conseil", suggestedContent: null, objectives: null }, finishReason: "stop" });
+  const edit = await runForge({ ...request, mode: "edit", intent: "ask", input: "Que puis-je améliorer ?" }, deps);
+  assert.ok(edit.ok && edit.result.mode === "edit" && edit.result.kind === "answer");
+});
+test("provider errors are classified without exposing provider details", () => {
+  assert.equal(classifyProviderError({ statusCode: 401 }).code, "provider_auth");
+  assert.equal(classifyProviderError({ statusCode: 404 }).code, "provider_not_found");
+  assert.equal(classifyProviderError({ statusCode: 429 }).code, "rate_limited");
+  assert.equal(classifyProviderError(new TypeError("network")).code, "provider_network");
+  assert.equal(classifyProviderError(new Error("unknown")).code, "provider_error");
+  assert.equal(classifyProviderError(new Error("late"), true).code, "timeout");
 });
 test("context reload includes actual lesson and module", async () => {
   const { deps } = fixture();
@@ -114,7 +131,7 @@ test("edit is proposal only and read port has no writes", async () => {
   const { deps } = fixture();
   editOutput(deps);
   const r = await runForge({ ...request, mode: "edit", intent: "improve" }, deps);
-  assert.ok(r.ok && r.result.mode === "edit");
+  assert.ok(r.ok && r.result.mode === "edit" && r.result.kind === "proposal");
   assert.equal(r.result.kind, "proposal");
   assert.equal(r.result.proposal.application, "explicit_only");
   assert.deepEqual(r.result.proposal.target, { courseId: "course-id", lessonId: "lesson-id" });
@@ -129,7 +146,7 @@ test("objectives proposal maps to objectives, summary has save-compatible limit"
   const { deps } = fixture();
   editOutput(deps, { text: "Objectifs", suggestedContent: null, objectives: ["Expliquer"] });
   const r = await runForge({ ...request, mode: "edit", intent: "objectives" }, deps);
-  assert.ok(r.ok && r.result.mode === "edit");
+  assert.ok(r.ok && r.result.mode === "edit" && r.result.kind === "proposal");
   assert.equal(r.result.proposal.field, "objectives");
   editOutput(deps, { text: "Résumé", suggestedContent: "x".repeat(1001), objectives: null });
   assert.deepEqual(await runForge({ ...request, mode: "edit", intent: "summarize" }, deps), { ok: false, error: "invalid_result" });
@@ -140,6 +157,11 @@ test("missing provider controlled, no call or quota consumed", async () => {
   deps.provider.availability = "not_configured";
   assert.deepEqual(await runForge(request, deps), { ok: false, error: "not_configured" });
   assert.equal(calls.length, 0);
+});
+test("safe provider diagnostic exposes configuration state, never the API key", () => {
+  const diagnostic = getForgeConfigDiagnostic({ AI_PROVIDER: "openai", AI_MODEL: "test-model", AI_API_KEY: "private-value", AI_BASE_URL: "https://example.test/v1", AI_TIMEOUT_MS: "1200" });
+  assert.deepEqual(diagnostic, { providerConfigured: true, providerName: "openai", model: "test-model", baseUrlConfigured: true, apiKeyConfigured: true, timeout: 1200 });
+  assert.ok(!Object.values(diagnostic).includes("private-value"));
 });
 for (const code of ["timeout", "rate_limited", "provider_error", "invalid_result"] as const) test(`controlled ${code}`, async () => {
   const { deps } = fixture();

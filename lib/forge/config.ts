@@ -13,10 +13,15 @@ export function parseForgeConfig(env: Record<string, string | undefined>) {
   let validURL = false;
   try { const url = new URL(baseURL); validURL = ["http:", "https:"].includes(url.protocol) && !url.username && !url.password && !url.search && !url.hash; } catch {}
   const availability: ForgeAvailability = apiKey && model && validURL && ["openai", "openai-compatible", "ai-sdk"].includes(provider) ? "configured" : "not_configured";
-  return { apiKey, model, baseURL, availability,
+  return { apiKey, model, baseURL, validURL, availability,
     timeoutMs: number("AI_TIMEOUT_MS", 60000, 1000, 120000),
     maxInputChars: number("FORGE_AI_MAX_INPUT_CHARS", 30000, 8000, 60000),
     maxOutputTokens: number("FORGE_AI_MAX_OUTPUT_TOKENS", 4000, 256, 8000),
     rateLimitPerHour: number("FORGE_AI_RATE_LIMIT_PER_HOUR", 20, 1, 100),
   };
+}
+
+export function getForgeConfigDiagnostic(env: Record<string, string | undefined>) {
+  const config = parseForgeConfig(env);
+  return { providerConfigured: config.availability === "configured", providerName: env.AI_PROVIDER?.trim() || "openai-compatible", model: config.model ?? null, baseUrlConfigured: config.validURL, apiKeyConfigured: Boolean(config.apiKey), timeout: config.timeoutMs };
 }

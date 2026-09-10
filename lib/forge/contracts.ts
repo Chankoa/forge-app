@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 export const forgeIntents = {
-  learn: ["explain", "clarify", "rephrase", "example", "quiz"],
-  edit: ["structure", "improve", "rephrase", "simplify", "summarize", "objectives"],
+  learn: ["explain", "clarify", "rephrase", "example", "quiz", "ask"],
+  edit: ["structure", "improve", "rephrase", "simplify", "summarize", "objectives", "ask"],
 } as const;
 export type ForgeMode = keyof typeof forgeIntents;
 export type ForgeIntent = (typeof forgeIntents)[ForgeMode][number];
@@ -19,7 +19,7 @@ export const forgeRequestSchema = z.discriminatedUnion("mode", [
 ]).refine((r) => Boolean(r.lessonSlug) || (r.mode === "learn" ? r.intent === "explain" : ["structure", "summarize", "objectives"].includes(r.intent)), { message: "Cette intention nécessite une leçon." });
 export type ForgeRequest = z.infer<typeof forgeRequestSchema>;
 export type ForgeAvailability = "configured" | "not_configured";
-export type ForgeErrorCode = "invalid_request" | "unauthenticated" | "forbidden" | "context_unavailable" | "source_unavailable" | "not_configured" | "provider_error" | "timeout" | "rate_limited" | "invalid_result";
+export type ForgeErrorCode = "invalid_request" | "unauthenticated" | "forbidden" | "context_unavailable" | "source_unavailable" | "not_configured" | "provider_auth" | "provider_not_found" | "provider_network" | "provider_error" | "timeout" | "rate_limited" | "invalid_result";
 export class ForgeError extends Error {
   constructor(public readonly code: ForgeErrorCode) { super(code); }
 }
@@ -42,7 +42,10 @@ export const providerOutputSchema = z.object({
 }).strict();
 export type ForgeProviderOutput = z.infer<typeof providerOutputSchema>;
 type ResultBase = { intent: ForgeIntent; text: string; sourcesUsed: Array<Pick<ForgeSource, "id" | "title">>; metadata: { warnings: ForgeWarning[]; finishReason: "stop" } };
+type EditProposal = { target: { courseId: string; lessonId?: string }; field: "content" | "description" | "objectives" | "outline"; suggestedContent: string | null; objectives: string[] | null; application: "explicit_only" };
 export type ForgeResult =
   | (ResultBase & { mode: "learn"; kind: "answer" })
-  | (ResultBase & { mode: "edit"; kind: "proposal"; proposal: { target: { courseId: string; lessonId?: string }; field: "content" | "description" | "objectives" | "outline"; suggestedContent: string | null; objectives: string[] | null; application: "explicit_only" } });
+  | (ResultBase & { mode: "edit"; kind: "answer" })
+  | (ResultBase & { mode: "edit"; kind: "proposal"; proposal: EditProposal })
+  | (ResultBase & { mode: "edit"; kind: "answer_with_proposal"; proposal: EditProposal });
 export type ForgeResponse = { ok: true; result: ForgeResult } | { ok: false; error: ForgeErrorCode };

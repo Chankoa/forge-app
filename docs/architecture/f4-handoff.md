@@ -77,3 +77,14 @@ Yes, for real provider smoke.
 
 - Replace the local proposal bridge when the F2 editor is refactored to controlled draft state.
 - Add a sanitized shared Markdown renderer for richer lesson/proposal previews.
+
+## F4.1 REAL E2E CLOSURE
+
+- Current local provider cause: `.env.local` has no non-comment assignments, so no recognized API key is available to the Forge adapter. No real provider call can be made until server-side `OPENAI_API_KEY` or `AI_API_KEY` and a model are configured and Next is restarted. No secret value was read or logged.
+- `getForgeConfigDiagnostic` reports only configuration booleans, provider name, model and timeout. Provider failures now distinguish authentication (401/403), endpoint/model missing (404), quota (429), timeout, network, invalid structured output and unknown provider failure. Server logs only the stable error code.
+- Free question now uses the common `ask` intent in Learn and Edit. Edit `ask` produces review-only guidance with no applicable field value.
+- Forge rail now has selected pending feedback, `aria-pressed`, status text, an accessible real collapse/reopen control and Escape-to-close. Desktop collapse releases the main column; mobile mode links wrap instead of clipping.
+- Course navigation now exposes `Mes parcours` separately from the course overview and derives active mode from the rendered route/mode through `aria-current`.
+- The lesson Resources tab now lists actual authorized sources and supports owner TXT/MD upload to private `course-sources`. The uploaded UTF-8 text is stored in the existing `extracted_content` field with `ready` status; no migration is required. PDF extraction remains deferred.
+- Browser check: unauthenticated local shell at 390px has no global horizontal overflow. Authenticated Learn/Edit, Apply/Save, source-aware provider, dark mode and course-route responsive smoke still require a shared authenticated browser session and AI configuration.
+- Tests after F4.1: 64 passed. No commit, push or deploy was performed for F4.1.
