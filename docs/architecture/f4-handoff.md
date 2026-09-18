@@ -73,6 +73,16 @@ Yes, for real provider smoke.
 - TXT/MD upload: no upload UI was added because a real safe upload smoke was not available.
 - Distributed rate limiting and citation-level source attribution.
 
+## F4.3a Upload Follow-up
+
+TXT/MD upload now normalizes an omitted browser MIME type from the `.txt` or `.md` extension and reports safe, classified Storage failures. The private `course-sources` bucket remains the only target; the authenticated SSR client and existing owner RLS policies remain unchanged. Storage success followed by `course_sources` insert failure attempts a rollback delete. Final authenticated Supabase and provider witness smoke remains required before F4 closure.
+
+## F4.3b Windows MIME Closure
+
+Root cause confirmed in an authenticated Windows browser session: selected Markdown can reach the server as `application/octet-stream`, which the private bucket correctly rejects with HTTP 415. The upload action now ignores browser MIME values after strict `.md`/`.txt` extension validation, rebuilds the upload body as a normalized `Blob`, and sends `text/markdown` for MD or `text/plain` for TXT to Storage and `course_sources`. Rebuilding the Blob is necessary because Supabase Storage ignores the upload option for a `File` body's intrinsic MIME. The bucket allowlist is unchanged; `application/octet-stream` is not accepted.
+
+Authenticated smoke passed for a new Markdown source and a new TXT source: both uploaded, were inserted as `ready` with extracted text, appeared immediately, and were available to Forge. The Markdown source selected in Forge returned its unique `NOVA-82` witness through the real provider, with `sourcesUsed` containing only that selected source. No console, hydration, or React runtime errors were observed during these flows.
+
 ## DEBT
 
 - Replace the local proposal bridge when the F2 editor is refactored to controlled draft state.

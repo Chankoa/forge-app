@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { assertForgeAccess } from "@/lib/forge/context";
+import { classifyStorageUploadError, normalizeTextFile, safeUploadDiagnostic, sourceUploadMessage } from "@/lib/forge/source-upload";
 
 const requestSchema = z.object({
   courseSlug: z.string().trim().min(1).max(180).regex(/^[a-zA-Z0-9_-]+$/),
@@ -14,7 +15,7 @@ export type ForgeSourceOption = { id: string; title: string; type: string; usabl
 
 const sourceFileSchema = z.object({
   name: z.string().trim().min(1).max(180),
-  type: z.enum(["text/plain", "text/markdown"]),
+  type: z.string().max(120),
   size: z.number().int().positive().max(10 * 1024 * 1024),
 });
 
@@ -46,9 +47,13 @@ export async function listForgeSourcesAction(raw: unknown): Promise<ForgeSourceO
 export async function uploadForgeSourceAction(courseSlug: string, formData: FormData): Promise<{ ok: true } | { ok: false; error: string }> {
   const file = formData.get("source");
   if (!(file instanceof File)) return { ok: false, error: "Choisissez un fichier TXT ou MD." };
-  const parsed = sourceFileSchema.safeParse({ name: file.name, type: file.type, size: file.size });
-  if (!parsed.success || !/\.(txt|md)$/i.test(file.name)) return { ok: false, error: "Forge accepte uniquement les fichiers TXT et MD de moins de 10 Mo." };
-  const content = (await file.text()).replace(/\u0000/g, "").trim();
+  const normalized = normalizeTextFile(file.name);
+  if (!normalized.ok) return { ok: false, error: sourceUploadMessage(normalized.code) };
+  const mimeType = normalized.mimeType;
+  const parsed = sourceFileSchema.safeParse({ name: file.name, type: mimeType, size: file.size });
+  if (!parsed.success) return { ok: false, error: file.size > 10 * 1024 * 1024 ? sourceUploadMessage("file_too_large") : sourceUploadMessage("unsupported_type") };
+  let content: string;
+  try { content = (await file.text()).replace(/\u0000/g, "").trim(); } catch { return { ok: false, error: sourceUploadMessage("invalid_text_file") }; }
   if (!content) return { ok: false, error: "Le fichier ne contient aucun texte exploitable." };
   try {
     const client = await createServerSupabaseClient();
@@ -57,15 +62,17 @@ export async function uploadForgeSourceAction(courseSlug: string, formData: Form
     if (!user) return { ok: false, error: "Votre session a expiré." };
     const { data: course } = await client.from("courses").select("id,teacher_id").eq("slug", courseSlug).maybeSingle();
     if (!course || course.teacher_id !== user.id) return { ok: false, error: "Vous ne pouvez pas ajouter une source à ce parcours." };
-    const type = file.type === "text/markdown" ? "markdown" : "text";
+    const type = mimeType === "text/markdown" ? "markdown" : "text";
     const path = `${user.id}/${course.id}/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
-    const { error: uploadError } = await client.storage.from("course-sources").upload(path, file, { contentType: file.type, upsert: false });
-    if (uploadError) return { ok: false, error: "Le fichier n'a pas pu être téléversé." };
-    const { error: insertError } = await client.from("course_sources").insert({ teacher_id: user.id, course_id: course.id, title: file.name, type, file_name: file.name, storage_bucket: "course-sources", storage_path: path, mime_type: file.type, file_size: file.size, metadata: {}, source_kind: "file", extracted_content: content, extraction_status: "ready" });
-    if (insertError) { await client.storage.from("course-sources").remove([path]); return { ok: false, error: "La source n'a pas pu être enregistrée." }; }
+    const uploadBody = new Blob([file], { type: mimeType });
+    const { error: uploadError } = await client.storage.from("course-sources").upload(path, uploadBody, { contentType: mimeType, upsert: false });
+    if (uploadError) { const code = classifyStorageUploadError(uploadError); console.error("[forge] source upload failed", safeUploadDiagnostic("storage.upload", uploadError, "course-sources", path, true, true)); return { ok: false, error: sourceUploadMessage(code) }; }
+    const { error: insertError } = await client.from("course_sources").insert({ teacher_id: user.id, course_id: course.id, title: file.name, type, file_name: file.name, storage_bucket: "course-sources", storage_path: path, mime_type: mimeType, file_size: file.size, metadata: {}, source_kind: "file", extracted_content: content, extraction_status: "ready" });
+    if (insertError) { const { error: rollbackError } = await client.storage.from("course-sources").remove([path]); console.error("[forge] source insert failed", safeUploadDiagnostic("course_sources.insert", insertError, "course-sources", path, true, true)); if (rollbackError) console.error("[forge] source rollback failed", safeUploadDiagnostic("storage.remove", rollbackError, "course-sources", path, true, true)); return { ok: false, error: sourceUploadMessage("source_insert_failed") }; }
     revalidatePath(`/app/courses/${courseSlug}`);
     return { ok: true };
-  } catch {
-    return { ok: false, error: "La source n'a pas pu être ajoutée." };
+  } catch (error) {
+    console.error("[forge] source upload failed", safeUploadDiagnostic("source-upload", error, "course-sources", "not-created", false, false));
+    return { ok: false, error: sourceUploadMessage("unknown") };
   }
 }
