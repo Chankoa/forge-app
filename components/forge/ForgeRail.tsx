@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { WorkspaceRail } from "@/components/course/WorkspacePanels";
 import { useEffect, useState, useTransition } from "react";
 import { generateForgeAction } from "@/app/app/forge/actions";
 import { listForgeSourcesAction, type ForgeSourceOption } from "@/app/app/forge/source-actions";
@@ -14,7 +14,7 @@ const intents: Record<"learn" | "edit", Array<{ label: string; value: ForgeInten
 const errors: Record<string, string> = { invalid_request: "La demande Forge est invalide.", unauthenticated: "Votre session a expiré.", forbidden: "Forge n'est pas disponible dans ce contexte.", context_unavailable: "Le contexte de la leçon est indisponible.", source_unavailable: "Une source sélectionnée n'est plus disponible.", not_configured: "La configuration Forge est incomplète.", provider_auth: "L'authentification du provider IA a été refusée.", provider_not_found: "Le modèle ou l'endpoint IA est introuvable.", provider_network: "Le provider IA est inaccessible.", provider_error: "Le provider IA a rencontré une erreur non classée.", timeout: "Forge a dépassé le délai de réponse.", rate_limited: "La limite de générations est atteinte. Réessayez plus tard.", invalid_result: "Forge a reçu une réponse provider invalide." };
 
 export function ForgeRail({ context, availability }: { context: ForgeRailContext; availability: ForgeAvailability }) {
-  const [expanded, setExpanded] = useState(true);
+
   const [pending, startTransition] = useTransition();
   const [activeIntent, setActiveIntent] = useState<ForgeIntent | null>(null);
   const [result, setResult] = useState<ForgeResult | null>(null);
@@ -31,11 +31,7 @@ export function ForgeRail({ context, availability }: { context: ForgeRailContext
     window.addEventListener("forge-sources-changed", load);
     return () => { active = false; window.removeEventListener("forge-sources-changed", load); };
   }, [context.courseSlug, context.mode]);
-  useEffect(() => {
-    const close = (event: KeyboardEvent) => { if (event.key === "Escape") setExpanded(false); };
-    window.addEventListener("keydown", close);
-    return () => window.removeEventListener("keydown", close);
-  }, []);
+
 
   const run = (intent: ForgeIntent, freeInput?: string) => startTransition(async () => {
     setActiveIntent(intent); setError(null); setResult(null); setProposal(null);
@@ -47,9 +43,7 @@ export function ForgeRail({ context, availability }: { context: ForgeRailContext
   const proposal = result?.mode === "edit" && "proposal" in result ? result : null;
   const toggleSource = (id: string) => setSourceIds((ids) => ids.includes(id) ? ids.filter((value) => value !== id) : [...ids, id]);
 
-  return <aside className={`forge-rail${expanded ? "" : " forge-rail--collapsed"}`} aria-label="Forge">
-    <div className="rail-header"><p className="eyebrow"><Sparkles size={15} /> Forge</p><button className="icon-button" aria-label={expanded ? "Réduire Forge" : "Ouvrir Forge"} aria-expanded={expanded} onClick={() => setExpanded((value) => !value)}>{expanded ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}</button></div>
-    {expanded && <>
+  return <WorkspaceRail panel="forge">
       <h2>Vous aider à {context.mode === "learn" ? "comprendre" : "créer et améliorer"}</h2><p className="caption">Contexte enregistré : {context.lessonTitle ?? context.courseTitle}</p>
       <div className="forge-intents">{intents[context.mode].map((intent) => <button type="button" aria-pressed={activeIntent === intent.value} className={activeIntent === intent.value ? "is-active" : undefined} disabled={Boolean(pending || availability === "not_configured")} key={intent.value} onClick={() => run(intent.value)}>{activeIntent === intent.value ? "Forge prépare..." : intent.label}</button>)}</div>
       <label className="forge-question">Question libre<textarea value={input} onChange={(event) => setInput(event.target.value)} maxLength={2000} placeholder="Posez une question sur cette leçon..." /><button type="button" aria-pressed={activeIntent === "ask"} className={activeIntent === "ask" ? "is-active" : undefined} disabled={Boolean(pending || availability === "not_configured" || !input.trim())} onClick={() => run("ask", input)}>{activeIntent === "ask" ? "Forge prépare..." : "Envoyer"}</button></label>
@@ -57,6 +51,5 @@ export function ForgeRail({ context, availability }: { context: ForgeRailContext
       {pending && <p className="caption" role="status">Forge prépare une réponse...</p>}{error && <p className="form-error" role="alert">{error}</p>}
       {result && <section className="forge-result"><p className="eyebrow">{proposal ? "Proposition Forge" : "Réponse Forge"}</p><div className="forge-result__text" tabIndex={0}>{result.text}</div>{proposal?.proposal.suggestedContent && <><h3>{proposal.proposal.field === "description" ? "Proposition de résumé" : "Proposition de contenu"}</h3><pre>{proposal.proposal.suggestedContent}</pre></>}{proposal?.proposal.objectives && <ul>{proposal.proposal.objectives.map((objective) => <li key={objective}>{objective}</li>)}</ul>}{result.sourcesUsed.length > 0 && <p className="caption">Sources fournies à Forge : {result.sourcesUsed.map((source) => source.title).join(", ")}</p>}{proposal && <div className="actions"><button type="button" className="button button--secondary" onClick={() => { setResult(null); setProposal(null); }}>Rejeter</button>{proposal.proposal.field !== "outline" && <button type="button" className="button" onClick={() => { setProposal(proposal); setResult(null); }}>Appliquer {proposal.proposal.field === "objectives" ? "aux objectifs" : proposal.proposal.field === "description" ? "au résumé" : "au contenu"}</button>}</div>}</section>}
       <p className="caption">{availability === "not_configured" ? "Forge AI non configuré localement." : "Forge ne modifie jamais le contenu sans votre application et sauvegarde explicites."}</p>
-    </>}
-  </aside>;
+  </WorkspaceRail>;
 }

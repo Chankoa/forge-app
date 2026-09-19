@@ -6,7 +6,8 @@ function inline(value: string): ReactNode[] {
 }
 
 function blocks(content: string) {
-  const lines = content.replace(/\r\n?/g, "\n").split("\n"); const result: ReactNode[] = [];
+  const normalized = content.replace(/\\n/g, "\n").replace(/\r\n?/g, "\n").replace(/\s*```\s*/g, "\n```\n").replace(/\s+-\s+(?=[A-ZÀ-ÖØ-Ý])/g, "\n- ");
+  const lines = normalized.split("\n"); const result: ReactNode[] = [];
   for (let index = 0; index < lines.length;) {
     const line = lines[index];
     if (!line.trim()) { index += 1; continue; }
