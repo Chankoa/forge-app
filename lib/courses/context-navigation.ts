@@ -4,12 +4,16 @@ export type CourseContextLink = { label: "Vue d'ensemble" | "Apprendre" | "Modif
 
 export function courseOverviewPath(courseSlug: string) { return `/app/courses/${courseSlug}`; }
 
-export function getCourseContextLinks(courseSlug: string, capabilities: CourseCapabilities, lessonSlug?: string): CourseContextLink[] {
-  const lessonPath = lessonSlug ? `${courseOverviewPath(courseSlug)}/lessons/${lessonSlug}` : courseOverviewPath(courseSlug);
+export function courseLessonPath(courseSlug: string, lessonSlug: string) { return `${courseOverviewPath(courseSlug)}/lessons/${lessonSlug}`; }
+
+export function getCourseContextLinks(courseSlug: string, capabilities: CourseCapabilities, lessonSlug?: string, learnLessonSlug?: string): CourseContextLink[] {
+  const selectedLessonPath = lessonSlug ? courseLessonPath(courseSlug, lessonSlug) : courseOverviewPath(courseSlug);
+  const learnLesson = lessonSlug ?? learnLessonSlug;
+  const learnLessonPath = learnLesson ? courseLessonPath(courseSlug, learnLesson) : courseOverviewPath(courseSlug);
   return [
     { label: "Vue d'ensemble", href: courseOverviewPath(courseSlug) },
-    ...(capabilities.canLearn ? [{ label: "Apprendre" as const, href: lessonPath }] : []),
-    ...(capabilities.canEdit ? [{ label: "Modifier" as const, href: `${lessonPath}?mode=edit` }] : []),
+    ...(capabilities.canLearn ? [{ label: "Apprendre" as const, href: learnLessonPath }] : []),
+    ...(capabilities.canEdit ? [{ label: "Modifier" as const, href: `${selectedLessonPath}?mode=edit` }] : []),
     ...(capabilities.canPublish ? [{ label: "Publication" as const, href: `${courseOverviewPath(courseSlug)}?mode=publication` }] : []),
   ];
 }

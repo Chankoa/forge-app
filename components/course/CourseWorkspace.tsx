@@ -10,10 +10,10 @@ import { CourseContextNavigation } from "./CourseContextNavigation";
 import { WorkspacePanels } from "./WorkspacePanels";
 import { RelationPills } from "./CoursePresentation";
 import { courseRelations } from "@/lib/courses/presentation";
-export function CourseWorkspace({ course, mode, capabilities, outline, content, forgeContext, selectedLesson }: { course: CourseSummary; mode: "view" | "learn" | "edit" | "publication"; capabilities: CourseCapabilities; outline: CourseOutline; content: ReactNode; forgeContext: { mode: "learn" | "edit"; courseTitle: string; lessonTitle?: string }; selectedLesson?: string }) {
+export function CourseWorkspace({ course, mode, capabilities, outline, content, forgeContext, selectedLesson, learnLesson }: { course: CourseSummary; mode: "view" | "learn" | "edit" | "publication"; capabilities: CourseCapabilities; outline: CourseOutline; content: ReactNode; forgeContext: { mode: "learn" | "edit"; courseTitle: string; lessonTitle?: string }; selectedLesson?: string; learnLesson?: string }) {
   return <section className={`course-workspace course-workspace--${mode}`}><header className="course-context">
     <div className="course-context__identity"><p className="eyebrow">{course.domain ?? "Votre parcours"}</p><Badge success={course.status === "published"}>{course.status === "published" ? "Publié" : "Brouillon"}</Badge></div>
     <h1>{course.title}</h1><RelationPills relations={courseRelations(capabilities.canLearn, capabilities.canEdit)} />
-    <CourseContextNavigation courseSlug={course.slug} capabilities={capabilities} lessonSlug={selectedLesson} activeMode={mode} />
+    <CourseContextNavigation courseSlug={course.slug} capabilities={capabilities} lessonSlug={selectedLesson} learnLessonSlug={learnLesson} activeMode={mode} />
   </header><ForgeProposalProvider><WorkspacePanels key={`${course.slug}:${selectedLesson ?? ''}:${mode}`} structure={<CourseOutlineRail courseSlug={course.slug} outline={outline} selectedLesson={selectedLesson} mode={mode === "edit" ? "edit" : "learn"} />} forge={<ForgeRail context={{ ...forgeContext, courseSlug: course.slug, lessonSlug: selectedLesson }} availability={getForgeAvailability()} />}>{content}</WorkspacePanels></ForgeProposalProvider></section>;
 }
