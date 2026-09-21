@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { clampProgress, courseRelations, hasCourseCover } from "../lib/courses/presentation";
+import { canShowOwnerDelete, clampProgress, courseCardAction, courseRelations, hasCourseCover } from "../lib/courses/presentation";
 
 test("course relations remain truthful and ordered", () => {
   assert.deepEqual(courseRelations(false, false), []);
@@ -16,3 +16,12 @@ test("progress presentation clamps external values", () => {
 test("cover fallback is used until a non-empty URL exists", () => {
   assert.equal(hasCourseCover({}), false); assert.equal(hasCourseCover({ coverUrl: " " }), false); assert.equal(hasCourseCover({ coverUrl: "https://example.test/cover.png" }), true);
 });
+
+test("library card actions reflect progress and ownership", () => {
+  assert.equal(courseCardAction({ isOwner: false, enrolled: true, percentage: 0, hasLesson: true }), "start");
+  assert.equal(courseCardAction({ isOwner: false, enrolled: true, percentage: 42, hasLesson: true }), "continue");
+  assert.equal(courseCardAction({ isOwner: false, enrolled: true, percentage: 100, hasLesson: true }), "review");
+  assert.equal(courseCardAction({ isOwner: true, enrolled: false, percentage: 0, hasLesson: true }), "manage");
+  assert.equal(courseCardAction({ isOwner: true, enrolled: true, percentage: 52, hasLesson: true }), "manage");
+});
+test("delete action is owner-only at presentation boundary", () => { assert.equal(canShowOwnerDelete(false), false); assert.equal(canShowOwnerDelete(true), true); });

@@ -11,3 +11,13 @@ export function clampProgress(value: number): number {
 export function hasCourseCover(value: { coverUrl?: string | null }): boolean {
   return typeof value.coverUrl === "string" && value.coverUrl.trim().length > 0;
 }
+
+export type CourseCardAction = "manage" | "start" | "continue" | "review" | "view";
+export function courseCardAction({ isOwner, enrolled, percentage, hasLesson }: { isOwner: boolean; enrolled: boolean; percentage: number; hasLesson: boolean }): CourseCardAction {
+  if (isOwner) return "manage";
+  if (!enrolled || !hasLesson) return "view";
+  if (percentage >= 100) return "review";
+  return percentage > 0 ? "continue" : "start";
+}
+
+export function canShowOwnerDelete(isOwner: boolean) { return isOwner; }
