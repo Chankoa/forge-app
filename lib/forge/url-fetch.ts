@@ -49,6 +49,10 @@ async function pinnedAddress(url: URL, remainingMs: number): Promise<{ address: 
   return addresses[0] as { address: string; family: 4 | 6 };
 }
 
+export function pinnedLookupResult(pinned: { address: string; family: 4 | 6 }, all: boolean) {
+  return all ? [{ address: pinned.address, family: pinned.family }] : pinned.address;
+}
+
 export async function fetchPublicText(input: string): Promise<{ url: string; body: string; mimeType: string; rawChars: number }> {
   let url = validatePublicUrl(input);
   const seen = new Set<string>();
@@ -65,7 +69,7 @@ export async function fetchPublicText(input: string): Promise<{ url: string; bod
       const request = (url.protocol === "https:" ? httpsRequest : httpRequest)(url, {
         method: "GET", timeout: connectionRemaining,
         headers: { Accept: "text/html, text/plain;q=0.9", "User-Agent": "ForgeSource/1.0" },
-        lookup: (_host, _options, callback) => callback(null, pinned.address, pinned.family),
+        lookup: (_host, options, callback) => callback(null, pinnedLookupResult(pinned, Boolean(options.all)), pinned.family),
       }, (response) => {
         const status = response.statusCode ?? 0;
         const location = response.headers.location;

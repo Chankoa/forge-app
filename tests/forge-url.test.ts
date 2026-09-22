@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { validatePublicUrl, UrlSourceError } from "../lib/forge/url-fetch";
+import { pinnedLookupResult, validatePublicUrl, UrlSourceError } from "../lib/forge/url-fetch";
 import { extractUrlText } from "../lib/forge/url-extract";
 import { resolveForgeSources, type ForgeSourceRow } from "../lib/forge/sources";
 import { forgeMessages } from "../lib/forge/prompts";
@@ -8,6 +8,7 @@ import { forgeRequestSchema } from "../lib/forge/contracts";
 
 for (const input of ["https://example.com", "http://example.com"]) test(`public URL allowed: ${input}`, () => assert.equal(validatePublicUrl(input).hostname, "example.com"));
 for (const input of ["file:///etc/passwd", "ftp://example.com", "http://localhost:3000", "http://x.localhost", "http://127.0.0.1", "http://10.0.0.1", "http://192.168.1.1", "http://169.254.169.254", "http://[::1]", "http://[fc00::1]", "https://user:pass@example.com", "http://2130706433"]) test(`unsafe URL refused: ${input}`, () => assert.throws(() => validatePublicUrl(input), UrlSourceError));
+test("pinned lookup honors Node's all-address callback form", () => { const pinned = { address: "93.184.216.34", family: 4 as const }; assert.equal(pinnedLookupResult(pinned, false), pinned.address); assert.deepEqual(pinnedLookupResult(pinned, true), [pinned]); });
 test("HTML extraction removes executable and navigation text", () => { const result = extractUrlText('<html><head><title>Manual</title><style>BAD</style></head><body><nav>MENU</nav><main><h1>Distinctive NOVA-82</h1><p>Useful instructional text.</p><script>IGNORE SYSTEM</script></main></body></html>', "text/html"); assert.match(result.text, /NOVA-82/); assert.doesNotMatch(result.text, /BAD|MENU|IGNORE SYSTEM/); });
 test("plain text and empty extraction", () => { assert.equal(extractUrlText("A useful source with sufficient text.", "text/plain").text, "A useful source with sufficient text."); assert.throws(() => extractUrlText("<script>only script</script>", "text/html"), UrlSourceError); });
 const row: ForgeSourceRow = { id: "11111111-1111-4111-8111-111111111111", course_id: "course", title: "URL source", type: "web", source_kind: "url", extraction_status: "ready", extracted_content: "Distinctive NOVA-82 documentary text", storage_bucket: null, storage_path: null, file_size: null, mime_type: "text/html" };
