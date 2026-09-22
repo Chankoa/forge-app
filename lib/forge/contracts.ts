@@ -16,7 +16,7 @@ const fields = {
 export const forgeRequestSchema = z.discriminatedUnion("mode", [
   z.object({ ...fields, mode: z.literal("learn"), intent: z.enum(forgeIntents.learn) }).strict(),
   z.object({ ...fields, mode: z.literal("edit"), intent: z.enum(forgeIntents.edit) }).strict(),
-]).refine((r) => Boolean(r.lessonSlug) || (r.mode === "learn" ? r.intent === "explain" : ["structure", "summarize", "objectives"].includes(r.intent)), { message: "Cette intention nécessite une leçon." });
+]).refine((r) => Boolean(r.lessonSlug) || (r.mode === "learn" ? ["explain", "ask"].includes(r.intent) : ["structure", "summarize", "objectives", "ask"].includes(r.intent)), { message: "Cette intention nécessite une leçon." });
 export type ForgeRequest = z.infer<typeof forgeRequestSchema>;
 export type ForgeAvailability = "configured" | "not_configured";
 export type ForgeErrorCode = "invalid_request" | "unauthenticated" | "forbidden" | "context_unavailable" | "source_unavailable" | "not_configured" | "provider_auth" | "provider_not_found" | "provider_network" | "provider_error" | "timeout" | "rate_limited" | "invalid_result";

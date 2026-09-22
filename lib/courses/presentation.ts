@@ -4,6 +4,12 @@ export function domainLabel(domain: string | null | undefined): string {
   return domain?.trim() || "Sans domaine";
 }
 
+export function domainNameFromRelation(
+  relation: { name: string } | { name: string }[] | null | undefined,
+): string | null {
+  return Array.isArray(relation) ? relation[0]?.name ?? null : relation?.name ?? null;
+}
+
 export function courseRelations(enrolled: boolean, isOwner: boolean): CourseRelation[] {
   return [enrolled ? "learn" : null, isOwner ? "create" : null].filter((value): value is CourseRelation => value !== null);
 }

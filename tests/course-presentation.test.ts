@@ -1,11 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { canShowOwnerDelete, clampProgress, courseCardAction, courseRelations, domainLabel, hasCourseCover, matchesCourseRelation } from "../lib/courses/presentation";
+import { canShowOwnerDelete, clampProgress, courseCardAction, courseRelations, domainLabel, domainNameFromRelation, hasCourseCover, matchesCourseRelation } from "../lib/courses/presentation";
 
 test("domain label uses the real domain or honest fallback", () => {
   assert.equal(domainLabel("Cuisine"), "Cuisine");
   assert.equal(domainLabel("  "), "Sans domaine");
   assert.equal(domainLabel(null), "Sans domaine");
+});
+
+test("domain relation supports Supabase many-to-one and legacy array shapes", () => {
+  assert.equal(domainNameFromRelation({ name: "Création web" }), "Création web");
+  assert.equal(domainNameFromRelation([{ name: "Cuisine" }]), "Cuisine");
+  assert.equal(domainNameFromRelation(null), null);
 });
 
 test("course relations remain truthful and ordered", () => {

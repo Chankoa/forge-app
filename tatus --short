@@ -1,0 +1,22 @@
+warning: in the working copy of 'app/app/courses/[courseSlug]/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/app/create/actions.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/authoring/CourseEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/authoring/CreateCourseForm.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/forge/ForgeRail.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/forge/GeneratedPath.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/courses/learning-repository.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/courses/presentation.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/forge/contracts.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'styles/globals.scss', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/course-presentation.test.ts', LF will be replaced by CRLF the next time Git touches it
+ app/app/create/actions.ts                 |  1 [32m+[m
+ components/authoring/CourseEditor.tsx     |  6 [32m+++[m[31m---[m
+ components/authoring/CreateCourseForm.tsx |  4 [32m++[m[31m--[m
+ components/forge/ForgeRail.tsx            | 12 [32m++++++++[m[31m----[m
+ components/forge/GeneratedPath.tsx        |  4 [32m++[m[31m--[m
+ lib/courses/learning-repository.ts        |  7 [32m++++[m[31m---[m
+ lib/courses/presentation.ts               |  6 [32m++++++[m
+ lib/forge/contracts.ts                    |  2 [32m+[m[31m-[m
+ styles/globals.scss                       |  4 [32m++++[m
+ tests/course-presentation.test.ts         |  8 [32m+++++++[m[31m-[m
+ 10 files changed, 38 insertions(+), 16 deletions(-)

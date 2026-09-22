@@ -4,14 +4,15 @@ import type { CourseDetail, CourseLesson, CourseOutline, CourseSummary } from ".
 import type { EnrollmentState, LearningState } from "@/lib/learning/contracts";
 import { progressPercentage, resolveContinueLessonId } from "@/lib/learning/progress";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { domainNameFromRelation } from "./presentation";
 
-type CourseRow = { id: string; slug: string; title: string; subtitle: string | null; description: string | null; status: string | null; visibility: string | null; duration_minutes: number | null; domains: { name: string }[] | null };
+type CourseRow = { id: string; slug: string; title: string; subtitle: string | null; description: string | null; status: string | null; visibility: string | null; duration_minutes: number | null; domains: { name: string } | { name: string }[] | null };
 type ModuleRow = { id: string; title: string; display_order: number };
 type LessonRow = { id: string; module_id: string; slug: string; title: string; description: string | null; content: string | null; objectives: string[] | null; duration_minutes: number | null; type: string; status: string; display_order: number };
 type EnrollmentRow = { id: string; course_id: string; status: EnrollmentState["status"]; current_lesson_id: string | null };
 type ProgressRow = { lesson_id: string; completed: boolean; updated_at: string };
 
-function mapSummary(row: CourseRow): CourseSummary { return { id: row.id, slug: row.slug, title: row.title, description: row.description, domain: row.domains?.[0]?.name ?? null, status: row.status, durationMinutes: row.duration_minutes }; }
+function mapSummary(row: CourseRow): CourseSummary { return { id: row.id, slug: row.slug, title: row.title, description: row.description, domain: domainNameFromRelation(row.domains), status: row.status, durationMinutes: row.duration_minutes }; }
 
 export async function getCourseDetail(courseSlug: string): Promise<CourseDetail | null> {
   const client = await createServerSupabaseClient();
