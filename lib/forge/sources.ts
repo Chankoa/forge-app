@@ -17,7 +17,7 @@ export async function resolveForgeSources(reader: SourceReader, courseId: string
     const source = rows.find((s) => s.id === id);
     if (!source) throw new ForgeError("source_unavailable");
     if (source.extraction_status !== "ready") { warnings.push({ code: "not_ready", target: id }); continue; }
-    if (!["text", "markdown", "pdf"].includes(source.type) || !["text", "file"].includes(source.source_kind)) { warnings.push({ code: "unsupported_type", target: id }); continue; }
+    if (!(["text", "markdown", "pdf"].includes(source.type) && ["text", "file"].includes(source.source_kind) || source.type === "web" && source.source_kind === "url")) { warnings.push({ code: "unsupported_type", target: id }); continue; }
     let text = source.extracted_content?.trim() ?? "";
     if (!text && source.source_kind === "file" && source.type !== "pdf") {
       if (source.storage_bucket !== "course-sources" || !source.storage_path || !source.file_size || source.file_size > 10 * 1024 * 1024 || !["text/plain", "text/markdown"].includes(source.mime_type)) throw new ForgeError("source_unavailable");
