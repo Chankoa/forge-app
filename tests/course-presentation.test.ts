@@ -1,12 +1,25 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { canShowOwnerDelete, clampProgress, courseCardAction, courseRelations, hasCourseCover } from "../lib/courses/presentation";
+import { canShowOwnerDelete, clampProgress, courseCardAction, courseRelations, domainLabel, hasCourseCover, matchesCourseRelation } from "../lib/courses/presentation";
+
+test("domain label uses the real domain or honest fallback", () => {
+  assert.equal(domainLabel("Cuisine"), "Cuisine");
+  assert.equal(domainLabel("  "), "Sans domaine");
+  assert.equal(domainLabel(null), "Sans domaine");
+});
 
 test("course relations remain truthful and ordered", () => {
   assert.deepEqual(courseRelations(false, false), []);
   assert.deepEqual(courseRelations(true, false), ["learn"]);
   assert.deepEqual(courseRelations(false, true), ["create"]);
   assert.deepEqual(courseRelations(true, true), ["learn", "create"]);
+});
+
+test("personal library filters include dual-relation courses once", () => {
+  const courses = [{ id: "learn", enrolled: true, owner: false }, { id: "create", enrolled: false, owner: true }, { id: "both", enrolled: true, owner: true }];
+  assert.deepEqual(courses.filter((course) => matchesCourseRelation("all", course.enrolled, course.owner)).map((course) => course.id), ["learn", "create", "both"]);
+  assert.deepEqual(courses.filter((course) => matchesCourseRelation("learn", course.enrolled, course.owner)).map((course) => course.id), ["learn", "both"]);
+  assert.deepEqual(courses.filter((course) => matchesCourseRelation("create", course.enrolled, course.owner)).map((course) => course.id), ["create", "both"]);
 });
 
 test("progress presentation clamps external values", () => {

@@ -1,7 +1,16 @@
 export type CourseRelation = "learn" | "create";
 
+export function domainLabel(domain: string | null | undefined): string {
+  return domain?.trim() || "Sans domaine";
+}
+
 export function courseRelations(enrolled: boolean, isOwner: boolean): CourseRelation[] {
   return [enrolled ? "learn" : null, isOwner ? "create" : null].filter((value): value is CourseRelation => value !== null);
+}
+
+export function matchesCourseRelation(filter: "all" | CourseRelation, enrolled: boolean, isOwner: boolean): boolean {
+  if (filter === "all") return true;
+  return filter === "learn" ? enrolled : isOwner;
 }
 
 export function clampProgress(value: number): number {
