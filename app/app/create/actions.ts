@@ -6,6 +6,7 @@ import { getCourseDetail } from "@/lib/courses/learning-repository";
 import { getPublicationReadiness } from "@/lib/courses/publication";
 import { revalidatePath } from "next/cache";
 import { publicCoursePreviewSchema } from "@/lib/forge/public-contracts";
+import { normalizeAuthoringText } from "@/lib/courses/authoring-text";
 
 function slugify(value: string) { return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 72) || "nouveau-parcours"; }
 async function authorClient() { const client = await createServerSupabaseClient(); if (!client) throw new Error("Supabase local n'est pas configuré."); const { data: { user } } = await client.auth.getUser(); if (!user) throw new Error("Votre session a expiré. Connectez-vous à nouveau."); return { client, user }; }
@@ -31,7 +32,31 @@ export async function createCourseAction(formData: FormData) {
   return { ok: true as const, redirectTo: `/app/courses/${course.slug}?mode=edit` };
 }
 
-export async function saveCourseMetadataAction(courseId: string, formData: FormData) { const { client } = await requireOwner(courseId); const parsed = courseMetadataSchema.safeParse({ title: formData.get("title"), description: formData.get("description"), subtitle: formData.get("subtitle") || undefined }); if (!parsed.success) throw new Error("Les informations du parcours sont invalides."); const { error } = await client.from("courses").update({ title: parsed.data.title, description: parsed.data.description, subtitle: parsed.data.subtitle || null }).eq("id", courseId); if (error) throw new Error("Les informations n'ont pas pu être sauvegardées."); revalidatePath("/app/courses"); revalidatePath("/app/courses/[courseSlug]", "page"); }
+export async function saveCourseMetadataAction(courseId: string, formData: FormData) {
+  const fieldNames = Array.from(formData.keys());
+  const rawDescription = formData.get("description");
+  const description = normalizeAuthoringText(rawDescription);
+  const parsed = courseMetadataSchema.safeParse({ title: formData.get("title"), description, subtitle: formData.get("subtitle") || undefined });
+  console.info("[forge] course save", {
+    courseId,
+    fieldNames,
+    titleChars: typeof formData.get("title") === "string" ? String(formData.get("title")).length : 0,
+    subtitleChars: typeof formData.get("subtitle") === "string" ? String(formData.get("subtitle")).length : 0,
+    descriptionCharsRaw: typeof rawDescription === "string" ? rawDescription.length : 0,
+    descriptionCharsNormalized: description?.length ?? 0,
+    schemaValid: parsed.success,
+    schemaIssues: parsed.success ? [] : parsed.error.issues.map(({ path, code }) => ({ field: path.join("."), code })),
+  });
+  if (!parsed.success) throw new Error("Les informations du parcours sont invalides.");
+  const { client } = await requireOwner(courseId);
+  console.info("[forge] course save update", { courseId, attempted: true });
+  const { data, error } = await client.from("courses").update({ title: parsed.data.title, description: parsed.data.description, subtitle: parsed.data.subtitle || null }).eq("id", courseId).select("id,description").maybeSingle();
+  const errorStatus = error && typeof error === "object" && "status" in error && typeof error.status === "number" ? error.status : null;
+  console.info("[forge] course save result", { courseId, errorCode: error?.code ?? null, errorStatus, rowsAffected: data ? 1 : 0, descriptionChars: data?.description?.length ?? 0 });
+  if (error || !data) throw new Error("Les informations n'ont pas pu être sauvegardées.");
+  revalidatePath("/app/courses"); revalidatePath("/app/courses/[courseSlug]", "page");
+  console.info("[forge] course save revalidated", { courseId, executed: true });
+}
 
 export async function addModuleAction(courseId: string, formData: FormData) { const { client } = await requireOwner(courseId); const parsed = moduleSchema.safeParse({ title: formData.get("title") }); if (!parsed.success) throw new Error("Le titre du module est requis."); const { count } = await client.from("course_modules").select("id", { count: "exact", head: true }).eq("course_id", courseId); const { error } = await client.from("course_modules").insert({ course_id: courseId, slug: `${slugify(parsed.data.title)}-${Date.now()}`, title: parsed.data.title, display_order: count ?? 0, status: "draft" }); if (error) throw new Error("Le module n'a pas pu être ajouté."); }
 export async function renameModuleAction(courseId: string, moduleId: string, formData: FormData) { const { client } = await requireOwner(courseId); const parsed = moduleSchema.safeParse({ title: formData.get("title") }); if (!parsed.success) throw new Error("Le titre du module est requis."); const { error } = await client.from("course_modules").update({ title: parsed.data.title }).eq("id", moduleId).eq("course_id", courseId); if (error) throw new Error("Le module n'a pas pu être renommé."); revalidatePath("/app/courses"); }

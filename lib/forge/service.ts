@@ -30,30 +30,29 @@ export async function runForge(raw: unknown, deps: ForgeDependencies): Promise<F
       throw new ForgeError("invalid_result");
     }
     const value = output.data;
+    const patch = value.patch;
     const common = { intent: request.intent, text: value.text, sourcesUsed: context.sources.map(({ id, title }) => ({ id, title })), metadata: { warnings: context.warnings, finishReason: "stop" as const } };
     let result: ForgeResult;
     if (request.mode === "learn") {
-      if (value.suggestedContent !== null || value.objectives !== null) throw new ForgeError("invalid_result");
+      if (Object.values(patch).some((item) => item !== null)) throw new ForgeError("invalid_result");
       result = { ...common, mode: "learn", kind: "answer" };
     } else {
-      const field = request.intent === "objectives" ? "objectives" : request.intent === "structure" ? "outline" : request.intent === "summarize" || (request.intent === "improve" && !context.lesson) ? "description" : "content";
+      const isLesson = Boolean(context.lesson);
+      const allowed = isLesson ? ["title", "description", "content", "objectives"] : ["title", "subtitle", "description"];
+      if (Object.entries(patch).some(([key, value]) => value !== null && !allowed.includes(key))) throw new ForgeError("invalid_result");
       if (request.intent === "ask") {
-        if (value.suggestedContent !== null && value.objectives !== null) throw new ForgeError("invalid_result");
-        if (value.suggestedContent === null && value.objectives === null) result = { ...common, mode: "edit", kind: "answer" };
-        else result = { ...common, mode: "edit", kind: "answer_with_proposal", proposal: { target: { courseId: context.course.id, lessonId: context.lesson?.id }, field: value.objectives ? "objectives" : "content", suggestedContent: value.suggestedContent, objectives: value.objectives, application: "explicit_only" } };
+        if (Object.values(patch).every((item) => item === null)) result = { ...common, mode: "edit", kind: "answer" };
+        else result = { ...common, mode: "edit", kind: "answer_with_proposal", proposal: { target: { courseId: context.course.id, lessonId: context.lesson?.id }, patch, application: "explicit_only" } };
         deps.telemetry?.({ ...metrics, elapsedMs: Date.now() - started, result: "ok" });
         return { ok: true, result };
       }
-      if (field === "objectives" ? !value.objectives?.length || value.suggestedContent !== null : !value.suggestedContent || value.objectives !== null) {
-        deps.telemetry?.({ ...metrics, stage: "proposal_shape", suggestedChars: value.suggestedContent?.length ?? 0, objectivesCount: value.objectives?.length ?? 0, elapsedMs: Date.now() - started, result: "invalid_result" });
+      const required = request.intent === "objectives" ? patch.objectives : isLesson ? patch.content : patch.description;
+      if (!required) {
+        deps.telemetry?.({ ...metrics, stage: "proposal_shape", elapsedMs: Date.now() - started, result: "invalid_result" });
         throw new ForgeError("invalid_result");
       }
-      const limit = context.lesson ? 1000 : 4000;
-      const suggestedContent = field === "description" && value.suggestedContent!.length > limit
-        ? value.suggestedContent!.slice(0, limit).replace(/\s+\S*$/, "").trimEnd()
-        : value.suggestedContent;
-      if (field === "description" && suggestedContent !== value.suggestedContent) deps.telemetry?.({ ...metrics, stage: "description_bounded", suggestedChars: value.suggestedContent!.length, contextCharsUsed: suggestedContent?.length ?? 0, elapsedMs: Date.now() - started, result: "bounded" });
-      result = { ...common, mode: "edit", kind: "proposal", proposal: { target: { courseId: context.course.id, lessonId: context.lesson?.id }, field, suggestedContent, objectives: value.objectives, application: "explicit_only" } };
+      const bounded = isLesson && patch.content && patch.content.length > 1000 ? { ...patch, content: patch.content.slice(0, 1000).replace(/\s+\S*$/, "").trimEnd() } : !isLesson && patch.description && patch.description.length > 3800 ? { ...patch, description: patch.description.slice(0, 3800).replace(/\s+\S*$/, "").trimEnd() } : patch;
+      result = { ...common, mode: "edit", kind: "proposal", proposal: { target: { courseId: context.course.id, lessonId: context.lesson?.id }, patch: bounded, application: "explicit_only" } };
     }
     deps.telemetry?.({ ...metrics, elapsedMs: Date.now() - started, result: "ok" });
     return { ok: true, result };

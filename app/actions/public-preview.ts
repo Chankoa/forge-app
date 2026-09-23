@@ -12,5 +12,5 @@ export async function generatePublicPreviewAction(raw: unknown): Promise<PublicP
   const requestHeaders = await headers();
   const fingerprint = requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() || requestHeaders.get("x-real-ip") || "anonymous";
   const config = parseForgeConfig(process.env);
-  return runPublicCoursePreview(raw, { provider: createPublicForgeProvider(config), consumeRateLimit: () => consume(`public:${fingerprint}`, Math.min(config.rateLimitPerHour, 5)) });
+  return runPublicCoursePreview(raw, { provider: createPublicForgeProvider(config), maxOutputTokens: Math.min(config.maxOutputTokens, 1800), telemetry: (metrics) => console.info("[forge] public preview", metrics), consumeRateLimit: () => consume(`public:${fingerprint}`, Math.min(config.rateLimitPerHour, 5)) });
 }

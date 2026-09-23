@@ -23,10 +23,10 @@ function fixture(owner = true, enrolled = true) {
     async sources() { return [source]; },
     async downloadText() { calls.push("download"); return "REAL FILE"; },
   };
-  const deps: ForgeDependencies = { userId: "user", reader, maxInputChars: 30000, consumeRateLimit() { calls.push("rate"); }, provider: { availability: "configured", async generate(messages) { calls.push(messages.prompt); return { output: { text: "Réponse", suggestedContent: null, objectives: null }, finishReason: "stop" }; } } };
+  const deps: ForgeDependencies = { userId: "user", reader, maxInputChars: 30000, consumeRateLimit() { calls.push("rate"); }, provider: { availability: "configured", async generate(messages) { calls.push(messages.prompt); return { output: { text: "Réponse", patch: { title: null, subtitle: null, description: null, content: null, objectives: null } }, finishReason: "stop" }; } } };
   return { deps, calls };
 }
-function editOutput(deps: ForgeDependencies, output: ForgeProviderOutput = { text: "Proposition", suggestedContent: "Nouveau contenu", objectives: null }) {
+function editOutput(deps: ForgeDependencies, output: ForgeProviderOutput = { text: "Proposition", patch: { title: null, subtitle: null, description: null, content: "Nouveau contenu", objectives: null } }) {
   deps.provider.generate = async () => ({ output, finishReason: "stop" });
 }
 
@@ -55,7 +55,7 @@ test("free question is allowed in Learn and Edit without an automatic proposal",
   const { deps } = fixture();
   const learn = await runForge({ ...request, intent: "ask", input: "De quoi parle cette leçon ?" }, deps);
   assert.ok(learn.ok && learn.result.mode === "learn");
-  deps.provider.generate = async () => ({ output: { text: "Conseil", suggestedContent: null, objectives: null }, finishReason: "stop" });
+  deps.provider.generate = async () => ({ output: { text: "Conseil", patch: { title: null, subtitle: null, description: null, content: null, objectives: null } }, finishReason: "stop" });
   const edit = await runForge({ ...request, mode: "edit", intent: "ask", input: "Que puis-je améliorer ?" }, deps);
   assert.ok(edit.ok && edit.result.mode === "edit" && edit.result.kind === "answer");
 });
@@ -143,24 +143,40 @@ test("edit is proposal only and read port has no writes", async () => {
     assert.doesNotMatch(code, /saveLessonAction|saveCourseMetadataAction|profiles\.role|service_role/);
   }
 });
+test("free edit question returns a typed title proposal", async () => {
+  const { deps } = fixture();
+  deps.provider.generate = async () => ({ finishReason: "stop", output: { text: "Voici un titre.", patch: { title: "Titre révisé", subtitle: null, description: null, content: null, objectives: null } } });
+  const result = await runForge({ ...request, mode: "edit", intent: "ask", input: "Propose-moi un nouveau titre." }, deps);
+  assert.ok(result.ok && result.result.mode === "edit" && result.result.kind === "answer_with_proposal");
+  assert.equal(result.result.proposal.patch.title, "Titre révisé");
+});
+test("lesson patch permits title and content and preserves selected sources", async () => {
+  const { deps } = fixture();
+  editOutput(deps, { text: "Proposition", patch: { title: "Titre source", subtitle: null, description: null, content: "Contenu issu de la source", objectives: null } });
+  const result = await runForge({ ...request, mode: "edit", intent: "ask", input: "Améliore le titre et le contenu.", sourceIds: [sourceId] }, deps);
+  assert.ok(result.ok && result.result.mode === "edit" && result.result.kind === "answer_with_proposal");
+  assert.equal(result.result.proposal.patch.title, "Titre source");
+  assert.equal(result.result.proposal.patch.content, "Contenu issu de la source");
+  assert.deepEqual(result.result.sourcesUsed, [{ id: sourceId, title: "Source" }]);
+});
 test("course Improve proposes a saveable description and never targets a lesson", async () => {
   const { deps } = fixture(true, false);
-  editOutput(deps, { text: "Résumé amélioré", suggestedContent: "Description du parcours améliorée", objectives: null });
+  editOutput(deps, { text: "Résumé amélioré", patch: { title: null, subtitle: null, description: "Description du parcours améliorée", content: null, objectives: null } });
   const response = await runForge({ mode: "edit", intent: "improve", courseSlug: "course" }, deps);
   assert.ok(response.ok && response.result.mode === "edit" && response.result.kind === "proposal");
-  assert.equal(response.result.proposal.field, "description");
+  assert.equal(response.result.proposal.patch.description, "Description du parcours améliorée");
   assert.deepEqual(response.result.proposal.target, { courseId: "course-id", lessonId: undefined });
 });
 test("objectives proposal maps to objectives, summary has save-compatible limit", async () => {
   const { deps } = fixture();
-  editOutput(deps, { text: "Objectifs", suggestedContent: null, objectives: ["Expliquer"] });
+  editOutput(deps, { text: "Objectifs", patch: { title: null, subtitle: null, description: null, content: null, objectives: ["Expliquer"] } });
   const r = await runForge({ ...request, mode: "edit", intent: "objectives" }, deps);
   assert.ok(r.ok && r.result.mode === "edit" && r.result.kind === "proposal");
-  assert.equal(r.result.proposal.field, "objectives");
-  editOutput(deps, { text: "Résumé", suggestedContent: "x".repeat(1001), objectives: null });
+  assert.deepEqual(r.result.proposal.patch.objectives, ["Expliquer"]);
+  editOutput(deps, { text: "Résumé", patch: { title: null, subtitle: null, description: null, content: "x".repeat(1001), objectives: null } });
   const bounded = await runForge({ ...request, mode: "edit", intent: "summarize" }, deps);
   assert.ok(bounded.ok && bounded.result.mode === "edit" && bounded.result.kind === "proposal");
-  assert.ok((bounded.result.proposal.suggestedContent?.length ?? 0) <= 1000);
+  assert.ok((bounded.result.proposal.patch.content?.length ?? 0) <= 1000);
 });
 test("missing provider controlled, no call or quota consumed", async () => {
   const { deps, calls } = fixture();
@@ -182,10 +198,12 @@ for (const code of ["timeout", "rate_limited", "provider_error", "invalid_result
 test("incomplete and malformed outputs rejected", async () => {
   const { deps } = fixture();
   for (const finishReason of ["length", "content-filter", "unknown"]) {
-    deps.provider.generate = async () => ({ finishReason, output: { text: "partial", suggestedContent: null, objectives: null } });
+    deps.provider.generate = async () => ({ finishReason, output: { text: "partial", patch: { title: null, subtitle: null, description: null, content: null, objectives: null } } });
     assert.deepEqual(await runForge(request, deps), { ok: false, error: "invalid_result" });
   }
   deps.provider.generate = async () => ({ finishReason: "stop", output: { text: "answer", sourcesUsed: ["fake"] } });
+  assert.deepEqual(await runForge(request, deps), { ok: false, error: "invalid_result" });
+  deps.provider.generate = async () => ({ finishReason: "stop", output: { text: "answer", patch: { title: null, subtitle: null, description: null, content: null, objectives: null }, arbitrary: "no" } });
   assert.deepEqual(await runForge(request, deps), { ok: false, error: "invalid_result" });
 });
 test("context truncation explicit and total provider input bounded", async () => {
@@ -206,7 +224,7 @@ test("lesson injection remains JSON data, never system instructions", async () =
   deps.provider.generate = async ({ system, prompt }) => {
     assert.ok(!system.includes(attack));
     assert.equal(JSON.parse(prompt).knowledge.lesson.content, attack);
-    return { output: { text: "Answer", suggestedContent: null, objectives: null }, finishReason: "stop" };
+    return { output: { text: "Answer", patch: { title: null, subtitle: null, description: null, content: null, objectives: null } }, finishReason: "stop" };
   };
   assert.ok((await runForge(request, deps)).ok);
 });

@@ -35,14 +35,15 @@ export type ForgeContext = {
   sources: ForgeSource[];
   warnings: ForgeWarning[];
 };
-export const providerOutputSchema = z.object({
-  text: z.string().trim().min(1).max(12000),
-  suggestedContent: z.string().trim().min(1).max(20000).nullable(),
+export const forgePatchSchema = z.object({
+  title: z.string().trim().min(2).max(220).nullable(), subtitle: z.string().trim().max(500).nullable(),
+  description: z.string().trim().min(1).max(4000).nullable(), content: z.string().trim().min(1).max(20000).nullable(),
   objectives: z.array(z.string().trim().min(1).max(300)).max(8).nullable(),
 }).strict();
+export const providerOutputSchema = z.object({ text: z.string().trim().min(1).max(12000), patch: forgePatchSchema }).strict();
 export type ForgeProviderOutput = z.infer<typeof providerOutputSchema>;
 type ResultBase = { intent: ForgeIntent; text: string; sourcesUsed: Array<Pick<ForgeSource, "id" | "title">>; metadata: { warnings: ForgeWarning[]; finishReason: "stop" } };
-type EditProposal = { target: { courseId: string; lessonId?: string }; field: "content" | "description" | "objectives" | "outline"; suggestedContent: string | null; objectives: string[] | null; application: "explicit_only" };
+type EditProposal = { target: { courseId: string; lessonId?: string }; patch: z.infer<typeof forgePatchSchema>; application: "explicit_only" };
 export type ForgeResult =
   | (ResultBase & { mode: "learn"; kind: "answer" })
   | (ResultBase & { mode: "edit"; kind: "answer" })
