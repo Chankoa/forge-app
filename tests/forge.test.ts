@@ -47,7 +47,8 @@ test("request rejects authority, incompatible intents, invalid IDs, duplicates a
 });
 test("course scope only allows explicit overview intentions", () => {
   assert.equal(forgeRequestSchema.safeParse({ mode: "learn", intent: "quiz", courseSlug: "course" }).success, false);
-  assert.equal(forgeRequestSchema.safeParse({ mode: "edit", intent: "improve", courseSlug: "course" }).success, false);
+  assert.equal(forgeRequestSchema.safeParse({ mode: "edit", intent: "improve", courseSlug: "course" }).success, true);
+  assert.equal(forgeRequestSchema.safeParse({ mode: "edit", intent: "rephrase", courseSlug: "course" }).success, false);
   assert.equal(forgeRequestSchema.safeParse({ mode: "edit", intent: "structure", courseSlug: "course" }).success, true);
 });
 test("free question is allowed in Learn and Edit without an automatic proposal", async () => {
@@ -142,6 +143,14 @@ test("edit is proposal only and read port has no writes", async () => {
     assert.doesNotMatch(code, /saveLessonAction|saveCourseMetadataAction|profiles\.role|service_role/);
   }
 });
+test("course Improve proposes a saveable description and never targets a lesson", async () => {
+  const { deps } = fixture(true, false);
+  editOutput(deps, { text: "Résumé amélioré", suggestedContent: "Description du parcours améliorée", objectives: null });
+  const response = await runForge({ mode: "edit", intent: "improve", courseSlug: "course" }, deps);
+  assert.ok(response.ok && response.result.mode === "edit" && response.result.kind === "proposal");
+  assert.equal(response.result.proposal.field, "description");
+  assert.deepEqual(response.result.proposal.target, { courseId: "course-id", lessonId: undefined });
+});
 test("objectives proposal maps to objectives, summary has save-compatible limit", async () => {
   const { deps } = fixture();
   editOutput(deps, { text: "Objectifs", suggestedContent: null, objectives: ["Expliquer"] });
@@ -149,7 +158,9 @@ test("objectives proposal maps to objectives, summary has save-compatible limit"
   assert.ok(r.ok && r.result.mode === "edit" && r.result.kind === "proposal");
   assert.equal(r.result.proposal.field, "objectives");
   editOutput(deps, { text: "Résumé", suggestedContent: "x".repeat(1001), objectives: null });
-  assert.deepEqual(await runForge({ ...request, mode: "edit", intent: "summarize" }, deps), { ok: false, error: "invalid_result" });
+  const bounded = await runForge({ ...request, mode: "edit", intent: "summarize" }, deps);
+  assert.ok(bounded.ok && bounded.result.mode === "edit" && bounded.result.kind === "proposal");
+  assert.ok((bounded.result.proposal.suggestedContent?.length ?? 0) <= 1000);
 });
 test("missing provider controlled, no call or quota consumed", async () => {
   const { deps, calls } = fixture();

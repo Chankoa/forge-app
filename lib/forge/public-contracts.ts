@@ -29,6 +29,7 @@ export const publicCoursePreviewSchema = z.object({
   title: z.string().trim().min(3).max(180),
   summary: z.string().trim().min(10).max(1000),
   suggestedDomain: z.string().trim().min(2).max(120),
+  suggestedDomainLabel: z.string().trim().min(2).max(120).optional(),
   format: z.enum(publicCourseFormats),
   level: z.string().trim().min(2).max(60).nullable(),
   estimatedDuration: z.string().trim().min(1).max(60).nullable(),

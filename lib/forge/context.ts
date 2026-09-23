@@ -51,7 +51,9 @@ export function boundForgeContext(context: ForgeContext, maxChars: number): Forg
   const currentModule = context.module ? { ...context.module, title: take(context.module.title, "module.title", 220) } : undefined;
   const lesson = context.lesson ? { ...context.lesson, title: take(context.lesson.title, "lesson.title", 220), summary: take(context.lesson.summary, "lesson.summary", 1000), objectives: context.lesson.objectives.slice(0, 8).map((s) => take(s, "lesson.objectives", 300)), content: take(context.lesson.content, "lesson.content", Math.floor(remaining * 0.6)) } : undefined;
   if (context.lesson && context.lesson.objectives.length > 8) warnings.push({ code: "truncated", target: "lesson.objectives" });
-  const sources = context.sources.map((s) => ({ id: s.id, title: take(s.title, s.id, 260), text: take(s.text, s.id, 4000) })).filter((s) => s.text.trim());
+  // Keep a small, shared source budget for short edit operations.
+  let sourceRemaining = Math.min(5000, Math.floor(maxChars / 5));
+  const sources = context.sources.map((s) => { const title = take(s.title, s.id, 260); const text = take(s.text, s.id, Math.min(1800, sourceRemaining)); sourceRemaining -= text.length; return { id: s.id, title, text }; }).filter((s) => s.text.trim());
   const outline = context.outline.slice(0, 20).map((m) => ({ title: take(m.title, "outline", 220), lessons: m.lessons.slice(0, 30).map((s) => take(s, "outline", 220)) }));
   if (context.outline.length > 20 || context.outline.some((m) => m.lessons.length > 30)) warnings.push({ code: "truncated", target: "outline" });
   return { course, module: currentModule, lesson, outline, sources, warnings };

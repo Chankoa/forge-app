@@ -24,7 +24,7 @@ export function ForgeRail({ context, availability }: { context: ForgeRailContext
   const [sources, setSources] = useState<ForgeSourceOption[]>([]);
   const [sourceIds, setSourceIds] = useState<string[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [lastRequest, setLastRequest] = useState<{ intent: ForgeIntent; input?: string } | null>(null);
+  const [lastRequest, setLastRequest] = useState<{ intent: ForgeIntent; input?: string; sourceIds: string[] } | null>(null);
   const { setProposal } = useForgeProposal();
 
   useEffect(() => {
@@ -36,24 +36,24 @@ export function ForgeRail({ context, availability }: { context: ForgeRailContext
   }, [context.courseSlug, context.mode]);
 
 
-  const run = (intent: ForgeIntent, freeInput?: string, keepCurrent = false) => startTransition(async () => {
+  const run = (intent: ForgeIntent, freeInput?: string, keepCurrent = false, requestedSourceIds = sourceIds) => startTransition(async () => {
     setActiveIntent(intent); setError(null); if (!keepCurrent) { setResult(null); setProposal(null); }
-    const response: ForgeResponse = await generateForgeAction({ mode: context.mode, intent, courseSlug: context.courseSlug, lessonSlug: context.lessonSlug, sourceIds, input: freeInput });
+    const response: ForgeResponse = await generateForgeAction({ mode: context.mode, intent, courseSlug: context.courseSlug, lessonSlug: context.lessonSlug, sourceIds: requestedSourceIds, input: freeInput });
     setActiveIntent(null);
     if (!response.ok) { setError(errors[response.error]); return; }
-    setResult(response.result); setLastRequest({ intent, input: freeInput }); if (response.result.mode === "edit" && "proposal" in response.result) setDialogOpen(true);
+    setResult(response.result); setLastRequest({ intent, input: freeInput, sourceIds: requestedSourceIds }); if (response.result.mode === "edit" && "proposal" in response.result) setDialogOpen(true);
   });
   const proposal = result?.mode === "edit" && "proposal" in result ? result : null;
   const toggleSource = (id: string) => setSourceIds((ids) => ids.includes(id) ? ids.filter((value) => value !== id) : [...ids, id]);
 
   return <WorkspaceRail panel="forge">
       <h2>Vous aider à {context.mode === "learn" ? "comprendre" : "créer et améliorer"}</h2><p className="caption">Contexte enregistré : {context.lessonTitle ?? context.courseTitle}</p>
-      <div className="forge-intents">{intents[context.mode].map((intent) => <button type="button" aria-pressed={activeIntent === intent.value} className={activeIntent === intent.value ? "is-active" : undefined} disabled={Boolean(pending || availability === "not_configured")} key={intent.value} onClick={() => run(intent.value)}>{activeIntent === intent.value ? "Forge prépare..." : intent.label}</button>)}</div>
+      <div className="forge-intents">{intents[context.mode].filter((intent) => context.mode !== "edit" || context.lessonSlug || ["structure", "improve", "summarize", "objectives"].includes(intent.value)).map((intent) => <button type="button" aria-pressed={activeIntent === intent.value} className={activeIntent === intent.value ? "is-active" : undefined} disabled={Boolean(pending || availability === "not_configured")} key={intent.value} onClick={() => run(intent.value)}>{activeIntent === intent.value ? "Forge prépare..." : intent.value === "improve" && !context.lessonSlug ? "Améliorer le parcours" : intent.label}</button>)}</div>
       <label className="forge-question">Question libre<textarea value={input} onChange={(event) => setInput(event.target.value)} maxLength={2000} placeholder="Posez une question sur cette leçon..." /><button type="button" aria-pressed={activeIntent === "ask"} className={activeIntent === "ask" ? "is-active" : undefined} disabled={Boolean(pending || availability === "not_configured" || !input.trim())} onClick={() => run("ask", input)}>{activeIntent === "ask" ? "Forge prépare..." : "Envoyer"}</button></label>
-      {sources.length > 0 && <section className="forge-sources"><h3>Sources pour Forge</h3>{sources.map((source) => <label key={source.id}><input type="checkbox" checked={sourceIds.includes(source.id)} disabled={!source.usable || pending} onChange={() => toggleSource(source.id)} /> <span>{source.title} - {source.type} - {source.usable ? "disponible pour Forge" : source.reason === "not_ready" ? "préparation en cours" : "contenu non exploitable par Forge"}</span></label>)}</section>}
+      {sources.length > 0 && <section className="forge-sources"><h3>Sources à transmettre</h3><p className="caption">Une source cochée est demandée. Le résultat indique celles réellement envoyées à Forge.</p>{sources.map((source) => <label key={source.id}><input type="checkbox" checked={sourceIds.includes(source.id)} disabled={!source.usable || pending} onChange={() => toggleSource(source.id)} /> <span>{source.title} - {source.type} - {source.usable ? "disponible pour Forge" : source.reason === "not_ready" ? "préparation en cours" : "contenu non exploitable par Forge"}</span></label>)}</section>}
       {pending && <p className="caption" role="status">Forge prépare une réponse...</p>}{error && <p className="form-error" role="alert">{error}</p>}
-      {result && <section className="forge-result"><p className="eyebrow">{proposal ? "Proposition Forge" : "Réponse Forge"}</p><div className="forge-result__text" tabIndex={0}>{result.text}</div>{proposal && <button type="button" className="button button--secondary" onClick={() => setDialogOpen(true)}>Ouvrir la proposition</button>}{result.sourcesUsed.length > 0 && <p className="caption">Sources fournies à Forge : {result.sourcesUsed.map((source) => source.title).join(", ")}</p>}</section>}
+      {result && <section className="forge-result"><p className="eyebrow">{proposal ? "Proposition Forge" : "Réponse Forge"}</p><div className="forge-result__text" tabIndex={0}>{result.text}</div><button type="button" className="button button--secondary" onClick={() => setDialogOpen(true)}>{proposal ? "Ouvrir la proposition" : "Ouvrir la réponse"}</button>{result.sourcesUsed.length > 0 && <p className="caption">Sources utilisées par Forge : {result.sourcesUsed.map((source) => source.title).join(", ")}</p>}</section>}
       <p className="caption">{availability === "not_configured" ? "Forge AI non configuré localement." : "Forge ne modifie jamais le contenu sans votre application et sauvegarde explicites."}</p>
-      <ForgeProposalDialog proposal={dialogOpen ? proposal : null} busy={pending} onClose={() => setDialogOpen(false)} onReject={() => { setDialogOpen(false); setResult(null); setProposal(null); }} onApply={() => { if (!proposal) return; setProposal(proposal); setDialogOpen(false); setResult(null); }} onRegenerate={() => { if (lastRequest) run(lastRequest.intent, lastRequest.input, true); }} onAdjust={(adjustment) => { if (!lastRequest || !proposal) return; run(lastRequest.intent, `${lastRequest.input ?? ""}\n\nAjustement demandé : ${adjustment}\n\nProposition à améliorer :\n${proposal.proposal.suggestedContent ?? proposal.text}`, true); }} />
+      <ForgeProposalDialog result={dialogOpen ? result : null} busy={pending} onClose={() => setDialogOpen(false)} onReject={() => { setDialogOpen(false); setResult(null); setProposal(null); }} onApply={() => { if (!proposal) return; setProposal(proposal); setDialogOpen(false); setResult(null); }} onRegenerate={() => { if (lastRequest) run(lastRequest.intent, lastRequest.input, true, lastRequest.sourceIds); }} onAdjust={(adjustment) => { if (!lastRequest || !proposal) return; run(lastRequest.intent, `${lastRequest.input ?? ""}\n\nAjustement demandé : ${adjustment}\n\nProposition à améliorer :\n${proposal.proposal.suggestedContent ?? proposal.text}`, true, lastRequest.sourceIds); }} />
   </WorkspaceRail>;
 }

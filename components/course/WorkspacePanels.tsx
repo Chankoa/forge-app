@@ -47,6 +47,7 @@ export function WorkspaceRail({ panel, children }: { panel: WorkspacePanel; chil
   }, [modal]);
   return <aside ref={root} className={`${panel === "structure" ? "outline" : "forge"}-rail workspace-rail`} data-open={expanded} data-modal={modal} role={modal ? "dialog" : undefined} aria-modal={modal ? true : undefined} aria-label={title}
     onKeyDown={(event) => {
+      if (event.target instanceof Element && event.target.closest("dialog")) return;
       if (event.key === "Escape" && expanded) { event.stopPropagation(); close(); if (!compact) toggleRef.current?.focus(); }
       if (event.key !== "Tab" || !modal) return;
       const items = Array.from(root.current?.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), textarea:not(:disabled), summary, [tabindex="0"]') ?? []).filter((el) => el.getClientRects().length > 0);

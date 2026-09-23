@@ -18,6 +18,6 @@ export async function generateForgeAction(raw: unknown): Promise<ForgeResponse> 
     const { data: { user }, error } = await client.auth.getUser();
     if (error || !user) return { ok: false, error: "unauthenticated" };
     const config = parseForgeConfig(process.env);
-    return await runForge(raw, { userId: user.id, reader: createForgeReader(client), provider: createForgeProvider(config), maxInputChars: config.maxInputChars, consumeRateLimit: (id) => consume(id, config.rateLimitPerHour) });
+    return await runForge(raw, { userId: user.id, reader: createForgeReader(client), provider: createForgeProvider(config), maxInputChars: config.maxInputChars, maxOutputTokens: config.maxOutputTokens, telemetry: (metrics) => console.info("[forge] request", metrics), consumeRateLimit: (id) => consume(id, config.rateLimitPerHour) });
   } catch { return { ok: false, error: "context_unavailable" }; }
 }

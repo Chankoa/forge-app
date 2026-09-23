@@ -166,3 +166,14 @@ textarea,select { font:inherit; }
 @media (max-width:1099px) { .personal-course-row { grid-template-columns:76px minmax(220px,1.5fr) minmax(180px,1fr) minmax(136px,.6fr); }.personal-course-row__state { display:none; }.explore-course-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media (max-width:1099px) { .app-shell,.app-shell[data-sidebar="collapsed"] { grid-template-columns:1fr; } }
 @media (max-width:700px) { .library-header { margin-top:0; }.library-header h1,.explore-header h1 { font-size:28px; }.course-library__heading { align-items:stretch; flex-direction:column; }.personal-course-row { grid-template-columns:70px minmax(0,1fr); align-items:start; gap:12px; }.personal-course-row__relationship,.personal-course-row__actions { grid-column:1 / -1; }.personal-course-row__relationship { padding-top:2px; }.personal-course-row__actions { align-items:end; justify-content:space-between; }.personal-course-row__actions > div { display:flex; align-items:center; justify-content:space-between; width:100%; }.personal-course-row .course-action { min-height:44px; }.explore-header { min-height:150px; padding:20px 18px; }.explore-course-grid { grid-template-columns:1fr; }.explore-course-card > .course-cover { min-height:138px; } }
+
+/* F8.4 contextual actions */
+.course-program p:has(.program-edit-link) { grid-template-columns:32px minmax(0,1fr) auto auto; align-items:center; }
+.course-program p a:first-of-type { color:var(--text-primary); text-decoration:none; }
+.course-program p a:first-of-type:hover { color:var(--violet); text-decoration:underline; }
+.program-edit-link { display:inline-flex; width:40px; height:40px; align-items:center; justify-content:center; color:var(--violet); border-radius:var(--radius-sm); }
+.program-edit-link:focus-visible,.program-edit-link:hover { background:var(--violet-soft); }
+.mode-switch > div { display:flex; align-items:center; }
+.mode-switch > div .button { min-height:40px; }
+@media (max-width:700px) { .course-program p:has(.program-edit-link) { grid-template-columns:28px minmax(0,1fr) auto; } .course-program p:has(.program-edit-link) small { grid-column:2; } }
+.course-program summary:has(.program-edit-link) { grid-template-columns:32px minmax(0,1fr) auto auto; }
