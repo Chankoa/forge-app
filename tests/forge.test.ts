@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { ForgeError, forgeRequestSchema, type ForgeProviderOutput } from "../lib/forge/contracts";
+import { courseProviderOutputSchema, ForgeError, forgeRequestSchema, lessonProviderOutputSchema, type ForgeProviderOutput } from "../lib/forge/contracts";
 import { buildForgeContext, type ForgeReader } from "../lib/forge/context";
 import { getForgeConfigDiagnostic, parseForgeConfig } from "../lib/forge/config";
 import { createForgeRateLimiter } from "../lib/forge/rate-limit";
 import { classifyProviderError } from "../lib/forge/provider-errors";
 import { runForge, type ForgeDependencies } from "../lib/forge/service";
+import { forgeMessages } from "../lib/forge/prompts";
 import type { ForgeSourceRow } from "../lib/forge/sources";
 
 const sourceId = "11111111-1111-4111-8111-111111111111";
@@ -49,7 +50,8 @@ test("course scope only allows explicit overview intentions", () => {
   assert.equal(forgeRequestSchema.safeParse({ mode: "learn", intent: "quiz", courseSlug: "course" }).success, false);
   assert.equal(forgeRequestSchema.safeParse({ mode: "edit", intent: "improve", courseSlug: "course" }).success, true);
   assert.equal(forgeRequestSchema.safeParse({ mode: "edit", intent: "rephrase", courseSlug: "course" }).success, false);
-  assert.equal(forgeRequestSchema.safeParse({ mode: "edit", intent: "structure", courseSlug: "course" }).success, true);
+  assert.equal(forgeRequestSchema.safeParse({ mode: "edit", intent: "structure", courseSlug: "course" }).success, false);
+  assert.equal(forgeRequestSchema.safeParse({ mode: "edit", intent: "objectives", courseSlug: "course" }).success, false);
 });
 test("free question is allowed in Learn and Edit without an automatic proposal", async () => {
   const { deps } = fixture();
@@ -147,14 +149,14 @@ test("free edit question returns a typed title proposal", async () => {
   const { deps } = fixture();
   deps.provider.generate = async () => ({ finishReason: "stop", output: { text: "Voici un titre.", patch: { title: "Titre révisé", subtitle: null, description: null, content: null, objectives: null } } });
   const result = await runForge({ ...request, mode: "edit", intent: "ask", input: "Propose-moi un nouveau titre." }, deps);
-  assert.ok(result.ok && result.result.mode === "edit" && result.result.kind === "answer_with_proposal");
+  assert.ok(result.ok && result.result.mode === "edit" && result.result.kind === "proposal");
   assert.equal(result.result.proposal.patch.title, "Titre révisé");
 });
 test("lesson patch permits title and content and preserves selected sources", async () => {
   const { deps } = fixture();
   editOutput(deps, { text: "Proposition", patch: { title: "Titre source", subtitle: null, description: null, content: "Contenu issu de la source", objectives: null } });
   const result = await runForge({ ...request, mode: "edit", intent: "ask", input: "Améliore le titre et le contenu.", sourceIds: [sourceId] }, deps);
-  assert.ok(result.ok && result.result.mode === "edit" && result.result.kind === "answer_with_proposal");
+  assert.ok(result.ok && result.result.mode === "edit" && result.result.kind === "proposal");
   assert.equal(result.result.proposal.patch.title, "Titre source");
   assert.equal(result.result.proposal.patch.content, "Contenu issu de la source");
   assert.deepEqual(result.result.sourcesUsed, [{ id: sourceId, title: "Source" }]);
@@ -166,6 +168,51 @@ test("course Improve proposes a saveable description and never targets a lesson"
   assert.ok(response.ok && response.result.mode === "edit" && response.result.kind === "proposal");
   assert.equal(response.result.proposal.patch.description, "Description du parcours améliorée");
   assert.deepEqual(response.result.proposal.target, { courseId: "course-id", lessonId: undefined });
+});
+test("Course Improve prompt names only Course patch fields and accepts one applicable field", async () => {
+  const { deps } = fixture(true, false);
+  const message = forgeMessages(forgeRequestSchema.parse({ mode: "edit", intent: "improve", courseSlug: "course" }), { course: { id: "course-id", title: "Course", summary: "Résumé" }, outline: [], sources: [], warnings: [] });
+  assert.match(message.system, /patch\.description/);
+  assert.match(message.system, /patch\.content et patch\.objectives doivent être null/);
+  assert.doesNotMatch(message.system, /suggestedContent/);
+  editOutput(deps, { text: "Nouveau sous-titre", patch: { title: null, subtitle: "Sous-titre revu", description: null, content: null, objectives: null } });
+  const response = await runForge({ mode: "edit", intent: "improve", courseSlug: "course" }, deps);
+  assert.ok(response.ok && response.result.kind === "proposal");
+  assert.equal(response.result.proposal.patch.subtitle, "Sous-titre revu");
+});
+test("Course Improve rejects a lesson-only field with safe patch telemetry", async () => {
+  const { deps } = fixture(true, false);
+  const events: Array<Record<string, string | number>> = [];
+  deps.telemetry = (metrics) => events.push(metrics);
+  editOutput(deps, { text: "Fausse amélioration", patch: { title: null, subtitle: null, description: null, content: "Contenu de leçon", objectives: null } });
+  assert.deepEqual(await runForge({ mode: "edit", intent: "improve", courseSlug: "course" }, deps), { ok: false, error: "invalid_result" });
+  assert.equal(events.some((event) => event.stage === "proposal_scope" && event.patchKeys === "content"), true);
+});
+test("scope-specific provider schemas require nullable fields and reject arbitrary fields", () => {
+  const course = { text: "Proposition", patch: { title: null, subtitle: null, description: "Description" } };
+  const lesson = { text: "Proposition", patch: { title: null, description: null, content: "Contenu", objectives: null } };
+  assert.equal(courseProviderOutputSchema.safeParse(course).success, true);
+  assert.equal(courseProviderOutputSchema.safeParse({ ...course, patch: { ...course.patch, content: "Interdit" } }).success, false);
+  assert.equal(lessonProviderOutputSchema.safeParse(lesson).success, true);
+  assert.equal(lessonProviderOutputSchema.safeParse({ ...lesson, patch: { ...lesson.patch, arbitrary: "Interdit" } }).success, false);
+});
+test("source-aware lesson proposal accepts one applicable field and attributes only injected sources", async () => {
+  const { deps } = fixture();
+  editOutput(deps, { text: "Proposition fondée sur AZUR-47", patch: { title: null, subtitle: null, description: null, content: "Expliquer AZUR-47", objectives: null } });
+  const response = await runForge({ ...request, mode: "edit", intent: "ask", input: "À partir de cette source, améliore le contenu.", sourceIds: [sourceId] }, deps);
+  assert.ok(response.ok && response.result.kind === "proposal");
+  assert.equal(response.result.proposal.patch.content, "Expliquer AZUR-47");
+  assert.deepEqual(response.result.sourcesUsed, [{ id: sourceId, title: "Source" }]);
+  const without = await runForge({ ...request, mode: "edit", intent: "ask", input: "Améliore le contenu." }, deps);
+  assert.ok(without.ok && without.result.kind === "proposal");
+  assert.deepEqual(without.result.sourcesUsed, []);
+});
+test("source-aware informative answer has no applicable patch", async () => {
+  const { deps } = fixture();
+  deps.provider.generate = async () => ({ finishReason: "stop", output: { text: "Le protocole AZUR-47 est important.", patch: { title: null, subtitle: null, description: null, content: null, objectives: null } } });
+  const response = await runForge({ ...request, mode: "edit", intent: "ask", input: "Quels éléments importants de cette source dois-je retenir ?", sourceIds: [sourceId] }, deps);
+  assert.ok(response.ok && response.result.kind === "answer");
+  assert.deepEqual(response.result.sourcesUsed, [{ id: sourceId, title: "Source" }]);
 });
 test("objectives proposal maps to objectives, summary has save-compatible limit", async () => {
   const { deps } = fixture();

@@ -16,7 +16,7 @@ const fields = {
 export const forgeRequestSchema = z.discriminatedUnion("mode", [
   z.object({ ...fields, mode: z.literal("learn"), intent: z.enum(forgeIntents.learn) }).strict(),
   z.object({ ...fields, mode: z.literal("edit"), intent: z.enum(forgeIntents.edit) }).strict(),
-]).refine((r) => Boolean(r.lessonSlug) || (r.mode === "learn" ? ["explain", "ask"].includes(r.intent) : ["structure", "improve", "summarize", "objectives", "ask"].includes(r.intent)), { message: "Cette intention nécessite une leçon." });
+]).refine((r) => Boolean(r.lessonSlug) || (r.mode === "learn" ? ["explain", "ask"].includes(r.intent) : ["improve", "summarize", "ask"].includes(r.intent)), { message: "Cette intention nécessite une leçon." });
 export type ForgeRequest = z.infer<typeof forgeRequestSchema>;
 export type ForgeAvailability = "configured" | "not_configured";
 export type ForgeErrorCode = "invalid_request" | "unauthenticated" | "forbidden" | "context_unavailable" | "source_unavailable" | "not_configured" | "provider_auth" | "provider_not_found" | "provider_network" | "provider_error" | "timeout" | "rate_limited" | "invalid_result";
@@ -41,12 +41,15 @@ export const forgePatchSchema = z.object({
   objectives: z.array(z.string().trim().min(1).max(300)).max(8).nullable(),
 }).strict();
 export const providerOutputSchema = z.object({ text: z.string().trim().min(1).max(12000), patch: forgePatchSchema }).strict();
+// The model sees only fields applicable to its scope. The provider expands the
+// other fields to null before the shared result contract is validated.
+export const courseProviderOutputSchema = z.object({ text: z.string().trim().min(1).max(12000), patch: forgePatchSchema.pick({ title: true, subtitle: true, description: true }) }).strict();
+export const lessonProviderOutputSchema = z.object({ text: z.string().trim().min(1).max(12000), patch: forgePatchSchema.pick({ title: true, description: true, content: true, objectives: true }) }).strict();
 export type ForgeProviderOutput = z.infer<typeof providerOutputSchema>;
 type ResultBase = { intent: ForgeIntent; text: string; sourcesUsed: Array<Pick<ForgeSource, "id" | "title">>; metadata: { warnings: ForgeWarning[]; finishReason: "stop" } };
 type EditProposal = { target: { courseId: string; lessonId?: string }; patch: z.infer<typeof forgePatchSchema>; application: "explicit_only" };
 export type ForgeResult =
   | (ResultBase & { mode: "learn"; kind: "answer" })
   | (ResultBase & { mode: "edit"; kind: "answer" })
-  | (ResultBase & { mode: "edit"; kind: "proposal"; proposal: EditProposal })
-  | (ResultBase & { mode: "edit"; kind: "answer_with_proposal"; proposal: EditProposal });
+  | (ResultBase & { mode: "edit"; kind: "proposal"; proposal: EditProposal });
 export type ForgeResponse = { ok: true; result: ForgeResult } | { ok: false; error: ForgeErrorCode };

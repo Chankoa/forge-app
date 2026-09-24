@@ -4,7 +4,7 @@ import { forgeMessages } from "./prompts";
 
 export interface ForgeProvider {
   availability: ForgeAvailability;
-  generate(messages: { system: string; prompt: string }): Promise<{ output: unknown; finishReason: string }>;
+  generate(messages: { system: string; prompt: string }, scope: "course" | "lesson"): Promise<{ output: unknown; finishReason: string }>;
 }
 export type ForgeDependencies = { userId: string; reader: ForgeReader; provider: ForgeProvider; maxInputChars: number; maxOutputTokens?: number; telemetry?(metrics: Record<string, string | number>): void; consumeRateLimit(userId: string): void };
 
@@ -23,7 +23,7 @@ export async function runForge(raw: unknown, deps: ForgeDependencies): Promise<F
     metrics = { operation: request.intent, scope: context.lesson ? "lesson" : "course", selectedSourceCount: request.sourceIds.length, sourceChars: rawContext.sources.reduce((total, source) => total + source.text.length, 0), contextChars: context.sources.reduce((total, source) => total + source.text.length, 0), inputChars: messages.system.length + messages.prompt.length, maxOutputTokens: deps.maxOutputTokens ?? 0 };
     if (messages.system.length + messages.prompt.length > deps.maxInputChars) throw new ForgeError("context_unavailable");
     deps.consumeRateLimit(deps.userId);
-    const generated = await deps.provider.generate(messages);
+    const generated = await deps.provider.generate(messages, context.lesson ? "lesson" : "course");
     const output = providerOutputSchema.safeParse(generated.output);
     if (generated.finishReason !== "stop" || !output.success) {
       deps.telemetry?.({ ...metrics, stage: "provider_output", finishReason: generated.finishReason, outputValid: output.success ? 1 : 0, elapsedMs: Date.now() - started, result: "invalid_result" });
@@ -31,6 +31,8 @@ export async function runForge(raw: unknown, deps: ForgeDependencies): Promise<F
     }
     const value = output.data;
     const patch = value.patch;
+    const patchKeys = Object.entries(patch).filter(([, item]) => item !== null).map(([key]) => key).join(",");
+    metrics = { ...metrics, finishReason: generated.finishReason, schemaSuccess: 1, patchKeys };
     const common = { intent: request.intent, text: value.text, sourcesUsed: context.sources.map(({ id, title }) => ({ id, title })), metadata: { warnings: context.warnings, finishReason: "stop" as const } };
     let result: ForgeResult;
     if (request.mode === "learn") {
@@ -39,15 +41,18 @@ export async function runForge(raw: unknown, deps: ForgeDependencies): Promise<F
     } else {
       const isLesson = Boolean(context.lesson);
       const allowed = isLesson ? ["title", "description", "content", "objectives"] : ["title", "subtitle", "description"];
-      if (Object.entries(patch).some(([key, value]) => value !== null && !allowed.includes(key))) throw new ForgeError("invalid_result");
+      if (Object.entries(patch).some(([key, value]) => value !== null && !allowed.includes(key))) {
+        deps.telemetry?.({ ...metrics, stage: "proposal_scope", elapsedMs: Date.now() - started, result: "invalid_result" });
+        throw new ForgeError("invalid_result");
+      }
       if (request.intent === "ask") {
         if (Object.values(patch).every((item) => item === null)) result = { ...common, mode: "edit", kind: "answer" };
-        else result = { ...common, mode: "edit", kind: "answer_with_proposal", proposal: { target: { courseId: context.course.id, lessonId: context.lesson?.id }, patch, application: "explicit_only" } };
+        else result = { ...common, mode: "edit", kind: "proposal", proposal: { target: { courseId: context.course.id, lessonId: context.lesson?.id }, patch, application: "explicit_only" } };
         deps.telemetry?.({ ...metrics, elapsedMs: Date.now() - started, result: "ok" });
         return { ok: true, result };
       }
-      const required = request.intent === "objectives" ? patch.objectives : isLesson ? patch.content : patch.description;
-      if (!required) {
+      const hasApplicablePatch = Object.entries(patch).some(([key, value]) => value !== null && allowed.includes(key));
+      if (!hasApplicablePatch || (request.intent === "objectives" && !patch.objectives)) {
         deps.telemetry?.({ ...metrics, stage: "proposal_shape", elapsedMs: Date.now() - started, result: "invalid_result" });
         throw new ForgeError("invalid_result");
       }

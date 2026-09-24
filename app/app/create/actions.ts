@@ -7,20 +7,31 @@ import { getPublicationReadiness } from "@/lib/courses/publication";
 import { revalidatePath } from "next/cache";
 import { publicCoursePreviewSchema } from "@/lib/forge/public-contracts";
 import { normalizeAuthoringText } from "@/lib/courses/authoring-text";
+import { courseDomainUpdate, parseDomainSelection } from "@/lib/forge/domain-mapping";
 
 function slugify(value: string) { return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 72) || "nouveau-parcours"; }
 async function authorClient() { const client = await createServerSupabaseClient(); if (!client) throw new Error("Supabase local n'est pas configuré."); const { data: { user } } = await client.auth.getUser(); if (!user) throw new Error("Votre session a expiré. Connectez-vous à nouveau."); return { client, user }; }
 async function requireOwner(courseId: string) { const { client, user } = await authorClient(); const { data: course } = await client.from("courses").select("id,teacher_id").eq("id", courseId).maybeSingle(); if (!course || course.teacher_id !== user.id) throw new Error("Vous ne pouvez pas modifier ce parcours."); return { client, user }; }
+type AuthorClient = Awaited<ReturnType<typeof authorClient>>["client"];
+async function validatedDomainId(client: AuthorClient, value: unknown) {
+  const id = parseDomainSelection(value);
+  if (!id) return null;
+  const { data, error } = await client.from("domains").select("id").eq("id", id).eq("status", "active").maybeSingle();
+  if (error || !data) throw new Error("Le domaine sélectionné n'est plus disponible. Choisissez-en un autre ou aucun domaine.");
+  return data.id;
+}
 
 export async function createCourseAction(formData: FormData) {
   const { client, user } = await authorClient();
   let rawProposal: unknown; try { rawProposal = JSON.parse(String(formData.get("proposal") || "")); } catch { throw new Error("La proposition Forge est invalide."); }
-  const proposal = publicCoursePreviewSchema.safeParse(rawProposal); const domainId = String(formData.get("domainId") || "");
-  if (!proposal.success || !domainId) throw new Error("Relisez la proposition et choisissez un domaine avant de créer le parcours.");
+  const proposal = publicCoursePreviewSchema.safeParse(rawProposal);
+  if (!proposal.success) throw new Error("La proposition Forge est invalide. Régénérez-la avant de créer le parcours.");
+  const domainId = await validatedDomainId(client, formData.get("domainId"));
   const parsed = courseMetadataSchema.parse({ title: proposal.data.title, description: proposal.data.summary, subtitle: proposal.data.learningOutcomes.slice(0, 3).join(" · ").slice(0, 500) });
   const baseSlug = slugify(parsed.title); let slug = baseSlug;
   for (let suffix = 2; suffix < 20; suffix += 1) { const { data } = await client.from("courses").select("id").eq("slug", slug).maybeSingle(); if (!data) break; slug = `${baseSlug}-${suffix}`; }
   const { data: course, error } = await client.from("courses").insert({ teacher_id: user.id, domain_id: domainId, slug, title: parsed.title, subtitle: parsed.subtitle || null, description: parsed.description, status: "draft", visibility: "private", availability: "preview" }).select("id,slug").single();
+  if (error?.code === "23502" && !domainId) throw new Error("La création sans domaine n'est pas encore disponible sur cette base. La mise à jour de la base doit être appliquée.");
   if (error || !course) throw new Error("Le parcours n'a pas pu être créé.");
   const { data: modules, error: modulesError } = await client.from("course_modules").insert(proposal.data.modules.map((module, index) => ({ course_id: course.id, slug: `${slugify(module.title)}-${index + 1}`, title: module.title, display_order: index, status: "draft" }))).select("id,display_order");
   if (modulesError || !modules?.length) throw new Error("Le parcours a été créé, mais sa structure n'a pas pu être ajoutée.");
@@ -49,8 +60,9 @@ export async function saveCourseMetadataAction(courseId: string, formData: FormD
   });
   if (!parsed.success) throw new Error("Les informations du parcours sont invalides.");
   const { client } = await requireOwner(courseId);
+  const domainId = formData.has("domainId") ? await validatedDomainId(client, formData.get("domainId")) : undefined;
   console.info("[forge] course save update", { courseId, attempted: true });
-  const { data, error } = await client.from("courses").update({ title: parsed.data.title, description: parsed.data.description, subtitle: parsed.data.subtitle || null }).eq("id", courseId).select("id,description").maybeSingle();
+  const { data, error } = await client.from("courses").update({ title: parsed.data.title, description: parsed.data.description, subtitle: parsed.data.subtitle || null, ...courseDomainUpdate(domainId) }).eq("id", courseId).select("id,description").maybeSingle();
   const errorStatus = error && typeof error === "object" && "status" in error && typeof error.status === "number" ? error.status : null;
   console.info("[forge] course save result", { courseId, errorCode: error?.code ?? null, errorStatus, rowsAffected: data ? 1 : 0, descriptionChars: data?.description?.length ?? 0 });
   if (error || !data) throw new Error("Les informations n'ont pas pu être sauvegardées.");

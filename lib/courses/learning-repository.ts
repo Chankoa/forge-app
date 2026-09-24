@@ -6,7 +6,7 @@ import { progressPercentage, resolveContinueLessonId } from "@/lib/learning/prog
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { domainNameFromRelation } from "./presentation";
 
-type CourseRow = { id: string; slug: string; title: string; subtitle: string | null; description: string | null; status: string | null; visibility: string | null; duration_minutes: number | null; domains: { name: string } | { name: string }[] | null };
+type CourseRow = { id: string; slug: string; title: string; subtitle: string | null; description: string | null; domain_id: string | null; status: string | null; visibility: string | null; duration_minutes: number | null; domains: { name: string } | { name: string }[] | null };
 type ModuleRow = { id: string; title: string; display_order: number };
 type LessonRow = { id: string; module_id: string; slug: string; title: string; description: string | null; content: string | null; objectives: string[] | null; duration_minutes: number | null; type: string; status: string; display_order: number };
 type EnrollmentRow = { id: string; course_id: string; status: EnrollmentState["status"]; current_lesson_id: string | null };
@@ -17,7 +17,7 @@ function mapSummary(row: CourseRow): CourseSummary { return { id: row.id, slug: 
 export async function getCourseDetail(courseSlug: string): Promise<CourseDetail | null> {
   const client = await createServerSupabaseClient();
   if (!client) return null;
-  const { data: courseData, error: courseError } = await client.from("courses").select("id,slug,title,subtitle,description,status,visibility,duration_minutes,domains(name)").eq("slug", courseSlug).maybeSingle();
+  const { data: courseData, error: courseError } = await client.from("courses").select("id,slug,title,subtitle,description,domain_id,status,visibility,duration_minutes,domains(name)").eq("slug", courseSlug).maybeSingle();
   if (courseError || !courseData) return null;
   const course = courseData as CourseRow;
   const [{ data: moduleData, error: moduleError }, { data: lessonData, error: lessonError }] = await Promise.all([
@@ -27,7 +27,7 @@ export async function getCourseDetail(courseSlug: string): Promise<CourseDetail 
   if (moduleError || lessonError) return null;
   const lessons = (lessonData ?? []) as LessonRow[];
   const outline: CourseOutline = ((moduleData ?? []) as ModuleRow[]).map((module) => ({ id: module.id, moduleTitle: module.title, lessons: lessons.filter((lesson) => lesson.module_id === module.id).map((lesson): CourseLesson => ({ id: lesson.id, slug: lesson.slug, title: lesson.title, description: lesson.description, content: lesson.content, objectives: lesson.objectives ?? [], durationMinutes: lesson.duration_minutes, contentType: lesson.type, publishingStatus: lesson.status, status: "not-started" })) }));
-  return { ...mapSummary(course), subtitle: course.subtitle, visibility: course.visibility, outline };
+  return { ...mapSummary(course), domainId: course.domain_id, subtitle: course.subtitle, visibility: course.visibility, outline };
 }
 
 export async function getLearningState(course: CourseDetail): Promise<LearningState> {
