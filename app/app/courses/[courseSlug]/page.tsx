@@ -20,7 +20,8 @@ export default async function CoursePage({ params, searchParams }: { params: Pro
   const [state, relationship] = await Promise.all([getLearningState(course), getAuthoringRelationship(course.id)]);
   const capabilities = resolveCourseCapabilities({ isOwner: relationship.isOwner, isEnrolled: state.enrollment !== null });
   const domains = capabilities.canEdit ? await listActiveDomains() : [];
-  const mode = requestedMode === "publication" && capabilities.canPublish ? "publication" : requestedMode === "edit" && capabilities.canEdit ? "edit" : "view";
+  // The root owner surface is the cockpit. Legacy ?mode=edit links converge here.
+  const mode = requestedMode === "publication" && capabilities.canPublish ? "publication" : capabilities.canEdit ? "edit" : "view";
   const outline = course.outline.map((module) => ({ ...module, lessons: module.lessons.map((lesson) => ({ ...lesson, status: state.completedLessonIds.has(lesson.id) ? "completed" as const : state.continueLessonId === lesson.id ? "in-progress" as const : "not-started" as const })) }));
   const continueLesson = outline.flatMap((module) => module.lessons).find((lesson) => lesson.id === state.continueLessonId);
   const primaryAction = state.enrollment && continueLesson

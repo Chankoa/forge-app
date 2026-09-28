@@ -1,6 +1,6 @@
 import type { CourseCapabilities } from "@/lib/capabilities/course-capabilities";
 
-export type CourseContextLink = { label: "Vue d'ensemble" | "Apprendre" | "Prévisualiser" | "Modifier" | "Publication"; href: string };
+export type CourseContextLink = { label: "Vue d'ensemble" | "Gérer" | "Apprendre" | "Prévisualiser" | "Modifier" | "Publication"; href: string };
 
 export function courseOverviewPath(courseSlug: string) { return `/app/courses/${courseSlug}`; }
 
@@ -11,10 +11,13 @@ export function getCourseContextLinks(courseSlug: string, capabilities: CourseCa
   const learnLesson = lessonSlug ?? learnLessonSlug;
   const learnLessonPath = learnLesson ? courseLessonPath(courseSlug, learnLesson) : courseOverviewPath(courseSlug);
   return [
-    { label: "Vue d'ensemble", href: courseOverviewPath(courseSlug) },
+    { label: capabilities.canEdit && !lessonSlug ? "Gérer" as const : "Vue d'ensemble", href: courseOverviewPath(courseSlug) },
     ...(capabilities.canLearn ? [{ label: "Apprendre" as const, href: learnLessonPath }] : []),
     ...(capabilities.canPreview && learnLesson ? [{ label: "Prévisualiser" as const, href: `${learnLessonPath}?mode=preview` }] : []),
-    ...(capabilities.canEdit ? [{ label: "Modifier" as const, href: `${selectedLessonPath}?mode=edit` }] : []),
+    // The Cockpit owns course-wide editing. "Modifier" remains only for the
+    // focused lesson editor, so owner navigation does not suggest two global
+    // authoring destinations.
+    ...(capabilities.canEdit && lessonSlug ? [{ label: "Modifier" as const, href: `${selectedLessonPath}?mode=edit` }] : []),
     ...(capabilities.canPublish ? [{ label: "Publication" as const, href: `${courseOverviewPath(courseSlug)}?mode=publication` }] : []),
   ];
 }

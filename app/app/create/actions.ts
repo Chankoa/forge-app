@@ -40,7 +40,7 @@ export async function createCourseAction(formData: FormData) {
     return createdModule ? module.outcomes.map((outcome, lessonIndex) => ({ course_id: course.id, module_id: createdModule.id, slug: `${slugify(outcome)}-${lessonIndex + 1}`, title: outcome, description: module.summary, display_order: lessonIndex, status: "draft", type: "reading", objectives: [outcome] })) : [];
   });
   if (lessons.length) { const { error: lessonsError } = await client.from("lessons").insert(lessons); if (lessonsError) throw new Error("Le parcours a été créé, mais ses leçons n'ont pas pu être ajoutées."); }
-  return { ok: true as const, redirectTo: `/app/courses/${course.slug}?mode=edit` };
+  return { ok: true as const, redirectTo: `/app/courses/${course.slug}` };
 }
 
 export async function saveCourseMetadataAction(courseId: string, formData: FormData) {

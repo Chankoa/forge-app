@@ -1,17 +1,28 @@
 import type { ReactNode } from "react";
 import type { CourseLesson } from "@/lib/courses/contracts";
 
+export function isSafeLessonLink(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch { return false; }
+}
+
 function inline(value: string): ReactNode[] {
-  return value.split(/(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g).filter(Boolean).map((part, index) => part.startsWith("`") ? <code key={index}>{part.slice(1, -1)}</code> : part.startsWith("**") ? <strong key={index}>{part.slice(2, -2)}</strong> : part.startsWith("*") ? <em key={index}>{part.slice(1, -1)}</em> : part);
+  return value.split(/(\[[^\]]+\]\([^)]+\)|`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g).filter(Boolean).map((part, index) => {
+    const link = /^\[([^\]]+)\]\(([^\s)]+)\)$/.exec(part);
+    if (link) return isSafeLessonLink(link[2]) ? <a key={index} href={link[2]} target="_blank" rel="noreferrer">{link[1]}</a> : <span key={index}>{link[1]}</span>;
+    return part.startsWith("`") ? <code key={index}>{part.slice(1, -1)}</code> : part.startsWith("**") ? <strong key={index}>{part.slice(2, -2)}</strong> : part.startsWith("*") ? <em key={index}>{part.slice(1, -1)}</em> : part;
+  });
 }
 
 function blocks(content: string) {
-  const normalized = content.replace(/\\n/g, "\n").replace(/\r\n?/g, "\n").replace(/\s*```\s*/g, "\n```\n").replace(/\s+-\s+(?=[A-ZÀ-ÖØ-Ý])/g, "\n- ");
+  const normalized = content.replace(/\\n/g, "\n").replace(/\r\n?/g, "\n").replace(/\s*```([a-zA-Z0-9_-]*)\s*/g, "\n```$1\n").replace(/\s+-\s+(?=[A-ZÀ-ÖØ-Ý])/g, "\n- ");
   const lines = normalized.split("\n"); const result: ReactNode[] = [];
   for (let index = 0; index < lines.length;) {
     const line = lines[index];
     if (!line.trim()) { index += 1; continue; }
-    if (line.startsWith("```")) { const code: string[] = []; index += 1; while (index < lines.length && !lines[index].startsWith("```")) code.push(lines[index++]); if (index < lines.length) index += 1; result.push(<pre key={result.length}><code>{code.join("\n")}</code></pre>); continue; }
+    if (/^```[a-zA-Z0-9_-]*\s*$/.test(line)) { const code: string[] = []; index += 1; while (index < lines.length && !/^```[a-zA-Z0-9_-]*\s*$/.test(lines[index])) code.push(lines[index++]); if (index < lines.length) index += 1; result.push(<pre key={result.length}><code>{code.join("\n")}</code></pre>); continue; }
     const heading = /^(#{2,4})\s+(.+)$/.exec(line);
     if (heading) { const Tag = (`h${heading[1].length}`) as "h2" | "h3" | "h4"; result.push(<Tag key={result.length}>{inline(heading[2])}</Tag>); index += 1; continue; }
     if (line.startsWith("> ")) { const quote: string[] = []; while (index < lines.length && lines[index].startsWith("> ")) quote.push(lines[index++].slice(2)); result.push(<blockquote key={result.length}>{quote.map((item, itemIndex) => <p key={itemIndex}>{inline(item)}</p>)}</blockquote>); continue; }
