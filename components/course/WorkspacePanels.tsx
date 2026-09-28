@@ -9,13 +9,14 @@ type PanelContext = { compact: boolean; mobilePanel: WorkspacePanel | null; setM
 const Context = createContext<PanelContext | null>(null);
 function usePanels() { const value = useContext(Context); if (!value) throw new Error("WorkspacePanels required"); return value; }
 
-export function WorkspacePanels({ structure, forge, children }: { structure: ReactNode; forge: ReactNode; children: ReactNode }) {
+export function WorkspacePanels({ structure, forge, children, initialStructureOpen = true }: { structure: ReactNode; forge: ReactNode; children: ReactNode; initialStructureOpen?: boolean }) {
   const compact = useSyncExternalStore(subscribe, snapshot, () => false);
-  const [structureOpen, setStructureOpen] = useState(true);
+  const [structureOpen, setStructureOpen] = useState(initialStructureOpen);
   const [forgeState, setForgeState] = useState<ForgeRailState>("docked");
   const [mobilePanel, setMobilePanel] = useState<WorkspacePanel | null>(null);
   const modal = compact && mobilePanel !== null;
   const forgeFocus = forgeState === "focus";
+  useEffect(() => { queueMicrotask(() => setStructureOpen(initialStructureOpen)); }, [initialStructureOpen]);
   return <Context.Provider value={{ compact, mobilePanel, setMobilePanel, structureOpen, setStructureOpen, forgeState, setForgeState }}>
     <div className="workspace-panel-tools" aria-label="Panneaux du parcours">
       <button type="button" className="button button--secondary" aria-expanded={modal && mobilePanel === "structure"} onClick={() => setMobilePanel("structure")}><ListTree size={17} /> Structure</button>
