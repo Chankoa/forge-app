@@ -371,3 +371,47 @@ textarea,select { font:inherit; }
   .owner-overview__issue a { grid-column: 2; }
 }
 @media (prefers-reduced-motion: reduce) { .owner-overview__module summary > svg { transition: none; } }
+
+/* DS 1.2 lesson workspaces: the shared shell stays intact in both modes. */
+.course-workspace--edit .workspace-content, .course-workspace--learn .workspace-content, .course-workspace--preview .workspace-content { padding: 24px 28px 44px; }
+.course-workspace--edit .course-context, .course-workspace--learn .course-context, .course-workspace--preview .course-context { min-height: 0; padding: 16px 24px; }
+.course-workspace--edit .course-context h1, .course-workspace--learn .course-context h1, .course-workspace--preview .course-context h1 { margin-top: 3px; font: var(--font-section); }
+.lesson-page-header { display: grid; gap: 7px; padding-bottom: 18px; border-bottom: 1px solid var(--shell-separator); }
+.lesson-page-header .eyebrow, .lesson-page-header__position { margin: 0; }
+.lesson-page-header .eyebrow { color: var(--violet); }
+.lesson-page-header__position, .lesson-page-header__meta { color: var(--text-secondary); font: var(--font-caption); }
+.lesson-page-header h2 { margin: 0; overflow-wrap: anywhere; font: var(--font-object); letter-spacing: -.02em; }
+.lesson-page-header__meta { display: inline-flex; align-items: center; gap: 6px; margin: 2px 0 0; }
+.lesson-editor { max-width: 760px; margin: 0; gap: 18px; }
+.lesson-editor__header { position: sticky; z-index: 4; top: 0; padding: 0 0 14px; background: var(--surface); }
+.lesson-editor__actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 5px; }
+.lesson-editor__actions .button { min-height: 44px; }
+.lesson-editor__status { margin-right: auto; color: var(--text-secondary); font: var(--font-caption); }
+.lesson-editor .editor-tabs { margin: 0; }
+.lesson-editor__objectives { display: flex; align-items: start; justify-content: space-between; gap: 18px; padding: 14px 16px; border-left: 2px solid var(--violet); background: var(--surface-soft); }
+.lesson-editor__objectives h3 { margin: 0; font: var(--font-label); }
+.lesson-editor__objectives ul { margin: 8px 0 0; padding-left: 18px; color: var(--text-secondary); font: var(--font-caption); }
+.lesson-editor__objectives li + li { margin-top: 4px; }
+.lesson-editor__objectives button { min-height: 44px; padding: 0 8px; border: 0; background: transparent; color: var(--violet); font: var(--font-label); cursor: pointer; }
+.lesson-editor__objectives button:focus-visible, .learner-lesson__adjacent:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
+.lesson-editor .content-editor { min-height: 380px !important; line-height: 1.6; }
+.learner-lesson { width: 100%; max-width: 760px; margin: 0 auto; }
+.learner-lesson .lesson-content { max-width: 680px; margin: 20px 0 0; }
+.learner-lesson .lesson-content h3 { padding-top: 12px; }
+.learner-lesson .lesson-objectives { padding: 14px 16px; border: 0; border-left: 2px solid var(--violet); border-radius: 0; }
+.learner-lesson__navigation { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 16px; margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--shell-separator); }
+.learner-lesson__navigation > div { min-width: 0; }
+.learner-lesson__navigation > div:last-child { text-align: right; }
+.learner-lesson__adjacent { min-height: 44px; display: inline-flex; align-items: center; gap: 8px; color: var(--violet); font: var(--font-label); text-align: left; }
+.learner-lesson__adjacent--next { text-align: right; }
+.learner-lesson__adjacent small { display: block; max-width: 180px; overflow: hidden; color: var(--text-secondary); font: var(--font-caption); text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 700px) {
+  .course-workspace--edit .workspace-content, .course-workspace--learn .workspace-content, .course-workspace--preview .workspace-content { padding: 18px 16px 30px; }
+  .lesson-editor__header { position: static; }
+  .lesson-editor__actions { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; }
+  .lesson-editor__actions .button { padding-inline: 11px; }
+  .learner-lesson__navigation { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+  .learner-lesson__navigation > :nth-child(2) { grid-column: 1 / -1; grid-row: 1; }
+  .learner-lesson__navigation > :nth-child(2) .button { width: 100%; justify-content: center; }
+  .learner-lesson__adjacent small { max-width: 120px; }
+}
