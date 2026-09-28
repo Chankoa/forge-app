@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { adjacentTab, expandForgeRail, toggleForgeRail } from "../lib/courses/workspace-layout";
+import { adjacentTab, focusForgeRail, toggleForgeRail } from "../lib/courses/workspace-layout";
 
-test("Forge rail cycles between collapsed, default, and expanded states", () => {
-  assert.equal(toggleForgeRail("default"), "collapsed");
-  assert.equal(toggleForgeRail("collapsed"), "default");
-  assert.equal(expandForgeRail("default"), "expanded");
-  assert.equal(expandForgeRail("expanded"), "default");
+test("Forge rail cycles between collapsed, docked, and focus states", () => {
+  assert.equal(toggleForgeRail("docked"), "collapsed");
+  assert.equal(toggleForgeRail("collapsed"), "docked");
+  assert.equal(focusForgeRail("docked"), "focus");
+  assert.equal(focusForgeRail("focus"), "docked");
 });
 
 test("editor tab keyboard navigation wraps predictably", () => {
