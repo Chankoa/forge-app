@@ -184,6 +184,7 @@ textarea,select { font:inherit; }
 .app-shell[data-sidebar="collapsed"] .app-sidebar .brand { justify-content: center; }
 .app-shell[data-sidebar="collapsed"] .app-sidebar .nav a, .app-shell[data-sidebar="collapsed"] .sidebar-signout { width: 48px; min-height: 48px; }
 .app-main { min-width: 0; }
+.mobile-header-actions { display: none; }
 .workspace-topbar { height: 60px; border-bottom-color: var(--shell-separator); }
 .course-shell .course-body { width: auto; max-width: none; margin: 16px 20px 32px; }
 .course-shell .course-workspace { box-shadow: none; }
@@ -232,7 +233,11 @@ textarea,select { font:inherit; }
 }
 @media (max-width: 700px) {
   .app-shell, .app-shell[data-sidebar="collapsed"] { display: block; }
-  .app-sidebar { position: static; height: 58px; padding: 7px 14px; }
+  .app-sidebar { position: static; height: 56px; padding: 6px 14px; }
+  .app-sidebar .sidebar-brand-row { display: flex; flex-direction: row; height: 44px; }
+  .mobile-header-actions { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+  .mobile-header-actions .icon-button { width: 44px; min-height: 44px; color: var(--shell-rail-text); }
+  .app-shell .workspace-topbar { display: none; }
   .app-sidebar .nav { background: var(--surface); }
   .app-sidebar .nav a { color: var(--text-secondary); }
   .app-sidebar .nav a[aria-current="page"] { color: var(--violet); background: var(--violet-soft); box-shadow: inset 0 2px var(--violet); }
@@ -242,6 +247,30 @@ textarea,select { font:inherit; }
   .app-shell[data-sidebar="collapsed"] .app-sidebar .nav a { width: auto; min-height: 48px; }
   .course-shell .course-body { margin: 12px; }
   .workspace-rail[data-focus="true"] { inset: 8px 8px auto; width: calc(100vw - 16px); height: calc(100dvh - 16px); max-height: none; transform: none; }
+}
+
+/* Mobile shell corrections: preserve the rail content when it becomes a sheet. */
+@media (max-width: 700px) {
+  .app-sidebar .nav { height: calc(64px + env(safe-area-inset-bottom)); }
+  .app-main { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+  .app-body, .course-shell .course-body { min-width: 0; max-width: calc(100% - 24px); }
+  .course-context-navigation, .course-context-navigation .mode-switch { min-width: 0; max-width: 100%; }
+  .course-context-navigation .mode-switch { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; overscroll-behavior-inline: contain; padding-bottom: 6px; }
+  .course-context-navigation .mode-switch a, .course-context-navigation .mode-switch > div { flex: 0 0 auto; white-space: nowrap; }
+  .course-context-navigation .mode-switch a[aria-current="page"] { order: -1; }
+  .workspace-scrim { z-index: 39; }
+  .workspace-rail[data-modal="true"] { z-index: 40; }
+  .workspace-rail[data-focus="true"] { z-index: 41; }
+  .workspace-rail[data-modal="true"]:not([data-focus="true"]) { inset: 0; width: 100%; height: 100dvh; max-height: none; display: flex; flex-direction: column; overflow: hidden; border-radius: 0; }
+  .workspace-rail[data-modal="true"] .rail-header { flex: 0 0 auto; min-height: 60px; flex-direction: row; justify-content: space-between; padding: 8px 14px; }
+  .workspace-rail[data-modal="true"] .rail-title { min-height: 0; display: flex; flex-direction: row; writing-mode: horizontal-tb; }
+  .workspace-rail[data-modal="true"] .rail-title span { display: inline; }
+  .workspace-rail[data-modal="true"] .rail-controls { flex-direction: row; }
+  .workspace-rail[data-modal="true"] .rail-body { flex: 1 1 auto; min-height: 0; display: block; overflow-y: auto; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+  .workspace-columns[data-structure="collapsed"] .workspace-rail[data-modal="true"].outline-rail .rail-body,
+  .workspace-columns[data-forge="collapsed"] .workspace-rail[data-modal="true"].forge-rail .rail-body { display: block; }
+  .workspace-rail[data-modal="true"].forge-rail .rail-body { display: grid; align-content: start; }
+  .workspace-rail[data-focus="true"] { inset: 8px; width: calc(100vw - 16px); height: calc(100dvh - 16px); }
 }
 
 /* F8.4 contextual actions */

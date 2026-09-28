@@ -29,6 +29,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="sidebar-brand-row">
         <Link className="brand" href="/app" aria-label="Forge — Accueil"><span className="brand__mark"><Sparkles size={18} /></span><span>Forge</span></Link>
         <IconButton label={collapsed ? "Déployer la navigation" : "Réduire la navigation"} aria-expanded={!collapsed} onClick={() => setCollapsed((value) => !value)}>{collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}</IconButton>
+        <div className="mobile-header-actions"><ThemeToggle /><IconButton label="Se déconnecter" onClick={signOut}><LogOut size={18} /></IconButton></div>
       </div>
       <nav className="nav" aria-label="Navigation principale">{links.map(([href, label, Icon]) => <Link key={href} href={href} title={collapsed ? label : undefined} aria-label={label} aria-current={activeHref === href ? "page" : undefined}><Icon size={19} strokeWidth={1.8} /><span>{label}</span></Link>)}</nav>
       <button className="sidebar-signout" type="button" aria-label="Se déconnecter" title={collapsed ? "Se déconnecter" : undefined} onClick={signOut}><LogOut size={19} strokeWidth={1.8} /><span>Déconnexion</span></button>

@@ -64,7 +64,7 @@ export function WorkspaceRail({ panel, children }: { panel: WorkspacePanel; chil
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
     }}>
-    <div className="rail-header"><p className="rail-title">{panel === "forge" ? <Sparkles size={17} /> : <ListTree size={17} />}<span>{title}</span></p>
+    <div className="rail-header"><p className="rail-title">{panel === "forge" ? <Sparkles size={17} /> : <ListTree size={17} />}<span>{panel === "forge" && compact ? "Forge IA" : title}</span></p>
       <div className="rail-controls">
         {panel === "forge" && expanded && <span className="forge-expand-control"><button ref={focusRef} type="button" className="icon-button" aria-label={focused ? "Revenir au panneau Forge" : "Ouvrir Forge en mode concentration"} aria-pressed={focused} onClick={() => setForgeState(focusForgeRail(forgeState))}><Maximize2 size={17} /></button></span>}
         {focused ? <button ref={focusCloseRef} type="button" className="icon-button" aria-label="Fermer le mode concentration" onClick={close}><X size={18} /></button> : <button ref={toggleRef} type="button" className="icon-button" aria-label={compact ? `Fermer ${title}` : expanded ? `Réduire ${title}` : `Ouvrir ${title}`} title={expanded ? `Réduire ${title}` : `Ouvrir ${title}`} aria-expanded={expanded} aria-controls={bodyId} onClick={() => {
