@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { CourseContextNavigation } from "../components/course/CourseContextNavigation";
 import { resolveCourseCapabilities } from "../lib/capabilities/course-capabilities";
-import { courseLessonPath, courseOverviewPath, getCourseContextLinks } from "../lib/courses/context-navigation";
+import { courseLessonPath, courseOverviewPath, getCourseContextLinks, publicationCorrectionPath } from "../lib/courses/context-navigation";
 
 const courseSlug = "workflow-ia";
 const lessonSlug = "premiers-pas";
@@ -21,3 +24,15 @@ test("publisher exposes course-level publication from lesson context", () => { c
 test("non-publisher never receives publication navigation", () => { assert.equal(getCourseContextLinks(courseSlug, enrolled, lessonSlug).some((link) => link.label === "Publication"), false); });
 test("owner without enrollment gets a preview route", () => { assert.equal(getCourseContextLinks(courseSlug, owner, undefined, lessonSlug).find((link) => link.label === "Prévisualiser")?.href, `${courseLessonPath(courseSlug, lessonSlug)}?mode=preview`); });
 test("course context links contain no legacy route", () => { for (const link of getCourseContextLinks(courseSlug, dual, lessonSlug)) assert.equal(/\/(teacher|learner|learn)(\/|$)/.test(link.href), false); });
+test("course-local back action returns to the same course overview while UJ05 returns to My paths", () => {
+  const props = { courseId: "course-id", courseSlug, enrollable: false, capabilities: owner, lessonSlug, activeMode: "edit" as const };
+  const local = renderToStaticMarkup(createElement(CourseContextNavigation, props));
+  assert.match(local, /href="\/app\/courses\/workflow-ia"[^>]*>.*?Vue d’ensemble/);
+  const overview = renderToStaticMarkup(createElement(CourseContextNavigation, { ...props, overview: true }));
+  assert.match(overview, /href="\/app\/courses"[^>]*>.*?Mes parcours/);
+});
+test("publication issues retain exact course and lesson correction routes", () => {
+  assert.equal(publicationCorrectionPath(courseSlug, "blocking"), `/app/courses/${courseSlug}?mode=edit#cockpit-program-title`);
+  assert.equal(publicationCorrectionPath(courseSlug, "recommended", lessonSlug), `/app/courses/${courseSlug}/lessons/${lessonSlug}?mode=edit`);
+  assert.equal(publicationCorrectionPath(courseSlug, "recommended"), publicationCorrectionPath(courseSlug, "blocking"));
+});

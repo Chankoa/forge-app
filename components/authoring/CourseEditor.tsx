@@ -45,6 +45,7 @@ export function CourseEditor({ course, domains, readiness, showOverview = false 
 
   return <div className="editor-stack course-cockpit">
     <div className="cockpit-heading"><div><p className="eyebrow">Course Cockpit</p><h2>Piloter le parcours</h2><p className="caption">Les propositions Forge modifient le brouillon local ; seule la sauvegarde écrit les informations du parcours.</p></div><span className={`cockpit-status cockpit-status--${course.status === "published" ? "published" : "draft"}`}>{course.status === "published" ? "Publié" : "Brouillon"}</span></div>
+    {message && <p className={message.includes("échoué") || message.includes("pouvez") ? "form-error" : "completion-state"} role="status">{message}</p>}
     <div className="editor-tabs" role="tablist" aria-label="Cockpit du parcours">{tabs.map((item) => <button id={`course-tab-${item.id}`} key={item.id} type="button" role="tab" aria-selected={tab === item.id} tabIndex={tab === item.id ? 0 : -1} onClick={() => setTab(item.id)}>{item.label}</button>)}</div>
     {tab === "information" && <form className="form authoring-form cockpit-form" onSubmit={(event) => { event.preventDefault(); const formData = new FormData(event.currentTarget); run(() => saveCourseMetadataAction(course.id, formData), "Modifications enregistrées."); }}>
       <label>Titre<input name="title" value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} required /></label>
@@ -65,6 +66,5 @@ export function CourseEditor({ course, domains, readiness, showOverview = false 
       {course.outline.length === 0 && <p className="caption">Ajoutez un premier module pour construire le programme.</p>}
     </section>}
     {tab === "sources" && <section className="cockpit-sources" aria-labelledby="cockpit-sources-title"><div className="section-heading"><div><p className="eyebrow"><FileText size={15} /> Sources</p><h2 id="cockpit-sources-title">Sources du parcours</h2></div></div><ForgeSourceResources courseSlug={course.slug} /></section>}
-    {message && <p className={message.includes("échoué") || message.includes("pouvez") ? "form-error" : "completion-state"} role="status">{message}</p>}
   </div>;
 }

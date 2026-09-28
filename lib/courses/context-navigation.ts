@@ -6,6 +6,11 @@ export function courseOverviewPath(courseSlug: string) { return `/app/courses/${
 
 export function courseLessonPath(courseSlug: string, lessonSlug: string) { return `${courseOverviewPath(courseSlug)}/lessons/${lessonSlug}`; }
 
+export function publicationCorrectionPath(courseSlug: string, kind: "blocking" | "recommended", lessonSlug?: string) {
+  const structure = `${courseOverviewPath(courseSlug)}?mode=edit#cockpit-program-title`;
+  return kind === "recommended" && lessonSlug ? `${courseLessonPath(courseSlug, lessonSlug)}?mode=edit` : structure;
+}
+
 export function getCourseContextLinks(courseSlug: string, capabilities: CourseCapabilities, lessonSlug?: string, learnLessonSlug?: string): CourseContextLink[] {
   const selectedLessonPath = lessonSlug ? courseLessonPath(courseSlug, lessonSlug) : courseOverviewPath(courseSlug);
   const learnLesson = lessonSlug ?? learnLessonSlug;

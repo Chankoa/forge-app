@@ -1,6 +1,28 @@
 import Link from "next/link";
-import { ArrowRight, BookOpen, Compass, PenLine, Sparkles } from "lucide-react";
-import { Surface } from "@/components/ui/Surface";
+import { ArrowRight, BookOpen, Compass, PenLine } from "lucide-react";
 import { PublicIntentExperience } from "@/components/forge/PublicIntentExperience";
+import { DomainMetadata } from "@/components/course/DomainMetadata";
 import { listActiveDomains } from "@/lib/courses/authoring-repository";
-export default async function AppHome() { const domains = await listActiveDomains(); return <div className="workspace-home"><section className="workspace-hero"><div><p className="eyebrow">Un espace unique, propulsé par Forge</p><h1>Apprenez, créez et partagez<br />avec un contexte de confiance.</h1><p>Forge vous accompagne avec des parcours enrichis par l&apos;IA.</p><div className="workspace-hero__actions"><Link href="/app/courses"><BookOpen size={16} />Apprendre</Link><Link href="/app/create"><PenLine size={16} />Créer</Link><Link href="/app/explore"><Compass size={16} />Explorer</Link></div></div><div className="workspace-hero__art" aria-hidden="true"><span><Sparkles size={34} /></span><span><BookOpen size={30} /></span><span><PenLine size={26} /></span></div><Link className="button workspace-hero__cta" href="/app/create">Nouveau parcours <ArrowRight size={16} /></Link></section><section className="workspace-home__section"><PublicIntentExperience authenticated domains={domains.map(({ name }) => ({ name }))} /></section><section className="workspace-home__section"><div className="section-heading"><div><p className="eyebrow">Votre espace</p><h2>Reprendre là où vous en étiez</h2></div><Link href="/app/courses">Voir tous mes parcours <ArrowRight size={15} /></Link></div><div className="workspace-home__grid"><Link href="/app/courses"><Surface className="course-card"><Compass size={20} /><div><p className="caption">Bibliothèque unifiée</p><h3>Mes parcours</h3><p>Retrouvez ce que vous apprenez et ce que vous créez.</p></div><span className="caption">Ouvrir <ArrowRight size={14} /></span></Surface></Link><Link href="/app/create"><Surface className="course-card"><PenLine size={20} /><div><p className="caption">Nouvelle intention</p><h3>Créer un parcours</h3><p>Transformez une intention en parcours structuré.</p></div><span className="caption">Commencer <ArrowRight size={14} /></span></Surface></Link></div></section></div>; }
+import { listMyCourses } from "@/lib/courses/learning-repository";
+
+export default async function AppHome() {
+  const [domains, courses] = await Promise.all([listActiveDomains(), listMyCourses()]);
+  const continuing = courses.find(({ state }) => state.enrollment && state.percentage > 0 && state.percentage < 100)
+    ?? courses.find(({ state }) => state.enrollment && state.percentage < 100)
+    ?? courses.find(({ isOwner }) => isOwner)
+    ?? courses[0];
+  const visible = continuing ? [continuing, ...courses.filter(({ course }) => course.id !== continuing.course.id).slice(0, 3)] : [];
+  const lessonHref = (item: typeof courses[number]) => {
+    const lessons = item.course.outline.flatMap((module) => module.lessons);
+    const lesson = lessons.find((candidate) => candidate.id === item.state.continueLessonId) ?? lessons[0];
+    return lesson ? `/app/courses/${item.course.slug}/lessons/${lesson.slug}` : `/app/courses/${item.course.slug}`;
+  };
+  return <div className="workspace-home workspace-journey">
+    <header className="workspace-journey__hero"><p className="eyebrow">Votre espace Forge</p><h1>Reprenez votre parcours.</h1><p>Continuez à apprendre ou à créer, à partir de vos parcours.</p><div className="workspace-journey__hero-actions">{continuing && <Link className="button button--primary" href={continuing.isOwner ? `/app/courses/${continuing.course.slug}` : lessonHref(continuing)}>{continuing.isOwner ? "Gérer mon parcours" : "Continuer à apprendre"}<ArrowRight size={16} aria-hidden="true" /></Link>}<Link className="button button--secondary" href="/app/create"><PenLine size={16} aria-hidden="true" />Créer un parcours</Link></div></header>
+    <section className="workspace-journey__section" aria-labelledby="workspace-courses-title"><div className="workspace-journey__section-heading"><div><p className="eyebrow">Continuer</p><h2 id="workspace-courses-title">Vos parcours</h2></div><Link href="/app/courses">Tous mes parcours <ArrowRight size={16} aria-hidden="true" /></Link></div>
+      {visible.length ? <div className="workspace-journey__courses">{visible.map((item) => <article className="workspace-journey__course" key={item.course.id}><div><p className="workspace-journey__course-context">{item.isOwner ? "Je crée" : "J’apprends"}{item.state.enrollment && item.isOwner ? " · J’apprends" : ""}</p><h3>{item.course.title}</h3><DomainMetadata domain={item.course.domain} />{item.state.enrollment && <p className="workspace-journey__course-progress">{item.state.completedLessonIds.size} / {item.course.outline.flatMap((module) => module.lessons).length} leçons terminées</p>}</div><Link className="workspace-journey__course-action" href={item.isOwner ? `/app/courses/${item.course.slug}` : lessonHref(item)}>{item.isOwner ? "Gérer" : item.state.percentage > 0 ? "Continuer" : "Commencer"}<ArrowRight size={15} aria-hidden="true" /></Link></article>)}</div> : <div className="workspace-journey__empty"><p>Aucun parcours lié à votre compte pour le moment.</p><Link href="/app/create">Créer votre premier parcours <ArrowRight size={16} aria-hidden="true" /></Link></div>}
+    </section>
+    <section className="workspace-journey__section workspace-journey__create" aria-labelledby="workspace-create-title"><div className="workspace-journey__section-heading"><div><p className="eyebrow">Créer</p><h2 id="workspace-create-title">Partir d’une intention</h2></div><Link href="/app/create">Ouvrir l’atelier de création <ArrowRight size={16} aria-hidden="true" /></Link></div><PublicIntentExperience authenticated domains={domains.map(({ name }) => ({ name }))} /></section>
+    <nav className="workspace-journey__destinations" aria-label="Autres destinations"><Link href="/app/courses"><BookOpen size={17} aria-hidden="true" />Mes parcours</Link><Link href="/app/explore"><Compass size={17} aria-hidden="true" />Explorer les parcours</Link></nav>
+  </div>;
+}

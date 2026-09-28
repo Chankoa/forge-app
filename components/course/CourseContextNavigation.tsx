@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { CourseCapabilities } from "@/lib/capabilities/course-capabilities";
-import { getCourseContextLinks } from "@/lib/courses/context-navigation";
+import { courseOverviewPath, getCourseContextLinks } from "@/lib/courses/context-navigation";
 import { ArrowLeft, BookOpen, Eye, LayoutDashboard, PenLine, Settings2, Upload } from "lucide-react";
 import { EnrollButton } from "@/components/learning/LearningActions";
 
@@ -13,5 +13,5 @@ export function CourseContextNavigation({ courseId, courseSlug, enrollable, capa
     {links.filter((link) => link.label === "Apprendre" || link.label === "Prévisualiser" || link.label === "Publication").map((link) => { const Icon = icons[link.label]; return <Link className="course-overview-actions__secondary" href={link.href} key={link.label}><Icon size={16} />{link.label}</Link>; })}
     <Link className="course-overview-actions__primary" href={`/app/courses/${courseSlug}?mode=edit`}><PenLine size={16} /> Continuer l’édition</Link>
   </nav></div>;
-  return <div className="course-context-navigation"><Link className="course-back-link" href="/app/courses"><ArrowLeft size={15} /> Mes parcours</Link><nav className="mode-switch" aria-label="Contexte du parcours">{links.flatMap((link) => { const Icon = icons[link.label]; const element = <Link aria-current={link.label === activeLabel ? "page" : undefined} href={link.href} key={link.label}><Icon size={15} />{link.label}</Link>; return link.label === "Vue d'ensemble" && enrollable && !capabilities.canLearn ? [element, <EnrollButton key="enroll" courseId={courseId} courseSlug={courseSlug} />] : [element]; })}</nav></div>;
+  return <div className="course-context-navigation"><Link className="course-back-link" href={courseOverviewPath(courseSlug)}><ArrowLeft size={15} /> Vue d’ensemble</Link><nav className="mode-switch" aria-label="Contexte du parcours">{links.flatMap((link) => { const Icon = icons[link.label]; const element = <Link aria-current={link.label === activeLabel ? "page" : undefined} href={link.href} key={link.label}><Icon size={15} />{link.label}</Link>; return link.label === "Vue d'ensemble" && enrollable && !capabilities.canLearn ? [element, <EnrollButton key="enroll" courseId={courseId} courseSlug={courseSlug} />] : [element]; })}</nav></div>;
 }

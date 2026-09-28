@@ -180,6 +180,21 @@ test("Course Improve prompt names only Course patch fields and accepts one appli
   assert.ok(response.ok && response.result.kind === "proposal");
   assert.equal(response.result.proposal.patch.subtitle, "Sous-titre revu");
 });
+test("course description prompt matches the 1000-character contract across edit intents", () => {
+  const course = { course: { id: "course-id", title: "Course", summary: "Résumé" }, outline: [], sources: [], warnings: [] };
+  for (const intent of ["improve", "summarize", "ask"] as const) {
+    const message = forgeMessages(forgeRequestSchema.parse({ mode: "edit", intent, courseSlug: "course", ...(intent === "ask" ? { input: "Améliore la description" } : {}) }), course);
+    assert.match(message.system, /patch\.description/);
+    assert.match(message.system, /600 à 900 caractères/);
+    assert.match(message.system, /ne dépasse jamais 1000 caractères/);
+    assert.match(message.system, /finalité, son public cible et sa valeur d'apprentissage/);
+    assert.match(message.system, /vue d'ensemble du parcours, à Mes parcours et à Publication/);
+    for (const excluded of ["plan complet", "listes détaillées de modules", "contenu des leçons", "longues listes de ressources", "notes de formateur", "conseils d'implémentation"]) assert.ok(message.system.includes(excluded));
+    assert.doesNotMatch(message.system, /3600 caractères/);
+  }
+  const lessonMessage = forgeMessages(forgeRequestSchema.parse({ mode: "edit", intent: "improve", courseSlug: "course", lessonSlug: "lesson" }), { ...course, lesson: { id: "lesson-id", title: "Lesson", summary: "", content: "", objectives: [] } });
+  assert.doesNotMatch(lessonMessage.system, /600 à 900 caractères/);
+});
 test("Course Improve rejects a lesson-only field with safe patch telemetry", async () => {
   const { deps } = fixture(true, false);
   const events: Array<Record<string, string | number>> = [];
@@ -214,16 +229,37 @@ test("source-aware informative answer has no applicable patch", async () => {
   assert.ok(response.ok && response.result.kind === "answer");
   assert.deepEqual(response.result.sourcesUsed, [{ id: sourceId, title: "Source" }]);
 });
-test("objectives proposal maps to objectives, summary has save-compatible limit", async () => {
+test("objectives proposal maps to objectives and complete lesson content remains applicable", async () => {
   const { deps } = fixture();
   editOutput(deps, { text: "Objectifs", patch: { title: null, subtitle: null, description: null, content: null, objectives: ["Expliquer"] } });
   const r = await runForge({ ...request, mode: "edit", intent: "objectives" }, deps);
   assert.ok(r.ok && r.result.mode === "edit" && r.result.kind === "proposal");
   assert.deepEqual(r.result.proposal.patch.objectives, ["Expliquer"]);
-  editOutput(deps, { text: "Résumé", patch: { title: null, subtitle: null, description: null, content: "x".repeat(1001), objectives: null } });
-  const bounded = await runForge({ ...request, mode: "edit", intent: "summarize" }, deps);
-  assert.ok(bounded.ok && bounded.result.mode === "edit" && bounded.result.kind === "proposal");
-  assert.ok((bounded.result.proposal.patch.content?.length ?? 0) <= 1000);
+  editOutput(deps, { text: "Résumé", patch: { title: null, subtitle: null, description: null, content: "x".repeat(3800), objectives: null } });
+  const complete = await runForge({ ...request, mode: "edit", intent: "summarize" }, deps);
+  assert.ok(complete.ok && complete.result.mode === "edit" && complete.result.kind === "proposal");
+  assert.equal(complete.result.proposal.patch.content, "x".repeat(3800));
+});
+test("lesson proposals above 3800 characters fail instead of returning shortened success", async () => {
+  const { deps } = fixture();
+  editOutput(deps, { text: "Contenu proposé", patch: { title: null, subtitle: null, description: null, content: "x".repeat(3801), objectives: null } });
+  assert.deepEqual(await runForge({ ...request, mode: "edit", intent: "improve" }, deps), { ok: false, error: "invalid_result" });
+});
+test("course descriptions above 1000 characters fail instead of returning shortened success", async () => {
+  const { deps } = fixture();
+  editOutput(deps, { text: "Description proposée", patch: { title: null, subtitle: null, description: "x".repeat(1001), content: null, objectives: null } });
+  assert.deepEqual(await runForge({ mode: "edit", intent: "improve", courseSlug: "course" }, deps), { ok: false, error: "invalid_result" });
+  editOutput(deps, { text: "Description proposée", patch: { title: null, subtitle: null, description: "x".repeat(1000), content: null, objectives: null } });
+  const complete = await runForge({ mode: "edit", intent: "improve", courseSlug: "course" }, deps);
+  assert.ok(complete.ok && complete.result.kind === "proposal");
+  assert.equal(complete.result.proposal.patch.description, "x".repeat(1000));
+});
+test("free edit requests respect the same proposal limits", async () => {
+  const { deps } = fixture();
+  editOutput(deps, { text: "Leçon", patch: { title: null, subtitle: null, description: null, content: "x".repeat(3801), objectives: null } });
+  assert.deepEqual(await runForge({ ...request, mode: "edit", intent: "ask", input: "Améliore la leçon" }, deps), { ok: false, error: "invalid_result" });
+  editOutput(deps, { text: "Parcours", patch: { title: null, subtitle: null, description: "x".repeat(1001), content: null, objectives: null } });
+  assert.deepEqual(await runForge({ mode: "edit", intent: "ask", courseSlug: "course", input: "Améliore le parcours" }, deps), { ok: false, error: "invalid_result" });
 });
 test("missing provider controlled, no call or quota consumed", async () => {
   const { deps, calls } = fixture();

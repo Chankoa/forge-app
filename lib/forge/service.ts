@@ -45,6 +45,10 @@ export async function runForge(raw: unknown, deps: ForgeDependencies): Promise<F
         deps.telemetry?.({ ...metrics, stage: "proposal_scope", elapsedMs: Date.now() - started, result: "invalid_result" });
         throw new ForgeError("invalid_result");
       }
+      if ((isLesson && patch.content && patch.content.length > 3800) || (!isLesson && patch.description && patch.description.length > 1000)) {
+        deps.telemetry?.({ ...metrics, stage: "proposal_length", elapsedMs: Date.now() - started, result: "invalid_result" });
+        throw new ForgeError("invalid_result");
+      }
       if (request.intent === "ask") {
         if (Object.values(patch).every((item) => item === null)) result = { ...common, mode: "edit", kind: "answer" };
         else result = { ...common, mode: "edit", kind: "proposal", proposal: { target: { courseId: context.course.id, lessonId: context.lesson?.id }, patch, application: "explicit_only" } };
@@ -56,8 +60,7 @@ export async function runForge(raw: unknown, deps: ForgeDependencies): Promise<F
         deps.telemetry?.({ ...metrics, stage: "proposal_shape", elapsedMs: Date.now() - started, result: "invalid_result" });
         throw new ForgeError("invalid_result");
       }
-      const bounded = isLesson && patch.content && patch.content.length > 1000 ? { ...patch, content: patch.content.slice(0, 1000).replace(/\s+\S*$/, "").trimEnd() } : !isLesson && patch.description && patch.description.length > 3800 ? { ...patch, description: patch.description.slice(0, 3800).replace(/\s+\S*$/, "").trimEnd() } : patch;
-      result = { ...common, mode: "edit", kind: "proposal", proposal: { target: { courseId: context.course.id, lessonId: context.lesson?.id }, patch: bounded, application: "explicit_only" } };
+      result = { ...common, mode: "edit", kind: "proposal", proposal: { target: { courseId: context.course.id, lessonId: context.lesson?.id }, patch, application: "explicit_only" } };
     }
     deps.telemetry?.({ ...metrics, elapsedMs: Date.now() - started, result: "ok" });
     return { ok: true, result };
