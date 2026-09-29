@@ -23,12 +23,12 @@ function blocks(content: string) {
     const line = lines[index];
     if (!line.trim()) { index += 1; continue; }
     if (/^```[a-zA-Z0-9_-]*\s*$/.test(line)) { const code: string[] = []; index += 1; while (index < lines.length && !/^```[a-zA-Z0-9_-]*\s*$/.test(lines[index])) code.push(lines[index++]); if (index < lines.length) index += 1; result.push(<pre key={result.length}><code>{code.join("\n")}</code></pre>); continue; }
-    const heading = /^(#{2,4})\s+(.+)$/.exec(line);
-    if (heading) { const Tag = (`h${heading[1].length}`) as "h2" | "h3" | "h4"; result.push(<Tag key={result.length}>{inline(heading[2])}</Tag>); index += 1; continue; }
+    const heading = /^(#{1,4})\s+(.+)$/.exec(line);
+    if (heading) { const Tag = (`h${Math.max(2, heading[1].length)}`) as "h2" | "h3" | "h4"; result.push(<Tag key={result.length}>{inline(heading[2])}</Tag>); index += 1; continue; }
     if (line.startsWith("> ")) { const quote: string[] = []; while (index < lines.length && lines[index].startsWith("> ")) quote.push(lines[index++].slice(2)); result.push(<blockquote key={result.length}>{quote.map((item, itemIndex) => <p key={itemIndex}>{inline(item)}</p>)}</blockquote>); continue; }
     const list = /^(?:- |\* |\d+\. )/.test(line);
     if (list) { const ordered = /^\d+\. /.test(line); const items: string[] = []; while (index < lines.length && (ordered ? /^\d+\. /.test(lines[index]) : /^(?:- |\* )/.test(lines[index]))) items.push(lines[index++].replace(ordered ? /^\d+\. / : /^(?:- |\* )/, "")); const Tag = ordered ? "ol" : "ul"; result.push(<Tag key={result.length}>{items.map((item, itemIndex) => <li key={itemIndex}>{inline(item)}</li>)}</Tag>); continue; }
-    const paragraph: string[] = []; while (index < lines.length && lines[index].trim() && !lines[index].startsWith("```") && !/^(#{2,4})\s+|^> |^(?:- |\* |\d+\. )/.test(lines[index])) paragraph.push(lines[index++]); result.push(<p key={result.length}>{paragraph.map((item, itemIndex) => <span key={itemIndex}>{inline(item)}{itemIndex < paragraph.length - 1 && <br />}</span>)}</p>);
+    const paragraph: string[] = []; while (index < lines.length && lines[index].trim() && !lines[index].startsWith("```") && !/^(#{1,4})\s+|^> |^(?:- |\* |\d+\. )/.test(lines[index])) paragraph.push(lines[index++]); result.push(<p key={result.length}>{paragraph.map((item, itemIndex) => <span key={itemIndex}>{inline(item)}{itemIndex < paragraph.length - 1 && <br />}</span>)}</p>);
   }
   return result;
 }

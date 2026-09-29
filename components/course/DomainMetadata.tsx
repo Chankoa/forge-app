@@ -1,4 +1,4 @@
-export function DomainMetadata({ domain, subdomain, labelled = true }: { domain?: string | null; subdomain?: string | null; labelled?: boolean }) {
+export function DomainMetadata({ domain, subdomain, labelled = false }: { domain?: string | null; subdomain?: string | null; labelled?: boolean }) {
   const primary = domain?.trim();
   const secondary = subdomain?.trim();
   if (!primary && !secondary) return null;

@@ -20,3 +20,11 @@ test("lesson Markdown never turns an unsafe link into a learner navigation targe
   assert.doesNotMatch(html, /href=/);
   assert.match(html, /Ne pas ouvrir/);
 });
+
+test("learner content renders a first-level Markdown heading, objectives, and inline code semantically", () => {
+  const html = renderToStaticMarkup(createElement(LessonContent, { lesson: { ...lesson, objectives: ["Comprendre la structure"], content: "# Introduction\n\nUtilisez `const` dans cet exemple." } }));
+  assert.match(html, /<h2>Introduction<\/h2>/);
+  assert.match(html, /class="lesson-objectives"/);
+  assert.match(html, /<code>const<\/code>/);
+  assert.doesNotMatch(html, /<p>\s*<span># Introduction/);
+});

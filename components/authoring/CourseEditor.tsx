@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
-import { Eye, FileText, Layers3, PenLine, Plus, Save } from "lucide-react";
+import { ChevronDown, Eye, FileText, Layers3, PenLine, Plus, Save } from "lucide-react";
 import type { CourseDetail } from "@/lib/courses/contracts";
 import { Button } from "@/components/ui/Button";
 import { addLessonAction, addModuleAction, renameModuleAction, saveCourseMetadataAction, saveLessonAction } from "@/app/app/create/actions";
@@ -57,7 +57,7 @@ export function CourseEditor({ course, domains, readiness, showOverview = false 
     {tab === "structure" && <section className="cockpit-program" aria-labelledby="cockpit-program-title">
       <div className="section-heading"><div><p className="eyebrow"><Layers3 size={15} /> Programme</p><h2 id="cockpit-program-title">Modules et leçons</h2></div><form action={(data) => run(() => addModuleAction(course.id, data), "Module ajouté.")}><input name="title" aria-label="Titre du nouveau module" placeholder="Nouveau module" required /><Button type="submit" variant="secondary"><Plus size={16} /> Module</Button></form></div>
       {course.outline.map((module, moduleIndex) => <details className="cockpit-module" id={`module-${module.id}`} key={module.id} open>
-        <summary><span>{moduleIndex + 1}</span><div><strong>{module.moduleTitle}</strong><small>{module.lessons.length} leçon{module.lessons.length > 1 ? "s" : ""}</small></div></summary>
+        <summary><span>{moduleIndex + 1}</span><div><strong>{module.moduleTitle}</strong><small>{module.lessons.length} leçon{module.lessons.length > 1 ? "s" : ""}</small></div><ChevronDown size={17} aria-hidden="true" /></summary>
         <div className="cockpit-module__body"><form className="inline-form" action={(data) => run(() => renameModuleAction(course.id, module.id, data), "Module renommé.")}><label>Nom du module<input name="title" defaultValue={module.moduleTitle} required /></label><Button type="submit" variant="ghost">Renommer</Button></form>
           <ol className="cockpit-lessons">{module.lessons.map((lesson, lessonIndex) => <li key={lesson.id}><span>{moduleIndex + 1}.{lessonIndex + 1}</span><div><strong>{lesson.title}</strong><small>{lesson.durationMinutes ? `${lesson.durationMinutes} min · ` : ""}{lesson.publishingStatus === "published" ? "Publié" : "Brouillon"}</small></div><form className="cockpit-lesson__rename" action={(data) => run(() => saveLessonAction(course.id, lesson.id, data), "Leçon renommée.")}><label className="sr-only" htmlFor={`lesson-title-${lesson.id}`}>Renommer {lesson.title}</label><input id={`lesson-title-${lesson.id}`} name="title" defaultValue={lesson.title} required /><Button type="submit" variant="ghost">Renommer</Button></form><Link className="icon-button" href={`/app/courses/${course.slug}/lessons/${lesson.slug}?mode=preview`} aria-label={`Prévisualiser ${lesson.title}`} title="Prévisualiser comme apprenant"><Eye size={16} /></Link><Link className="icon-button" href={`/app/courses/${course.slug}/lessons/${lesson.slug}?mode=edit`} aria-label={`Modifier ${lesson.title}`} title="Modifier la leçon"><PenLine size={16} /></Link></li>)}</ol>
           <form className="inline-form" action={(data) => run(() => addLessonAction(course.id, module.id, data), "Leçon ajoutée.")}><input name="title" aria-label={`Titre d'une leçon dans ${module.moduleTitle}`} placeholder="Nouvelle leçon" required /><Button type="submit" variant="ghost"><Plus size={16} /> Leçon</Button></form>
