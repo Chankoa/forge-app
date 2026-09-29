@@ -1,24 +1,20 @@
 import Link from "next/link";
-import { ArrowRight, BookOpen, Check, ChevronDown, Clock3, Layers3, PenLine, AlertCircle } from "lucide-react";
+import { ArrowRight, BookOpen, Check, ChevronDown, PenLine, AlertCircle } from "lucide-react";
 import type { CourseDetail } from "@/lib/courses/contracts";
 import type { PublicationReadiness } from "@/lib/courses/publication";
+import { knownCourseDuration } from "@/lib/courses/presentation";
+import { CourseMetrics } from "./CourseMetrics";
 
 export function OwnerCourseOverview({ course, readiness }: { course: CourseDetail; readiness: PublicationReadiness }) {
   const lessons = course.outline.flatMap((module) => module.lessons);
-  const knownMinutes = lessons.reduce((sum, lesson) => sum + (lesson.durationMinutes ?? 0), 0);
-  const duration = course.durationMinutes ?? (lessons.length > 0 && lessons.every((lesson) => lesson.durationMinutes != null) ? knownMinutes : null);
+  const duration = knownCourseDuration(course);
   const firstIncompleteLesson = lessons.find((lesson) => !lesson.content?.trim());
   const publicationHref = `/app/courses/${course.slug}?mode=publication`;
   const structureHref = `/app/courses/${course.slug}?mode=edit#cockpit-program-title`;
   const issueCount = readiness.blocking.length + readiness.recommended.length;
 
   return <div className="owner-overview">
-    <section className="owner-overview__summary" aria-label="Résumé du parcours">
-      <div><Layers3 size={18} aria-hidden="true" /><span><strong>{course.outline.length}</strong><small>module{course.outline.length > 1 ? "s" : ""}</small></span></div>
-      <div><BookOpen size={18} aria-hidden="true" /><span><strong>{lessons.length}</strong><small>leçon{lessons.length > 1 ? "s" : ""}</small></span></div>
-      {duration !== null && <div><Clock3 size={18} aria-hidden="true" /><span><strong>{duration} min</strong><small>durée estimée</small></span></div>}
-      <div>{course.status === "published" || readiness.ready ? <Check size={18} aria-hidden="true" /> : <AlertCircle size={18} aria-hidden="true" />}<span><strong>{course.status === "published" ? "Publié" : readiness.ready ? "Prêt à publier" : "À compléter"}</strong><small>publication</small></span></div>
-    </section>
+    <CourseMetrics modules={course.outline.length} lessons={lessons.length} durationMinutes={duration} publication={course.status === "published" ? "Publié" : readiness.ready ? "Prêt à publier" : "À compléter"} />
 
     <section className="owner-overview__section" aria-labelledby="overview-modules-title">
       <div className="owner-overview__section-heading"><div><p className="eyebrow">Structure du parcours</p><h2 id="overview-modules-title">Modules</h2></div><Link className="owner-overview__section-link" href={structureHref}>Gérer la structure <ArrowRight size={16} /></Link></div>

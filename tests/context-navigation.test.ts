@@ -36,3 +36,9 @@ test("publication issues retain exact course and lesson correction routes", () =
   assert.equal(publicationCorrectionPath(courseSlug, "recommended", lessonSlug), `/app/courses/${courseSlug}/lessons/${lessonSlug}?mode=edit`);
   assert.equal(publicationCorrectionPath(courseSlug, "recommended"), publicationCorrectionPath(courseSlug, "blocking"));
 });
+test("learner primary continuation appears in the shared course action row", () => {
+  const action = createElement("a", { href: `/app/courses/${courseSlug}/lessons/${lessonSlug}` }, "Continuer");
+  const html = renderToStaticMarkup(createElement(CourseContextNavigation, { courseId: "course-id", courseSlug, enrollable: true, capabilities: enrolled, activeMode: "view", learnLessonSlug: lessonSlug, primaryLearningAction: action }));
+  assert.match(html, /<nav class="mode-switch"[^>]*>.*Vue d&#x27;ensemble.*Apprendre.*Continuer.*<\/nav>/);
+  assert.equal((html.match(/>Continuer<\/a>/g) ?? []).length, 1);
+});

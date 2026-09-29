@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import type { CourseCapabilities } from "@/lib/capabilities/course-capabilities";
 import { courseOverviewPath, getCourseContextLinks } from "@/lib/courses/context-navigation";
 import { ArrowLeft, BookOpen, Eye, LayoutDashboard, PenLine, Settings2, Upload } from "lucide-react";
@@ -6,12 +7,12 @@ import { EnrollButton } from "@/components/learning/LearningActions";
 
 const icons = { "Vue d'ensemble": LayoutDashboard, "Gérer": Settings2, "Apprendre": BookOpen, "Prévisualiser": Eye, "Modifier": PenLine, "Publication": Upload };
 
-export function CourseContextNavigation({ courseId, courseSlug, enrollable, capabilities, lessonSlug, learnLessonSlug, activeMode, overview = false }: { courseId: string; courseSlug: string; enrollable: boolean; capabilities: CourseCapabilities; lessonSlug?: string; learnLessonSlug?: string; activeMode: "view" | "learn" | "preview" | "edit" | "publication"; overview?: boolean }) {
+export function CourseContextNavigation({ courseId, courseSlug, enrollable, capabilities, lessonSlug, learnLessonSlug, activeMode, overview = false, primaryLearningAction }: { courseId: string; courseSlug: string; enrollable: boolean; capabilities: CourseCapabilities; lessonSlug?: string; learnLessonSlug?: string; activeMode: "view" | "learn" | "preview" | "edit" | "publication"; overview?: boolean; primaryLearningAction?: ReactNode }) {
   const activeLabel = activeMode === "view" ? "Vue d'ensemble" : activeMode === "learn" ? "Apprendre" : activeMode === "preview" ? "Prévisualiser" : activeMode === "edit" ? (lessonSlug ? "Modifier" : "Gérer") : "Publication";
   const links = getCourseContextLinks(courseSlug, capabilities, lessonSlug, learnLessonSlug);
   if (overview) return <div className="course-context-navigation course-context-navigation--overview"><Link className="course-back-link" href="/app/courses"><ArrowLeft size={15} /> Mes parcours</Link><nav className="course-overview-actions" aria-label="Actions du parcours">
     {links.filter((link) => link.label === "Apprendre" || link.label === "Prévisualiser" || link.label === "Publication").map((link) => { const Icon = icons[link.label]; return <Link className="course-overview-actions__secondary" href={link.href} key={link.label}><Icon size={16} />{link.label}</Link>; })}
     <Link className="course-overview-actions__primary" href={`/app/courses/${courseSlug}?mode=edit`}><PenLine size={16} /> Continuer l’édition</Link>
   </nav></div>;
-  return <div className="course-context-navigation"><Link className="course-back-link" href={courseOverviewPath(courseSlug)}><ArrowLeft size={15} /> Vue d’ensemble</Link><nav className="mode-switch" aria-label="Contexte du parcours">{links.flatMap((link) => { const Icon = icons[link.label]; const element = <Link aria-current={link.label === activeLabel ? "page" : undefined} href={link.href} key={link.label}><Icon size={15} />{link.label}</Link>; return link.label === "Vue d'ensemble" && enrollable && !capabilities.canLearn ? [element, <EnrollButton key="enroll" courseId={courseId} courseSlug={courseSlug} />] : [element]; })}</nav></div>;
+  return <div className="course-context-navigation"><Link className="course-back-link" href={courseOverviewPath(courseSlug)}><ArrowLeft size={15} /> Vue d’ensemble</Link><nav className="mode-switch" aria-label="Contexte du parcours">{links.flatMap((link) => { const Icon = icons[link.label]; const element = <Link aria-current={link.label === activeLabel ? "page" : undefined} href={link.href} key={link.label}><Icon size={15} />{link.label}</Link>; return link.label === "Vue d'ensemble" && enrollable && !capabilities.canLearn ? [element, <EnrollButton key="enroll" courseId={courseId} courseSlug={courseSlug} />] : [element]; })}{primaryLearningAction && <span className="mode-switch__primary">{primaryLearningAction}</span>}</nav></div>;
 }

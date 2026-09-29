@@ -36,3 +36,10 @@ export function courseCardAction({ isOwner, enrolled, percentage, hasLesson }: {
 }
 
 export function canShowOwnerDelete(isOwner: boolean) { return isOwner; }
+
+export function knownCourseDuration(course: { durationMinutes?: number | null; outline: Array<{ lessons: Array<{ durationMinutes: number | null }> }> }): number | null {
+  if (course.durationMinutes != null) return course.durationMinutes;
+  const lessons = course.outline.flatMap((module) => module.lessons);
+  return lessons.length && lessons.every((lesson) => lesson.durationMinutes != null)
+    ? lessons.reduce((total, lesson) => total + (lesson.durationMinutes ?? 0), 0) : null;
+}
