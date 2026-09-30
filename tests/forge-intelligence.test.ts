@@ -15,7 +15,7 @@ const findings = { summary: "La structure peut être améliorée.", findings: [
   { type: "redundancy" as const, severity: "attention" as const, moduleIds: [id(4)], lessonIds: [id(5)], reason: "Concept répété", suggestion: "Regrouper les explications" },
   { type: "sequence_issue" as const, severity: "info" as const, moduleIds: [id(4)], lessonIds: [], reason: "Ordre à revoir", suggestion: "Examiner la progression" },
   { type: "imbalance" as const, severity: "info" as const, moduleIds: [id(4)], lessonIds: [], reason: "Module dense", suggestion: "Rééquilibrer" },
-  { type: "objective_gap" as const, severity: "attention" as const, moduleIds: [], lessonIds: [], reason: "Objectif peu couvert", suggestion: "Vérifier la couverture" },
+  { type: "objective_gap" as const, severity: "attention" as const, moduleIds: [id(4)], lessonIds: [], reason: "Objectif peu couvert", suggestion: "Vérifier la couverture" },
 ] };
 function deps(output: unknown, finishReason = "stop") { const calls: string[] = []; const provider: IntelligenceProvider = { availability: "configured", async generate(capability, messages) { calls.push(capability, messages.system, messages.prompt); return { output, finishReason }; } }; return { calls, provider, consumeRateLimit() { calls.push("rate"); } }; }
 

@@ -7,7 +7,7 @@ import { publicPreviewRequestSchema } from "@/lib/forge/public-contracts";
 import { createIntelligenceProvider } from "@/lib/forge/intelligence/provider";
 import { getOwnedCurriculumContext, getPublicCandidates } from "@/lib/forge/intelligence/repository";
 import { runIntelligence } from "@/lib/forge/intelligence/service";
-import type { CurriculumResult, IntelligenceResponse, SubjectDiscoveryResult } from "@/lib/forge/intelligence/contracts";
+import type { CurriculumReview, IntelligenceResponse, SubjectDiscoveryResult } from "@/lib/forge/intelligence/contracts";
 
 const consume = createForgeRateLimiter();
 
@@ -29,7 +29,7 @@ export async function discoverSubjectAction(raw: unknown): Promise<IntelligenceR
   } catch { return { ok: false, error: "context_unavailable" }; }
 }
 
-export async function analyzeCurriculumAction(courseId: string): Promise<IntelligenceResponse<CurriculumResult>> {
+export async function analyzeCurriculumAction(courseId: string): Promise<IntelligenceResponse<CurriculumReview>> {
   if (typeof courseId !== "string" || !/^[0-9a-f-]{36}$/i.test(courseId)) return { ok: false, error: "invalid_request" };
   const client = await createServerSupabaseClient();
   if (!client) return { ok: false, error: "context_unavailable" };
@@ -39,6 +39,6 @@ export async function analyzeCurriculumAction(courseId: string): Promise<Intelli
     const context = await getOwnedCurriculumContext(client, courseId, user.id);
     if (!context) return { ok: false, error: "forbidden" };
     const config = parseForgeConfig(process.env);
-    return await runIntelligence("curriculum_analysis", null, context, { provider: createIntelligenceProvider(config, process.env), maxInputChars: config.maxInputChars, consumeRateLimit: () => consume(user.id, config.rateLimitPerHour), telemetry: (data) => console.info("[forge] intelligence", { ...data, model: process.env.FORGE_CURRICULUM_ANALYSIS_MODEL || config.model }) });
+    return await runIntelligence("curriculum_analysis", null, context, { provider: createIntelligenceProvider(config, process.env), maxInputChars: config.maxInputChars, consumeRateLimit: () => consume(user.id, config.rateLimitPerHour), telemetry: (data) => console.info("[forge] intelligence " + JSON.stringify({ ...data, model: process.env.FORGE_CURRICULUM_ANALYSIS_MODEL || config.model })) });
   } catch { return { ok: false, error: "context_unavailable" }; }
 }
