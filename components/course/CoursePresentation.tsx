@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { BookOpen, Clock3, GraduationCap, PenLine, Sparkles } from "lucide-react";
+import { BookOpen, Clock3, GraduationCap, Layers3, PenLine, Sparkles } from "lucide-react";
 import type { CourseSummary } from "@/lib/courses/contracts";
 import { clampProgress, domainLabel, type CourseRelation } from "@/lib/courses/presentation";
 import { Surface } from "@/components/ui/Surface";
@@ -27,6 +27,15 @@ export function CourseMeta({ lessonCount, durationMinutes }: { lessonCount?: num
 
 function formatDuration(minutes: number) { const hours = Math.floor(minutes / 60); const rest = minutes % 60; return hours ? `${hours} h${rest ? ` ${rest} min` : ""}` : `${rest} min`; }
 
+export function CourseFacts({ moduleCount, lessonCount, durationMinutes }: { moduleCount?: number; lessonCount?: number; durationMinutes?: number | null }) {
+  if (moduleCount === undefined && lessonCount === undefined && !durationMinutes) return null;
+  return <div className="course-facts">
+    {moduleCount !== undefined && <span><Layers3 size={14} aria-hidden="true" />{moduleCount} module{moduleCount === 1 ? "" : "s"}</span>}
+    {lessonCount !== undefined && <span><BookOpen size={14} aria-hidden="true" />{lessonCount} leçon{lessonCount === 1 ? "" : "s"}</span>}
+    {durationMinutes ? <span><Clock3 size={14} aria-hidden="true" />{formatDuration(durationMinutes)}</span> : null}
+  </div>;
+}
+
 export function CourseCard({ course, relations = [], percentage, completedCount, action, menu }: { course: CourseSummary; relations?: CourseRelation[]; percentage?: number; completedCount?: number; action: ReactNode; menu?: ReactNode }) {
   return <Surface className="course-card course-card--canonical"><CourseCover domain={course.domain} /><div className="course-card__body"><div className="course-card__top"><RelationPills relations={relations} /><div className="course-card__tools">{course.status && <span className={`course-status course-status--${course.status}`}>{course.status === "published" ? "Publié" : course.status === "draft" ? "Brouillon" : course.status}</span>}{menu}</div></div><p className="caption course-card__domain">{course.domain ?? "Parcours"}</p><h2>{course.title}</h2>{course.description && <p className="course-card__description">{course.description}</p>}<CourseMeta lessonCount={course.lessonCount} durationMinutes={course.durationMinutes} />{percentage !== undefined && <div className="course-card__progress"><ProgressRing value={percentage} size={48} /><span><strong>{completedCount ?? 0} leçon{completedCount === 1 ? "" : "s"} terminée{completedCount === 1 ? "" : "s"}</strong><small>Progression réelle du parcours</small></span></div>}<div className="course-card__action">{action}</div></div></Surface>;
 }
@@ -48,6 +57,7 @@ export function PersonalCourseRow({ course, relations, action, secondaryAction, 
   </article>;
 }
 export function PersonalCourseCard({ course, relations, action, secondaryAction, menu }: PersonalCourseProps) {
-  return <article className="personal-course-card"><div className="personal-course-card__heading"><CourseCover domain={course.domain} compact /><div><DomainMetadata domain={course.domain} /><h3>{course.title}</h3></div></div>{course.description && <p className="personal-course-card__description">{course.description}</p>}<div className="personal-course-card__meta"><RelationPills relations={relations} /><span>{course.moduleCount} module{course.moduleCount === 1 ? "" : "s"} · {course.lessonCount} leçon{course.lessonCount === 1 ? "" : "s"}</span></div><PersonalCourseStatus course={course} /><div className="personal-course-card__actions"><div>{action}{secondaryAction}</div>{menu}</div></article>;
+  const status = libraryCourseStatus(course);
+  return <article className="personal-course-card"><div className="personal-course-card__top"><DomainMetadata domain={course.domain} /><div className="personal-course-card__badges"><RelationPills relations={relations} />{status && <span className={`course-status course-status--${status}`}>{libraryStatusLabels[status]}</span>}</div></div><div className="personal-course-card__heading"><CourseCover domain={course.domain} compact /><h3>{course.title}</h3></div>{course.description && <p className="personal-course-card__description">{course.description}</p>}<CourseFacts moduleCount={course.moduleCount} lessonCount={course.lessonCount} durationMinutes={course.durationMinutes} />{course.enrolled && <ProgressIndicator value={course.percentage} completedCount={course.completedCount} />}<div className="personal-course-card__actions"><div>{action}{secondaryAction}</div>{menu}</div></article>;
 }
 export function ExploreCourseCard({ course, action }: { course: CourseSummary; action: ReactNode }) { return <Surface className="explore-course-card"><CourseCover domain={course.domain} /><div className="explore-course-card__body"><p className="caption">{domainLabel(course.domain)}</p><h2>{course.title}</h2>{course.description && <p className="explore-course-card__description">{course.description}</p>}<CourseMeta lessonCount={course.lessonCount} durationMinutes={course.durationMinutes} /><div className="explore-course-card__action">{action}</div></div></Surface>; }

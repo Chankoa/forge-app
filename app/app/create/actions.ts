@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { courseMetadataSchema, lessonSchema, moduleSchema } from "@/lib/forge/authoring-contracts";
 import { getCourseDetail } from "@/lib/courses/learning-repository";
 import { getPublicationReadiness } from "@/lib/courses/publication";
+import { adjacentSwap, emptyModuleBlocker, nextDisplayOrder, type MoveDirection } from "@/lib/courses/structure-operations";
 import { revalidatePath } from "next/cache";
 import { publicCoursePreviewSchema } from "@/lib/forge/public-contracts";
 import { normalizeAuthoringText } from "@/lib/courses/authoring-text";
@@ -11,7 +12,7 @@ import { courseDomainUpdate, parseDomainSelection } from "@/lib/forge/domain-map
 
 function slugify(value: string) { return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 72) || "nouveau-parcours"; }
 async function authorClient() { const client = await createServerSupabaseClient(); if (!client) throw new Error("Supabase local n'est pas configuré."); const { data: { user } } = await client.auth.getUser(); if (!user) throw new Error("Votre session a expiré. Connectez-vous à nouveau."); return { client, user }; }
-async function requireOwner(courseId: string) { const { client, user } = await authorClient(); const { data: course } = await client.from("courses").select("id,teacher_id").eq("id", courseId).maybeSingle(); if (!course || course.teacher_id !== user.id) throw new Error("Vous ne pouvez pas modifier ce parcours."); return { client, user }; }
+async function requireOwner(courseId: string) { const { client, user } = await authorClient(); const { data: course } = await client.from("courses").select("id,teacher_id,slug").eq("id", courseId).maybeSingle(); if (!course || course.teacher_id !== user.id) throw new Error("Vous ne pouvez pas modifier ce parcours."); return { client, user, course }; }
 type AuthorClient = Awaited<ReturnType<typeof authorClient>>["client"];
 async function validatedDomainId(client: AuthorClient, value: unknown) {
   const id = parseDomainSelection(value);
@@ -70,12 +71,61 @@ export async function saveCourseMetadataAction(courseId: string, formData: FormD
   console.info("[forge] course save revalidated", { courseId, executed: true });
 }
 
-export async function addModuleAction(courseId: string, formData: FormData) { const { client } = await requireOwner(courseId); const parsed = moduleSchema.safeParse({ title: formData.get("title") }); if (!parsed.success) throw new Error("Le titre du module est requis."); const { count } = await client.from("course_modules").select("id", { count: "exact", head: true }).eq("course_id", courseId); const { error } = await client.from("course_modules").insert({ course_id: courseId, slug: `${slugify(parsed.data.title)}-${Date.now()}`, title: parsed.data.title, display_order: count ?? 0, status: "draft" }); if (error) throw new Error("Le module n'a pas pu être ajouté."); }
-export async function renameModuleAction(courseId: string, moduleId: string, formData: FormData) { const { client } = await requireOwner(courseId); const parsed = moduleSchema.safeParse({ title: formData.get("title") }); if (!parsed.success) throw new Error("Le titre du module est requis."); const { error } = await client.from("course_modules").update({ title: parsed.data.title }).eq("id", moduleId).eq("course_id", courseId); if (error) throw new Error("Le module n'a pas pu être renommé."); revalidatePath("/app/courses"); }
+export async function addModuleAction(courseId: string, formData: FormData) { const { client, course } = await requireOwner(courseId); const parsed = moduleSchema.safeParse({ title: formData.get("title") }); if (!parsed.success) throw new Error("Le titre du module est requis."); const { data: last, error: readError } = await client.from("course_modules").select("display_order").eq("course_id", courseId).order("display_order", { ascending: false }).limit(1); if (readError) throw new Error("L’ordre des modules est indisponible."); const { error } = await client.from("course_modules").insert({ course_id: courseId, slug: `${slugify(parsed.data.title)}-${Date.now()}`, title: parsed.data.title, display_order: nextDisplayOrder(last), status: "draft" }); if (error) throw new Error("Le module n'a pas pu être ajouté."); revalidatePath(`/app/courses/${course.slug}`); revalidatePath("/app/courses"); }
+export async function renameModuleAction(courseId: string, moduleId: string, formData: FormData) { const { client, course } = await requireOwner(courseId); const parsed = moduleSchema.safeParse({ title: formData.get("title") }); if (!parsed.success) throw new Error("Le titre du module est requis."); const { data, error } = await client.from("course_modules").update({ title: parsed.data.title }).eq("id", moduleId).eq("course_id", courseId).select("id").maybeSingle(); if (error || !data) throw new Error("Le module n'a pas pu être renommé."); revalidatePath(`/app/courses/${course.slug}`); revalidatePath("/app/courses"); }
+export async function renameLessonTitleAction(courseId: string, lessonId: string, formData: FormData) { const { client, course } = await requireOwner(courseId); const parsed = lessonSchema.safeParse({ title: formData.get("title") }); if (!parsed.success) throw new Error("Le titre de la leçon est requis."); const { data, error } = await client.from("lessons").update({ title: parsed.data.title }).eq("id", lessonId).eq("course_id", courseId).select("id").maybeSingle(); if (error || !data) throw new Error("La leçon n'a pas pu être renommée."); revalidatePath(`/app/courses/${course.slug}`); revalidatePath("/app/courses"); }
 
-export async function addLessonAction(courseId: string, moduleId: string, formData: FormData) { const { client } = await requireOwner(courseId); const parsed = lessonSchema.safeParse({ title: formData.get("title"), description: formData.get("description") || undefined }); if (!parsed.success) throw new Error("Le titre de la leçon est requis."); const { count } = await client.from("lessons").select("id", { count: "exact", head: true }).eq("module_id", moduleId); const { error } = await client.from("lessons").insert({ course_id: courseId, module_id: moduleId, slug: `${slugify(parsed.data.title)}-${Date.now()}`, title: parsed.data.title, description: parsed.data.description || null, display_order: count ?? 0, status: "draft", type: "reading", objectives: [] }); if (error) throw new Error("La leçon n'a pas pu être ajoutée."); }
+export async function addLessonAction(courseId: string, moduleId: string, formData: FormData) { const { client, course } = await requireOwner(courseId); const parsed = lessonSchema.safeParse({ title: formData.get("title"), description: formData.get("description") || undefined }); if (!parsed.success) throw new Error("Le titre de la leçon est requis."); const { data: module } = await client.from("course_modules").select("id").eq("id", moduleId).eq("course_id", courseId).maybeSingle(); if (!module) throw new Error("Module introuvable."); const { data: last, error: readError } = await client.from("lessons").select("display_order").eq("course_id", courseId).eq("module_id", moduleId).order("display_order", { ascending: false }).limit(1); if (readError) throw new Error("L’ordre des leçons est indisponible."); const { error } = await client.from("lessons").insert({ course_id: courseId, module_id: moduleId, slug: `${slugify(parsed.data.title)}-${Date.now()}`, title: parsed.data.title, description: parsed.data.description || null, display_order: nextDisplayOrder(last), status: "draft", type: "reading", objectives: [] }); if (error) throw new Error("La leçon n'a pas pu être ajoutée."); revalidatePath(`/app/courses/${course.slug}`); revalidatePath("/app/courses"); }
 
 export async function saveLessonAction(courseId: string, lessonId: string, formData: FormData) { const { client } = await requireOwner(courseId); const parsed = lessonSchema.safeParse({ title: formData.get("title") ?? "Leçon", description: formData.get("description") || undefined, content: formData.get("content") || undefined, objectives: formData.has("objectives") ? String(formData.get("objectives") || "").split("\n").map((item) => item.trim()).filter(Boolean) : undefined, type: formData.get("type") || undefined, durationMinutes: formData.has("durationMinutes") ? formData.get("durationMinutes") === "" ? null : formData.get("durationMinutes") : undefined, publishingStatus: formData.get("publishingStatus") || undefined }); if (!parsed.success) throw new Error("Les informations de la leçon sont invalides."); const values = { ...(formData.has("title") ? { title: parsed.data.title } : {}), ...(formData.has("description") ? { description: parsed.data.description || null } : {}), ...(formData.has("content") ? { content: parsed.data.content || null } : {}), ...(formData.has("objectives") ? { objectives: parsed.data.objectives ?? [] } : {}), ...(formData.has("type") ? { type: parsed.data.type } : {}), ...(formData.has("durationMinutes") ? { duration_minutes: parsed.data.durationMinutes ?? null } : {}), ...(formData.has("publishingStatus") ? { status: parsed.data.publishingStatus } : {}) }; const { error } = await client.from("lessons").update(values).eq("id", lessonId).eq("course_id", courseId); if (error) throw new Error("La leçon n'a pas pu être sauvegardée."); revalidatePath("/app/courses"); revalidatePath("/app/courses/[courseSlug]", "page"); }
+
+async function reorderAdjacent(courseId: string, table: "course_modules" | "lessons", itemId: string, direction: MoveDirection, moduleId?: string) {
+  const { client, course } = await requireOwner(courseId);
+  let query = client.from(table).select("id,display_order").eq("course_id", courseId).order("display_order").order("id");
+  if (table === "lessons") {
+    if (!moduleId) throw new Error("Module introuvable.");
+    query = query.eq("module_id", moduleId);
+  }
+  const { data: rows, error: readError } = await query;
+  if (readError || !rows) throw new Error("L’ordre du parcours est indisponible.");
+  const { current, neighbor } = adjacentSwap(rows, itemId, direction);
+  const update = (id: string, from: number, to: number) => {
+    let mutation = client.from(table).update({ display_order: to }).eq("id", id).eq("course_id", courseId).eq("display_order", from);
+    if (table === "lessons") mutation = mutation.eq("module_id", moduleId!);
+    return mutation.select("id").maybeSingle();
+  };
+  const first = await update(current.id, current.display_order, neighbor.display_order);
+  if (first.error || !first.data) throw new Error("Le déplacement n’a pas pu être enregistré.");
+  const second = await update(neighbor.id, neighbor.display_order, current.display_order);
+  if (second.error || !second.data) {
+    await update(current.id, neighbor.display_order, current.display_order);
+    throw new Error("Le déplacement n’a pas pu être terminé. Actualisez la page.");
+  }
+  revalidatePath(`/app/courses/${course.slug}`);
+  revalidatePath("/app/courses");
+}
+export async function moveModuleAction(courseId: string, moduleId: string, direction: MoveDirection) {
+  await reorderAdjacent(courseId, "course_modules", moduleId, direction);
+}
+export async function moveLessonAction(courseId: string, moduleId: string, lessonId: string, direction: MoveDirection) {
+  await reorderAdjacent(courseId, "lessons", lessonId, direction, moduleId);
+}
+export async function deleteEmptyModuleAction(courseId: string, moduleId: string) {
+  const { client, course } = await requireOwner(courseId);
+  const { data: module, error: moduleError } = await client.from("course_modules").select("id,title").eq("id", moduleId).eq("course_id", courseId).maybeSingle();
+  if (moduleError || !module) throw new Error("Module introuvable.");
+  const [{ count: lessons, error: lessonsError }, { count: resources, error: resourcesError }] = await Promise.all([
+    client.from("lessons").select("id", { count: "exact", head: true }).eq("course_id", courseId).eq("module_id", moduleId),
+    client.from("resources").select("id", { count: "exact", head: true }).eq("course_id", courseId).eq("module_id", moduleId),
+  ]);
+  if (lessonsError || resourcesError) throw new Error("Les dépendances du module n’ont pas pu être vérifiées.");
+  const blocker = emptyModuleBlocker(lessons, resources);
+  if (blocker) throw new Error(blocker);
+  const { data, error } = await client.from("course_modules").delete().eq("id", moduleId).eq("course_id", courseId).select("id").maybeSingle();
+  if (error || !data) throw new Error("Le module n’a pas pu être supprimé. Vérifiez qu’il est toujours vide.");
+  revalidatePath(`/app/courses/${course.slug}`);
+  revalidatePath("/app/courses");
+}
 
 export async function publishCourseAction(courseId: string, courseSlug: string) { const { client } = await requireOwner(courseId); const course = await getCourseDetail(courseSlug); if (!course || course.id !== courseId) throw new Error("Le parcours est introuvable."); const readiness = getPublicationReadiness(course); if (!readiness.ready) throw new Error(readiness.blocking[0]); const now = new Date().toISOString(); const [{ error: modulesError }, { error: lessonsError }] = await Promise.all([client.from("course_modules").update({ status: "published" }).eq("course_id", courseId).neq("status", "locked"), client.from("lessons").update({ status: "published" }).eq("course_id", courseId).neq("status", "locked")]); if (modulesError || lessonsError) throw new Error("Les éléments du parcours n'ont pas pu être préparés pour publication."); const { error } = await client.from("courses").update({ status: "published", visibility: "public", availability: "complete", published_at: now }).eq("id", courseId); if (error) throw new Error("Le parcours n'a pas pu être publié."); revalidatePath("/app/explore"); revalidatePath("/app/courses"); revalidatePath(`/app/courses/${courseSlug}`); }
 

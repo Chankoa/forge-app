@@ -43,3 +43,7 @@ export function knownCourseDuration(course: { durationMinutes?: number | null; o
   return lessons.length && lessons.every((lesson) => lesson.durationMinutes != null)
     ? lessons.reduce((total, lesson) => total + (lesson.durationMinutes ?? 0), 0) : null;
 }
+export function personalCardActions(course: { isOwner: boolean; enrolled: boolean; percentage: number; hasLesson: boolean }): { primary: CourseCardAction; secondary: "manage" | null } {
+  if (course.isOwner && course.enrolled && course.hasLesson) return { primary: courseCardAction({ ...course, isOwner: false }), secondary: "manage" };
+  return { primary: courseCardAction(course), secondary: null };
+}

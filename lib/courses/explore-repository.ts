@@ -1,9 +1,10 @@
 import type { CourseSummary } from "./contracts";
+import { domainNameFromRelation } from "./presentation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-type ExploreCourseRow = Pick<CourseSummary, "id" | "slug" | "title" | "status" | "description"> & { duration_minutes: number | null; domains: { name: string }[] | null };
+type ExploreCourseRow = Pick<CourseSummary, "id" | "slug" | "title" | "status" | "description" | "level"> & { duration_minutes: number | null; domains: { name: string } | { name: string }[] | null };
 
 export function mapExploreCourse(row: ExploreCourseRow): CourseSummary {
-	return { id: row.id, slug: row.slug, title: row.title, status: row.status, description: row.description, domain: row.domains?.[0]?.name ?? null, durationMinutes: row.duration_minutes };
+	return { id: row.id, slug: row.slug, title: row.title, status: row.status, description: row.description, domain: domainNameFromRelation(row.domains), durationMinutes: row.duration_minutes, level: row.level };
 }
 
 export async function listDiscoverableCourses(): Promise<{ courses: Array<CourseSummary & { enrolled: boolean }>; envRequired: boolean; unavailable: boolean }> {
@@ -13,7 +14,7 @@ export async function listDiscoverableCourses(): Promise<{ courses: Array<Course
 
 	const { data, error } = await client
 		.from("courses")
-		.select("id, slug, title, status, description, duration_minutes, domains(name)")
+		.select("id, slug, title, status, description, duration_minutes, level, domains(name)")
 		.eq("status", "published")
 		.eq("visibility", "public")
 		.order("created_at", { ascending: false });

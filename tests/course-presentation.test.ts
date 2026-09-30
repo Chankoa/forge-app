@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { canShowOwnerDelete, clampProgress, courseCardAction, courseRelations, domainLabel, domainNameFromRelation, hasCourseCover, matchesCourseRelation } from "../lib/courses/presentation";
+import { canShowOwnerDelete, clampProgress, courseCardAction, courseRelations, domainLabel, domainNameFromRelation, hasCourseCover, matchesCourseRelation, personalCardActions } from "../lib/courses/presentation";
 
 test("domain label uses the real domain or honest fallback", () => {
   assert.equal(domainLabel("Cuisine"), "Cuisine");
@@ -44,3 +44,8 @@ test("library card actions reflect progress and ownership", () => {
   assert.equal(courseCardAction({ isOwner: true, enrolled: true, percentage: 52, hasLesson: true }), "manage");
 });
 test("delete action is owner-only at presentation boundary", () => { assert.equal(canShowOwnerDelete(false), false); assert.equal(canShowOwnerDelete(true), true); });
+test("dual-role cards prioritize real learning and keep management secondary", () => {
+  assert.deepEqual(personalCardActions({ isOwner: true, enrolled: true, percentage: 45, hasLesson: true }), { primary: "continue", secondary: "manage" });
+  assert.deepEqual(personalCardActions({ isOwner: true, enrolled: true, percentage: 0, hasLesson: true }), { primary: "start", secondary: "manage" });
+  assert.deepEqual(personalCardActions({ isOwner: true, enrolled: false, percentage: 0, hasLesson: true }), { primary: "manage", secondary: null });
+});
