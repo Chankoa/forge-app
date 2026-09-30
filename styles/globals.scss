@@ -957,6 +957,15 @@ textarea,select { font:inherit; }
 .structure-inline-title__form { display: flex; min-width: 0; align-items: center; gap: 4px; }
 .structure-inline-title__form input { min-width: 0; width: min(100%, 430px); min-height: 44px; padding: 0 10px; border: 1px solid var(--violet); border-radius: var(--radius-sm); background: var(--surface); color: var(--text-primary); }
 .structure-inline-title__form .icon-button { flex: 0 0 40px; min-height: 44px; }
+.intelligence-section { min-width: 0; margin-top: 24px; padding: 20px 0; border-top: 1px solid var(--shell-separator); }
+.intelligence-section h3, .intelligence-section h4 { margin: 0; }
+.intelligence-section > p { color: var(--text-secondary); }
+.intelligence-results { display: grid; gap: 12px; margin-top: 16px; }
+.intelligence-match, .intelligence-finding { min-width: 0; padding: 14px 0; border-top: 1px solid var(--shell-separator); }
+.intelligence-match p, .intelligence-finding p { margin: 7px 0; }
+.intelligence-match .button { margin-top: 8px; }
+.intelligence-references { display: flex; flex-wrap: wrap; gap: 10px 16px; }
+.intelligence-references a { color: var(--violet); text-decoration: underline; }
 .cockpit-module__body { padding: 0 4px 18px 48px; }
 .cockpit-lessons li { grid-template-columns: 42px minmax(0, 1fr) auto; gap: 10px; padding-block: 6px; }
 .cockpit-lesson__index { color: var(--text-muted); font: var(--font-caption); }

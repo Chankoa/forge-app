@@ -10,6 +10,7 @@ import { FormatSelector } from "@/components/forge/FormatSelector";
 import { GeneratedPath } from "@/components/forge/GeneratedPath";
 import { deserializePublicDraft, PUBLIC_DRAFT_KEY, transitionPublicDraft, type PublicCourseFormat, type PublicCoursePreview } from "@/lib/forge/public-contracts";
 import { matchExistingDomain } from "@/lib/forge/domain-mapping";
+import { SubjectDiscovery } from "@/components/forge/SubjectDiscovery";
 
 export function CreateCourseForm({ domains }: { domains: Array<{ id: string; name: string }> }) {
   const router = useRouter();
@@ -79,6 +80,7 @@ export function CreateCourseForm({ domains }: { domains: Array<{ id: string; nam
       <label>Votre intention<textarea value={intent} onChange={(event) => setIntent(event.target.value)} minLength={12} maxLength={500} placeholder="Ex. Créer un parcours pour apprendre le design system en 2 semaines" /></label>
       <div className="create-guidance"><label>Public visé<input value={audience} onChange={(event) => setAudience(event.target.value)} maxLength={240} placeholder="Ex. Designers débutants" /></label><label>Objectif<input value={objective} onChange={(event) => setObjective(event.target.value)} maxLength={300} placeholder="Ex. Construire un premier système cohérent" /></label><label>Domaine<select value={domain} onChange={(event) => setDomain(event.target.value)}><option value="">Laisser Forge suggérer</option>{domains.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}</select></label></div>
       <FormatSelector value={format} onChange={setFormat} />
+      <SubjectDiscovery request={{ intent, audience: audience || undefined, objective: objective || undefined, format, domain: domain || undefined }} />
       <div className="create-intent-panel__footer"><p>Forge prépare une proposition. Aucun parcours n’est créé avant votre validation.</p><Button type="button" onClick={generate} disabled={Boolean(busyAction) || intent.trim().length < 12} aria-busy={busyAction === "generate" || busyAction === "update"}>{busyAction === "generate" || busyAction === "update" ? <LoaderCircle className="create-spinner" size={16} aria-hidden="true" /> : <Sparkles size={16} aria-hidden="true" />}{busyAction === "generate" ? "Forge prépare une proposition…" : busyAction === "update" ? "Forge met à jour la proposition…" : proposal ? "Mettre à jour la proposition" : "Générer le parcours"}</Button></div>
       {feedback && <p className="completion-state" role="status">{feedback}</p>}{error && <p className="form-error" role="alert">{error}</p>}
     </section>

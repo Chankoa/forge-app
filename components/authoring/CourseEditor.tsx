@@ -9,6 +9,7 @@ import { CourseStructureEditor } from "./CourseStructureEditor";
 import { ForgeSourceResources } from "@/components/forge/ForgeSourceResources";
 import { useForgeProposal } from "@/components/forge/ForgeProposalContext";
 import { OwnerCourseOverview } from "@/components/course/OwnerCourseOverview";
+import { CurriculumAnalysis } from "@/components/forge/CurriculumAnalysis";
 import type { PublicationReadiness } from "@/lib/courses/publication";
 
 type CockpitTab = "overview" | "information" | "structure" | "sources";
@@ -56,7 +57,7 @@ export function CourseEditor({ course, domains, readiness, showOverview = false 
       <label>Domaine<select name="domainId" value={draft.domainId} onChange={(event) => setDraft((current) => ({ ...current, domainId: event.target.value }))}><option value="">Aucun domaine</option>{domains.map((domain) => <option key={domain.id} value={domain.id}>{domain.name}</option>)}</select></label>
       <Button type="submit" disabled={pending}><Save size={17} /> {pending ? "Sauvegarde…" : "Sauvegarder les modifications"}</Button>
     </form>}
-    {tab === "structure" && <CourseStructureEditor course={course} onFeedback={(text, error = false) => { setMessage(text); setMessageError(error); }} />}
+    {tab === "structure" && <><CourseStructureEditor course={course} onFeedback={(text, error = false) => { setMessage(text); setMessageError(error); }} /><CurriculumAnalysis course={course} /></>}
     {tab === "sources" && <section className="cockpit-sources" aria-labelledby="cockpit-sources-title"><div className="section-heading"><div><p className="eyebrow"><FileText size={15} /> Sources</p><h2 id="cockpit-sources-title">Sources du parcours</h2></div></div><ForgeSourceResources courseSlug={course.slug} /></section>}
   </div>;
 }
