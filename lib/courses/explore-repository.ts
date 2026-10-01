@@ -1,6 +1,7 @@
 import type { CourseSummary } from "./contracts";
 import { domainNameFromRelation } from "./presentation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getPublicCourseAuthor } from "@/lib/profiles/public-author-repository";
 type ExploreCourseRow = Pick<CourseSummary, "id" | "slug" | "title" | "status" | "description" | "level"> & { duration_minutes: number | null; domains: { name: string } | { name: string }[] | null };
 
 export function mapExploreCourse(row: ExploreCourseRow): CourseSummary {
@@ -21,7 +22,11 @@ export async function listDiscoverableCourses(): Promise<{ courses: Array<Course
 
 	if (error) return { courses: [], envRequired: false, unavailable: true };
 
-	const courses = (data ?? []).map((row) => mapExploreCourse(row as ExploreCourseRow));
+	const courses = await Promise.all((data ?? []).map(async (row) => {
+		const course = mapExploreCourse(row as ExploreCourseRow);
+		const author = await getPublicCourseAuthor(client, { id: course.id, status: course.status, visibility: "public" });
+		return author ? { ...course, author } : course;
+	}));
 	const { data: { user } } = await client.auth.getUser();
 	if (!user || courses.length === 0) return { courses: courses.map((course) => ({ ...course, enrolled: false })), envRequired: false, unavailable: false };
 	const { data: enrollments } = await client.from("enrollments").select("course_id").in("course_id", courses.map((course) => course.id));

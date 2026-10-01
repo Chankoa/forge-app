@@ -6,15 +6,16 @@ import { ArrowRight, Compass, Search } from "lucide-react";
 import { EnrollButton, StartCourseLink } from "@/components/learning/LearningActions";
 import { CourseCover, CourseFacts } from "./CoursePresentation";
 import { DomainMetadata } from "./DomainMetadata";
+import { AuthorAttribution } from "./AuthorAttribution";
 import { courseLevelLabel, exploreDomains, selectExploreCourses, type DiscoverableCourse } from "@/lib/courses/explore-view";
 
 function FeaturedCourse({ course }: { course: DiscoverableCourse }) {
   const href = `/app/courses/${course.slug}`;
-  return <article className="explore-feature"><CourseCover domain={course.domain} /><div className="explore-feature__body"><DomainMetadata domain={course.domain} /><h3><Link href={href}>{course.title}</Link></h3>{course.description && <p>{course.description}</p>}<div className="explore-feature__meta"><CourseFacts durationMinutes={course.durationMinutes} />{courseLevelLabel(course.level) && <span>{courseLevelLabel(course.level)}</span>}</div><div className="explore-feature__actions"><Link href={href}>Voir le parcours <ArrowRight size={16} aria-hidden="true" /></Link>{course.enrolled ? <StartCourseLink href={href} label="Continuer" /> : <EnrollButton courseId={course.id} courseSlug={course.slug} />}</div></div></article>;
+  return <article className="explore-feature"><CourseCover domain={course.domain} /><div className="explore-feature__body"><DomainMetadata domain={course.domain} /><h3><Link href={href}>{course.title}</Link></h3><AuthorAttribution author={course.author} />{course.description && <p>{course.description}</p>}<div className="explore-feature__meta"><CourseFacts durationMinutes={course.durationMinutes} />{courseLevelLabel(course.level) && <span>{courseLevelLabel(course.level)}</span>}</div><div className="explore-feature__actions"><Link href={href}>Voir le parcours <ArrowRight size={16} aria-hidden="true" /></Link>{course.enrolled ? <StartCourseLink href={href} label="Continuer" /> : <EnrollButton courseId={course.id} courseSlug={course.slug} />}</div></div></article>;
 }
 
 function RecentCourse({ course }: { course: DiscoverableCourse }) {
-  return <article className="explore-recent__row"><CourseCover domain={course.domain} compact /><div><DomainMetadata domain={course.domain} /><h3>{course.title}</h3>{course.description && <p>{course.description}</p>}</div><div className="explore-feature__meta"><CourseFacts durationMinutes={course.durationMinutes} />{courseLevelLabel(course.level) && <span>{courseLevelLabel(course.level)}</span>}</div><Link href={`/app/courses/${course.slug}`} aria-label={`Voir le parcours ${course.title}`}>Voir le parcours <ArrowRight size={16} aria-hidden="true" /></Link></article>;
+  return <article className="explore-recent__row"><CourseCover domain={course.domain} compact /><div><DomainMetadata domain={course.domain} /><h3>{course.title}</h3><AuthorAttribution author={course.author} />{course.description && <p>{course.description}</p>}</div><div className="explore-feature__meta"><CourseFacts durationMinutes={course.durationMinutes} />{courseLevelLabel(course.level) && <span>{courseLevelLabel(course.level)}</span>}</div><Link href={`/app/courses/${course.slug}`} aria-label={`Voir le parcours ${course.title}`}>Voir le parcours <ArrowRight size={16} aria-hidden="true" /></Link></article>;
 }
 
 export function ExploreCatalog({ courses }: { courses: DiscoverableCourse[] }) {

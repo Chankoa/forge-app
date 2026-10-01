@@ -5,6 +5,7 @@ import type { EnrollmentState, LearningState } from "@/lib/learning/contracts";
 import { progressPercentage, resolveContinueLessonId } from "@/lib/learning/progress";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { domainNameFromRelation } from "./presentation";
+import { getPublicCourseAuthor } from "@/lib/profiles/public-author-repository";
 
 type CourseRow = { id: string; slug: string; title: string; subtitle: string | null; description: string | null; domain_id: string | null; status: string | null; visibility: string | null; duration_minutes: number | null; domains: { name: string } | { name: string }[] | null };
 type ModuleRow = { id: string; title: string; display_order: number };
@@ -27,7 +28,8 @@ export async function getCourseDetail(courseSlug: string): Promise<CourseDetail 
   if (moduleError || lessonError) return null;
   const lessons = (lessonData ?? []) as LessonRow[];
   const outline: CourseOutline = ((moduleData ?? []) as ModuleRow[]).map((module) => ({ id: module.id, moduleTitle: module.title, lessons: lessons.filter((lesson) => lesson.module_id === module.id).map((lesson): CourseLesson => ({ id: lesson.id, slug: lesson.slug, title: lesson.title, description: lesson.description, content: lesson.content, objectives: lesson.objectives ?? [], durationMinutes: lesson.duration_minutes, contentType: lesson.type, publishingStatus: lesson.status, status: "not-started" })) }));
-  return { ...mapSummary(course), domainId: course.domain_id, subtitle: course.subtitle, visibility: course.visibility, outline };
+  const author = await getPublicCourseAuthor(client, course);
+  return { ...mapSummary(course), ...(author ? { author } : {}), domainId: course.domain_id, subtitle: course.subtitle, visibility: course.visibility, outline };
 }
 
 export async function getLearningState(course: CourseDetail): Promise<LearningState> {

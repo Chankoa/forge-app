@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
-import { Compass, Home, Library, LogOut, PanelLeftClose, PanelLeftOpen, PenLine, Sparkles } from "lucide-react";
+import { CircleUserRound, Compass, Home, Library, LogOut, PanelLeftClose, PanelLeftOpen, PenLine, Sparkles } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { IconButton } from "@/components/ui/IconButton";
 import { createBrowserClient } from "@/lib/supabase/browser";
 
-const links = [["/app", "Accueil", Home], ["/app/courses", "Mes parcours", Library], ["/app/explore", "Explorer", Compass], ["/app/create", "Créer", PenLine]] as const;
+const links = [["/app", "Accueil", Home], ["/app/courses", "Mes parcours", Library], ["/app/explore", "Explorer", Compass], ["/app/create", "Créer", PenLine], ["/app/profile", "Profil", CircleUserRound]] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
