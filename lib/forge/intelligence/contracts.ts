@@ -65,10 +65,15 @@ export const contentRequestSchema = z.object({
   task: z.enum(contentTasks),
   targetLevel: z.enum(["beginner", "intermediate", "advanced"]).optional(),
   input: z.string().trim().max(2000).optional(),
+  targetText: z.string().min(1).max(3800).optional(),
+  targetStart: z.number().int().min(0).optional(),
+  targetEnd: z.number().int().min(0).optional(),
   sourceIds: z.array(z.uuid()).max(4).refine((ids) => new Set(ids).size === ids.length).default([]),
 }).strict().superRefine((value, ctx) => {
   if (value.task === "adapt_level" && !value.targetLevel) ctx.addIssue({ code: "custom", message: "targetLevel required" });
   if (value.task !== "adapt_level" && value.targetLevel) ctx.addIssue({ code: "custom", message: "targetLevel not applicable" });
+  if ((value.targetStart === undefined) !== (value.targetEnd === undefined)) ctx.addIssue({ code: "custom", message: "target range incomplete" });
+  if (value.targetStart !== undefined && (!value.targetText || value.targetEnd! - value.targetStart !== value.targetText.length)) ctx.addIssue({ code: "custom", message: "target range invalid" });
 });
 export type ContentRequest = z.infer<typeof contentRequestSchema>;
 export const contentTransformSchema = z.object({
@@ -77,6 +82,20 @@ export const contentTransformSchema = z.object({
   content: z.string().trim().min(1).max(3800).nullable(),
   addition: z.string().trim().min(1).max(2500).nullable(),
 }).strict();
+export const targetedOperationGenerationSchema = z.object({
+  replacement: z.string().trim().min(1).max(3800),
+  rationale: z.string().trim().min(1).max(700),
+}).strict();
+export const targetedOperationSchema = targetedOperationGenerationSchema.extend({
+  operation: z.enum(["replace_section", "insert_after", "append"]),
+  targetText: z.string().min(1).max(3800).nullable(),
+  targetStart: z.number().int().min(0).nullable().optional(),
+  targetEnd: z.number().int().min(0).nullable().optional(),
+}).superRefine((value, ctx) => {
+  if ((value.targetStart == null) !== (value.targetEnd == null)) ctx.addIssue({ code: "custom", message: "target range incomplete" });
+  if (value.targetStart != null && value.targetEnd! - value.targetStart !== value.targetText!.length) ctx.addIssue({ code: "custom", message: "target range invalid" });
+});
+export type TargetedOperation = z.infer<typeof targetedOperationSchema>;
 export const contentFindingSchema = z.object({
   type: z.enum(["objective_not_covered", "content_off_scope", "level_mismatch", "missing_example", "weak_progression", "excessive_complexity", "insufficient_depth"]),
   importance: z.enum(["info", "attention", "important"]),

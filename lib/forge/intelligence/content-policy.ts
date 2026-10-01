@@ -11,6 +11,10 @@ export const contentTaskPolicy = {
   coherence_review: { maxChars: 1800, target: "un résumé et au plus quatre constats concis, nettement sous 1800 caractères", maxOutputTokens: 1800 },
 } as const satisfies Record<ContentTask, { maxChars: number; target: string; maxOutputTokens: number }>;
 
+// Full replacement is intentionally kept below the editor persistence maximum.
+// Larger lessons use a deterministic local operation instead.
+export const fullRewriteThreshold = contentTaskPolicy.improve.maxChars;
+
 const unfinishedEnding = /(?:[,;:—–-]|\b(?:et|ou|de|du|des|le|la|les|un|une|pour|avec|sur|dans|à|au|aux))\s*$/iu;
 const unfinishedList = /^(?:[-*+]\s*|\d+[.)]\s*)$/u;
 

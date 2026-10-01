@@ -5,6 +5,7 @@ import { parseForgeConfig } from "../config";
 import { classifyProviderError } from "../provider-errors";
 import { capabilityDefinitions, capabilityModel } from "./capabilities";
 import { IntelligenceGenerationError } from "./contracts";
+import { targetedOperationGenerationSchema } from "./contracts";
 import type { AnalysisCapability, ContentTask } from "./contracts";
 import { contentTaskPolicy } from "./content-policy";
 import type { IntelligenceProvider } from "./service";
@@ -35,7 +36,7 @@ export function createIntelligenceProvider(config: ReturnType<typeof parseForgeC
 export function createContentProvider(config: ReturnType<typeof parseForgeConfig>, env: Record<string, string | undefined>) {
   return {
     availability: config.availability,
-    async generate(task: ContentTask, messages: { system: string; prompt: string }) {
+    async generate(task: ContentTask, targeted: boolean, messages: { system: string; prompt: string }) {
       const model = capabilityModel("content_intelligence", env, config.model);
       if (config.availability !== "configured" || !model) throw Object.assign(new Error("not_configured"), { code: "not_configured" });
       const signal = AbortSignal.timeout(config.timeoutMs);
@@ -48,9 +49,14 @@ export function createContentProvider(config: ReturnType<typeof parseForgeConfig
           maxRetries: 0, abortSignal: signal };
         const result = review
           ? await generateText({ ...common, output: Output.object({ schema: definition.schema.review }) })
+          : targeted
+            ? await generateText({ ...common, output: Output.object({ schema: targetedOperationGenerationSchema }) })
           : await generateText({ ...common, output: Output.object({ schema: definition.schema.transformation }) });
+        console.info("[forge] content provider " + JSON.stringify({ capability: "content_intelligence", task, targeted, providerStatus: config.availability, finishReason: result.finishReason, outputTokens: result.usage.outputTokens ?? null, validation: "provider_output" }));
         return { output: result.finishReason === "stop" ? result.output : null, finishReason: result.finishReason };
       } catch (error) {
+        const category = NoObjectGeneratedError.isInstance(error) ? error.finishReason === "length" ? "structured_output_length" : "structured_output_invalid" : NoOutputGeneratedError.isInstance(error) ? "structured_output_empty" : classifyProviderError(error, signal.aborted).code;
+        console.info("[forge] content provider " + JSON.stringify({ capability: "content_intelligence", task, targeted, providerStatus: config.availability, finishReason: NoObjectGeneratedError.isInstance(error) ? error.finishReason : null, outputTokens: null, validation: category }));
         if (NoObjectGeneratedError.isInstance(error)) throw new IntelligenceGenerationError(error.finishReason === "length" ? "output_limit" : "malformed_output");
         if (NoOutputGeneratedError.isInstance(error)) throw new IntelligenceGenerationError("malformed_output");
         throw classifyProviderError(error, signal.aborted);

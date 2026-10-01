@@ -27,7 +27,7 @@ export function CourseEditor({ course, domains, readiness, showOverview = false 
   }, [showOverview]);
 
   useEffect(() => {
-    if (!proposal || proposal.proposal.target.courseId !== course.id || proposal.proposal.target.lessonId) return;
+    if (!proposal || proposal.kind === "targeted" || proposal.proposal.target.courseId !== course.id || proposal.proposal.target.lessonId) return;
     const patch = proposal.proposal.patch;
     if (!patch.title && !patch.subtitle && !patch.description) return;
     queueMicrotask(() => {

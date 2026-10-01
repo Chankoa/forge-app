@@ -5,6 +5,7 @@ import { capabilityDefinitions, capabilityModel, resolveCapability } from "../li
 import { contentRequestSchema, contentReviewSchema, contentTransformSchema, type ContentTask } from "../lib/forge/intelligence/contracts";
 import { runContentIntelligence, type ContentDeps } from "../lib/forge/intelligence/content";
 import { completeContentText, contentTaskPolicy } from "../lib/forge/intelligence/content-policy";
+import { applyTargetedOperation } from "../lib/forge/intelligence/content-operations";
 import { forgeResultAfterResponse } from "../lib/forge/result-state";
 import type { ForgeReader } from "../lib/forge/context";
 
@@ -23,7 +24,7 @@ function fixture(content = "Contenu initial", level: string | null = "beginner")
     async downloadText() { return ""; },
   };
   const deps: ContentDeps = { userId: "owner", reader, maxInputChars: 30000, consumeRateLimit() { calls.push("rate"); },
-    provider: { availability: "configured", async generate(task, messages) { calls.push(task, messages.prompt, messages.system); return { output: transform, finishReason: "stop" }; } } };
+    provider: { availability: "configured", async generate(task, _targeted, messages) { calls.push(task, messages.prompt, messages.system); return { output: transform, finishReason: "stop" }; } } };
   return { deps, calls, reader };
 }
 
@@ -77,16 +78,17 @@ test("adapt level is unavailable when product has no supported level", async () 
 
 for (const task of ["add_example", "suggest_activity"] as const) test(`${task} appends only a bounded targeted passage`, async () => {
   const { deps } = fixture("Leçon d'origine");
-  deps.provider.generate = async () => ({ output: { rationale: "Ajout utile.", title: null, content: null, addition: task === "add_example" ? "Exemple lié à l'objectif." : "Activité liée à l'objectif." }, finishReason: "stop" });
+  deps.provider.generate = async () => ({ output: { rationale: "Ajout utile.", replacement: task === "add_example" ? "Exemple lié à l'objectif." : "Activité liée à l'objectif." }, finishReason: "stop" });
   const response = await runContentIntelligence({ ...input, task }, deps);
-  assert.ok(response.ok && response.kind === "proposal");
-  assert.match(response.result.proposal.patch.content ?? "", /^Leçon d'origine\n\n/);
-  assert.equal(response.result.proposal.patch.description, null);
+  assert.ok(response.ok && response.kind === "targeted");
+  const applied = applyTargetedOperation("Leçon d'origine", response.result.operation);
+  assert.ok(applied.ok);
+  assert.match(applied.content, /^Leçon d'origine\n\n/);
 });
 
 test("near-limit addition is invalid, never silently truncated", async () => {
-  const { deps } = fixture("x".repeat(3790));
-  deps.provider.generate = async () => ({ output: { rationale: "Ajout utile.", title: null, content: null, addition: "Exemple de cinquante caractères au moins dans la suite." }, finishReason: "stop" });
+  const { deps } = fixture("x".repeat(19999));
+  deps.provider.generate = async () => ({ output: { rationale: "Ajout utile.", replacement: "Exemple de cinquante caractères au moins dans la suite." }, finishReason: "stop" });
   assert.deepEqual(await runContentIntelligence({ ...input, task: "add_example" }, deps), { ok: false, error: "invalid_result" });
 });
 
@@ -119,11 +121,45 @@ for (const task of ["improve", "clarify", "adapt_level"] as const) test(`${task}
 
 for (const [task, cap] of [["add_example", 2000], ["suggest_activity", 2500]] as const) test(`${task} enforces its own addition cap and the final lesson cap`, async () => {
   const { deps } = fixture("Leçon.");
-  deps.provider.generate = async () => ({ output: { rationale: "Ajout utile.", title: null, content: null, addition: "x".repeat(cap - 2) + "." }, finishReason: "stop" });
+  deps.provider.generate = async () => ({ output: { rationale: "Ajout utile.", replacement: "x".repeat(cap - 2) + "." }, finishReason: "stop" });
   const valid = await runContentIntelligence({ ...input, task }, deps);
-  assert.ok(valid.ok && valid.kind === "proposal");
-  deps.provider.generate = async () => ({ output: { rationale: "Ajout utile.", title: null, content: null, addition: "x".repeat(cap) + "." }, finishReason: "stop" });
+  assert.ok(valid.ok && valid.kind === "targeted");
+  deps.provider.generate = async () => ({ output: { rationale: "Ajout utile.", replacement: "x".repeat(cap) + "." }, finishReason: "stop" });
   assert.deepEqual(await runContentIntelligence({ ...input, task }, deps), { ok: false, error: "invalid_result" });
+});
+
+test("long lessons require a selection for transformations and preserve selected source attribution", async () => {
+  const content = `${"x".repeat(3801)} Passage à clarifier.`;
+  const { deps } = fixture(content);
+  assert.deepEqual(await runContentIntelligence({ ...input, task: "clarify" }, deps), { ok: false, error: "target_required" });
+  const targetText = "Passage à clarifier.";
+  const targetStart = content.indexOf(targetText);
+  deps.provider.generate = async () => ({ output: { rationale: "Passage clarifié.", replacement: "Passage rendu plus clair." }, finishReason: "stop" });
+  const response = await runContentIntelligence({ ...input, task: "clarify", targetText, targetStart, targetEnd: targetStart + targetText.length, sourceIds: [sourceId] }, deps);
+  assert.ok(response.ok && response.kind === "targeted");
+  assert.deepEqual(response.result.sourcesUsed, [{ id: sourceId, title: "Source réelle" }]);
+});
+
+test("selected examples insert immediately after the exact selection", async () => {
+  const content = `${"x".repeat(3801)} Passage source.`;
+  const { deps } = fixture(content);
+  const targetText = "Passage source.";
+  const targetStart = content.indexOf(targetText);
+  deps.provider.generate = async () => ({ output: { rationale: "Exemple ajouté.", replacement: "Exemple ciblé." }, finishReason: "stop" });
+  const response = await runContentIntelligence({ ...input, task: "add_example", targetText, targetStart, targetEnd: targetStart + targetText.length }, deps);
+  assert.ok(response.ok && response.kind === "targeted");
+  assert.equal(response.result.operation.operation, "insert_after");
+  const applied = applyTargetedOperation(content, response.result.operation);
+  assert.ok(applied.ok && applied.content.endsWith("Passage source.\n\nExemple ciblé."));
+});
+
+test("targeted operations apply exact selected ranges and reject stale or oversized results", () => {
+  const content = "Même passage. Même passage.";
+  const secondStart = content.lastIndexOf("Même passage.");
+  const operation = { operation: "replace_section" as const, targetText: "Même passage.", targetStart: secondStart, targetEnd: secondStart + "Même passage.".length, replacement: "Passage remplacé.", rationale: "Remplacement ciblé." };
+  assert.deepEqual(applyTargetedOperation(content, operation), { ok: true, content: "Même passage. Passage remplacé." });
+  assert.deepEqual(applyTargetedOperation("Texte modifié", operation), { ok: false, reason: "stale" });
+  assert.deepEqual(applyTargetedOperation("x".repeat(19999), { operation: "append", targetText: null, replacement: "Ajout.", rationale: "Ajout ciblé." }), { ok: false, reason: "too_long" });
 });
 
 test("coherence review rejects total text above 1800 without trimming findings", async () => {
@@ -173,9 +209,10 @@ test("failed regeneration preserves previous proposal through shared state rule"
   assert.ok(previous.ok && previous.kind === "proposal");
   deps.provider.generate = async () => ({ output: transform, finishReason: "length" });
   const failed = await runContentIntelligence(input, deps);
-  assert.ok(!failed.ok);
-  const retained = forgeResultAfterResponse(previous.result, failed);
-  assert.equal(retained, previous.result);
+  if (!failed.ok && failed.error !== "target_required") {
+    const retained = forgeResultAfterResponse(previous.result, { ok: false, error: failed.error as Extract<typeof failed.error, "invalid_result" | "unauthenticated" | "forbidden" | "context_unavailable" | "not_configured" | "provider_auth" | "provider_not_found" | "provider_network" | "provider_error" | "timeout" | "rate_limited" | "invalid_request"> });
+    assert.equal(retained, previous.result);
+  } else assert.fail("expected an ordinary failed generation");
 });
 
 test("content intelligence remains read-only and cannot save or mutate course data", () => {

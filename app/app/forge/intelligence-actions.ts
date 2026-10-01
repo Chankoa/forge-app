@@ -27,7 +27,7 @@ export async function analyzeLessonContentAction(raw: unknown): Promise<ContentR
       userId: user.id, reader: createForgeReader(client), provider: createContentProvider(config, process.env),
       maxInputChars: config.maxInputChars,
       consumeRateLimit: (userId) => consume(userId, config.rateLimitPerHour),
-      telemetry: (data) => console.info("[forge] intelligence", { ...data, model: process.env.FORGE_CONTENT_INTELLIGENCE_MODEL || config.model }),
+      telemetry: (data) => console.info("[forge] intelligence " + JSON.stringify({ ...data, model: process.env.FORGE_CONTENT_INTELLIGENCE_MODEL || config.model })),
     });
   } catch { return { ok: false, error: "context_unavailable" }; }
 }
