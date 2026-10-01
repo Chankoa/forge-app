@@ -12,7 +12,7 @@ export default async function LessonPage({ params, searchParams }: { params: Pro
   const course = await getCourseDetail(courseSlug);
   if (!course) return <p className="env-note">Parcours introuvable ou lecture Supabase indisponible.</p>;
   const [state, relation] = await Promise.all([getLearningState(course), getAuthoringRelationship(course.id)]);
-  const capabilities = resolveCourseCapabilities({ isOwner: relation.isOwner, isEnrolled: state.enrollment !== null }); const edit = mode === "edit"; const preview = mode === "preview" && capabilities.canPreview;
+  const capabilities = resolveCourseCapabilities({ isOwner: relation.isOwner, isEnrolled: state.enrollment !== null, courseStatus: course.status, membershipRole: relation.membershipRole, membershipStatus: relation.membershipStatus }); const edit = mode === "edit"; const preview = mode === "preview" && capabilities.canPreview;
   if (!canAccessLessonMode(capabilities, mode)) return <p className="env-note">{edit ? "La capacité de modification est requise pour éditer cette leçon." : "L&apos;inscription est requise pour accéder aux leçons."} <Link href={`/app/courses/${course.slug}`}>Vue d&apos;ensemble du parcours</Link></p>;
   const outline = course.outline.map((module) => ({ ...module, lessons: module.lessons.map((item) => ({ ...item, status: state.completedLessonIds.has(item.id) ? "completed" as const : state.continueLessonId === item.id ? "in-progress" as const : "not-started" as const })) }));
   const navigation = getLessonNavigation(outline, lessonSlug);

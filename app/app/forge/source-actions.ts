@@ -29,10 +29,10 @@ export async function listForgeSourcesAction(raw: unknown): Promise<ForgeSourceO
     if (!client) return [];
     const { data: { user } } = await client.auth.getUser();
     if (!user) return [];
-    const { data: course } = await client.from("courses").select("id,teacher_id").eq("slug", parsed.data.courseSlug).maybeSingle();
+    const { data: course } = await client.from("courses").select("id,teacher_id,status").eq("slug", parsed.data.courseSlug).maybeSingle();
     if (!course) return [];
     const { data: enrollment } = await client.from("enrollments").select("id").eq("course_id", course.id).eq("user_id", user.id).maybeSingle();
-    assertForgeAccess(parsed.data.mode, course.teacher_id === user.id, Boolean(enrollment));
+    assertForgeAccess(parsed.data.mode, course.teacher_id === user.id, Boolean(enrollment), course.status);
     const { data, error } = await client.from("course_sources").select("id,title,type,source_kind,original_url,extraction_status,extracted_content,storage_bucket,storage_path,file_size,mime_type").eq("course_id", course.id).order("created_at");
     if (error) return [];
     return (data ?? []).map((source) => {

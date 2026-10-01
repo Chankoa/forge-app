@@ -12,15 +12,15 @@ export interface ForgeReader extends SourceReader {
   modules(courseId: string): Promise<Array<{ id: string; title: string }>>;
   lessonTitles(courseId: string): Promise<Array<{ module_id: string; title: string }>>;
 }
-export function assertForgeAccess(mode: ForgeRequest["mode"], isOwner: boolean, isEnrolled: boolean) {
-  const capabilities = resolveCourseCapabilities({ isOwner, isEnrolled });
+export function assertForgeAccess(mode: ForgeRequest["mode"], isOwner: boolean, isEnrolled: boolean, courseStatus?: string | null) {
+  const capabilities = resolveCourseCapabilities({ isOwner, isEnrolled, courseStatus });
   if (!(mode === "learn" ? capabilities.canLearn : capabilities.canEdit)) throw new ForgeError("forbidden");
 }
 
 export async function buildForgeContext(reader: ForgeReader, userId: string, request: ForgeRequest): Promise<ForgeContext> {
   const course = await reader.course(request.courseSlug);
   if (!course) throw new ForgeError("forbidden");
-  assertForgeAccess(request.mode, course.teacher_id === userId, await reader.enrolled(course.id, userId));
+  assertForgeAccess(request.mode, course.teacher_id === userId, await reader.enrolled(course.id, userId), course.status);
   const lesson = request.lessonSlug ? await reader.lesson(course.id, request.lessonSlug) : null;
   if (request.lessonSlug && (!lesson || lesson.course_id !== course.id)) throw new ForgeError("context_unavailable");
   const modules = await reader.modules(course.id);

@@ -9,7 +9,7 @@ import { courseCardAction, courseRelations, personalCardActions, type CourseCard
 import { filterAndSortLibraryCourses, libraryCourseStatus, libraryStatusLabels, type LibraryCourse, type LibrarySort, type LibraryStatus, type LibraryView } from "@/lib/courses/library-view";
 
 const filters: Array<{ id: "all" | CourseRelation; label: string }> = [{ id: "all", label: "Tous" }, { id: "learn", label: "J’apprends" }, { id: "create", label: "Je crée" }];
-const statuses: Array<Exclude<LibraryStatus, "all">> = ["draft", "published", "not_started", "in_progress", "completed"];
+const statuses: Array<Exclude<LibraryStatus, "all">> = ["draft", "published", "archived", "not_started", "in_progress", "completed"];
 
 function LibraryItem({ course, view }: { course: LibraryCourse; view: LibraryView }) {
   const actionKind = courseCardAction({ isOwner: course.isOwner, enrolled: course.enrolled, percentage: course.percentage, hasLesson: Boolean(course.lessonSlug) });

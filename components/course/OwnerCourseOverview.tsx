@@ -4,8 +4,11 @@ import type { CourseDetail } from "@/lib/courses/contracts";
 import type { PublicationReadiness } from "@/lib/courses/publication";
 import { knownCourseDuration } from "@/lib/courses/presentation";
 import { CourseMetrics } from "./CourseMetrics";
+import { CourseLifecycleControls } from "./CourseLifecycleControls";
 
-export function OwnerCourseOverview({ course, readiness }: { course: CourseDetail; readiness: PublicationReadiness }) {
+type CourseLifecycleAction = (courseId: string, courseSlug: string) => Promise<void>;
+
+export function OwnerCourseOverview({ course, readiness, archiveAction, restoreAction }: { course: CourseDetail; readiness: PublicationReadiness; archiveAction?: CourseLifecycleAction; restoreAction?: CourseLifecycleAction }) {
   const lessons = course.outline.flatMap((module) => module.lessons);
   const duration = knownCourseDuration(course);
   const firstIncompleteLesson = lessons.find((lesson) => !lesson.content?.trim());
@@ -15,6 +18,11 @@ export function OwnerCourseOverview({ course, readiness }: { course: CourseDetai
 
   return <div className="owner-overview">
     <CourseMetrics modules={course.outline.length} lessons={lessons.length} durationMinutes={duration} publication={course.status === "published" ? "Publié" : readiness.ready ? "Prêt à publier" : "À compléter"} />
+
+    <section className="owner-overview__section" aria-labelledby="overview-lifecycle-title">
+      <div className="owner-overview__section-heading"><div><p className="eyebrow">Cycle de vie</p><h2 id="overview-lifecycle-title">{course.status === "archived" ? "Parcours archivé" : "Disponibilité du parcours"}</h2></div><CourseLifecycleControls courseId={course.id} courseSlug={course.slug} status={course.status} archiveAction={archiveAction} restoreAction={restoreAction} /></div>
+      <p>{course.status === "archived" ? "Le parcours reste modifiable pour vous. Restaurez-le avant toute nouvelle publication." : "L’archivage retire le parcours de l’Explorer et suspend l’accès des apprenants sans supprimer leurs données."}</p>
+    </section>
 
     <section className="owner-overview__section" aria-labelledby="overview-modules-title">
       <div className="owner-overview__section-heading"><div><p className="eyebrow">Structure du parcours</p><h2 id="overview-modules-title">Modules</h2></div><Link className="owner-overview__section-link" href={structureHref}>Gérer la structure <ArrowRight size={16} /></Link></div>

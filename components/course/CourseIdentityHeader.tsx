@@ -6,9 +6,10 @@ import { DomainMetadata } from "./DomainMetadata";
 import { RelationPills } from "./CoursePresentation";
 
 export function CourseIdentityHeader({ course, capabilities, overview }: { course: CourseSummary; capabilities: CourseCapabilities; overview: boolean }) {
+  const statusLabel = course.status === "published" ? "Publié" : course.status === "archived" ? "Archivé" : "Brouillon";
   return <>
     <DomainMetadata domain={course.domain} />
-    <div className="course-context__title-row"><h1>{course.title}</h1><Badge success={course.status === "published"}>{course.status === "published" ? "Publié" : "Brouillon"}</Badge></div>
+    <div className="course-context__title-row"><h1>{course.title}</h1><Badge success={course.status === "published"}>{statusLabel}</Badge></div>
     {overview && course.description && <p className="course-context__description">{course.description}</p>}
     <RelationPills relations={courseRelations(capabilities.canLearn, capabilities.canEdit)} />
   </>;

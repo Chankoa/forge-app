@@ -15,6 +15,14 @@ test("library role and status filters use the displayed real state", () => {
   assert.deepEqual(filterAndSortLibraryCourses([owner, learner], { relation: "create", status: "all", query: "", sort: "progress_desc" }).map((course) => course.id), ["owner"]);
 });
 
+test("an archived course stays visible and filterable for its owner", () => {
+  const archived = { ...owner, id: "archived", slug: "archived", status: "archived" };
+  assert.equal(libraryCourseStatus(archived), "archived");
+  assert.deepEqual(filterAndSortLibraryCourses([archived, learner], { relation: "create", status: "archived", query: "", sort: "title_asc" }).map((course) => course.id), ["archived"]);
+  const html = renderToStaticMarkup(createElement(CourseLibrary, { courses: [archived, learner] }));
+  assert.match(html, /Archivé/);
+});
+
 test("My Paths starts in accessible List view with real columns and a Card toggle", () => {
   const html = renderToStaticMarkup(createElement(CourseLibrary, { courses: [owner, learner] }));
   assert.match(html, /role="table"/);

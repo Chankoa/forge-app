@@ -14,7 +14,9 @@ import type { PublicationReadiness } from "@/lib/courses/publication";
 
 type CockpitTab = "overview" | "information" | "structure" | "sources";
 
-export function CourseEditor({ course, domains, readiness, showOverview = false }: { course: CourseDetail; domains: Array<{ id: string; name: string }>; readiness: PublicationReadiness; showOverview?: boolean }) {
+type CourseLifecycleAction = (courseId: string, courseSlug: string) => Promise<void>;
+
+export function CourseEditor({ course, domains, readiness, showOverview = false, archiveAction, restoreAction }: { course: CourseDetail; domains: Array<{ id: string; name: string }>; readiness: PublicationReadiness; showOverview?: boolean; archiveAction?: CourseLifecycleAction; restoreAction?: CourseLifecycleAction }) {
   const [message, setMessage] = useState("");
   const [messageError, setMessageError] = useState(false);
   const [tab, setTab] = useState<CockpitTab>(showOverview ? "overview" : "information");
@@ -44,10 +46,10 @@ export function CourseEditor({ course, domains, readiness, showOverview = false 
   });
   const tabs: Array<{ id: CockpitTab; label: string }> = [{ id: "information", label: "Informations" }, { id: "structure", label: "Structure" }, { id: "sources", label: "Sources" }];
 
-  if (tab === "overview") return <OwnerCourseOverview course={course} readiness={readiness} />;
+  if (tab === "overview") return <OwnerCourseOverview course={course} readiness={readiness} archiveAction={archiveAction} restoreAction={restoreAction} />;
 
   return <div className="editor-stack course-cockpit">
-    <div className="cockpit-heading"><div><p className="eyebrow">Cockpit du parcours</p><h2>Piloter le parcours</h2><p className="caption">Structure, informations et sources du parcours. Les propositions Forge modifient le brouillon local ; seule la sauvegarde enregistre les informations.</p></div><span className={`cockpit-status cockpit-status--${course.status === "published" ? "published" : "draft"}`}>{course.status === "published" ? "Publié" : "Brouillon"}</span></div>
+    <div className="cockpit-heading"><div><p className="eyebrow">Cockpit du parcours</p><h2>Piloter le parcours</h2><p className="caption">Structure, informations et sources du parcours. Les propositions Forge modifient le brouillon local ; seule la sauvegarde enregistre les informations.</p></div><span className={`cockpit-status cockpit-status--${course.status === "published" ? "published" : course.status === "archived" ? "archived" : "draft"}`}>{course.status === "published" ? "Publié" : course.status === "archived" ? "Archivé" : "Brouillon"}</span></div>
     {message && <p className={messageError ? "form-error" : "completion-state"} role="status">{message}</p>}
     <div className="editor-tabs" role="tablist" aria-label="Cockpit du parcours">{tabs.map((item) => <button id={`course-tab-${item.id}`} key={item.id} type="button" role="tab" aria-selected={tab === item.id} tabIndex={tab === item.id ? 0 : -1} onClick={() => setTab(item.id)}>{item.label}</button>)}</div>
     {tab === "information" && <form className="form authoring-form cockpit-form" onSubmit={(event) => { event.preventDefault(); const formData = new FormData(event.currentTarget); run(() => saveCourseMetadataAction(course.id, formData), "Modifications enregistrées."); }}>

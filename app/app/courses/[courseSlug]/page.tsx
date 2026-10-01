@@ -10,6 +10,7 @@ import { getPublicationReadiness } from "@/lib/courses/publication";
 import { CourseMetrics } from "@/components/course/CourseMetrics";
 import { knownCourseDuration } from "@/lib/courses/presentation";
 import { PenLine } from "lucide-react";
+import { archiveCourseAction, restoreCourseAction } from "@/app/app/create/actions";
 
 export default async function CoursePage({ params, searchParams }: { params: Promise<{ courseSlug: string }>; searchParams: Promise<{ mode?: string }> }) {
   const { courseSlug } = await params;
@@ -18,7 +19,8 @@ export default async function CoursePage({ params, searchParams }: { params: Pro
   if (!course) return <p className="env-note">Parcours introuvable ou lecture Supabase indisponible.</p>;
 
   const [state, relationship] = await Promise.all([getLearningState(course), getAuthoringRelationship(course.id)]);
-  const capabilities = resolveCourseCapabilities({ isOwner: relationship.isOwner, isEnrolled: state.enrollment !== null });
+  const capabilities = resolveCourseCapabilities({ isOwner: relationship.isOwner, isEnrolled: state.enrollment !== null, courseStatus: course.status, membershipRole: relationship.membershipRole, membershipStatus: relationship.membershipStatus });
+  if (course.status === "archived" && !capabilities.canView) return <p className="env-note">Ce parcours est archivé et n&apos;est plus accessible.</p>;
   const domains = capabilities.canEdit ? await listActiveDomains() : [];
   // The root owner surface is the cockpit. Legacy ?mode=edit links converge here.
   const mode = requestedMode === "publication" && capabilities.canPublish ? "publication" : capabilities.canEdit ? "edit" : "view";
@@ -33,7 +35,7 @@ export default async function CoursePage({ params, searchParams }: { params: Pro
       : null;
 
   const content = mode === "edit"
-    ? <CourseEditor course={course} domains={domains} readiness={readiness} showOverview={ownerOverview} />
+    ? <CourseEditor course={course} domains={domains} readiness={readiness} showOverview={ownerOverview} archiveAction={archiveCourseAction} restoreAction={restoreCourseAction} />
     : mode === "publication"
       ? <PublicationPanel course={course} readiness={readiness} />
       : <div className="course-overview course-overview--learner">

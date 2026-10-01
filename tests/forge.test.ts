@@ -13,10 +13,10 @@ import type { ForgeSourceRow } from "../lib/forge/sources";
 const sourceId = "11111111-1111-4111-8111-111111111111";
 const request = { mode: "learn", intent: "explain", courseSlug: "course", lessonSlug: "lesson" };
 const source: ForgeSourceRow = { id: sourceId, course_id: "course-id", title: "Source", type: "text", source_kind: "text", extraction_status: "ready", extracted_content: "AZUR-47", storage_bucket: null, storage_path: null, file_size: null, mime_type: "text/plain" };
-function fixture(owner = true, enrolled = true) {
+function fixture(owner = true, enrolled = true, status = "published") {
   const calls: string[] = [];
   const reader: ForgeReader = {
-    async course() { return { id: "course-id", teacher_id: owner ? "user" : "another", title: "Course", description: "Résumé", status: "published" }; },
+    async course() { return { id: "course-id", teacher_id: owner ? "user" : "another", title: "Course", description: "Résumé", status }; },
     async enrolled(_courseId, userId) { assert.equal(userId, "user"); return enrolled; },
     async lesson() { return { id: "lesson-id", course_id: "course-id", module_id: "module", title: "Lesson", description: "Summary", content: "REAL LESSON", objectives: ["Understand"] }; },
     async modules() { return [{ id: "module", title: "Module" }]; },
@@ -27,6 +27,18 @@ function fixture(owner = true, enrolled = true) {
   const deps: ForgeDependencies = { userId: "user", reader, maxInputChars: 30000, consumeRateLimit() { calls.push("rate"); }, provider: { availability: "configured", async generate(messages) { calls.push(messages.prompt); return { output: { text: "Réponse", patch: { title: null, subtitle: null, description: null, content: null, objectives: null } }, finishReason: "stop" }; } } };
   return { deps, calls };
 }
+test("archived courses deny learner Forge while retaining canonical owner edit access", async () => {
+  const learner = fixture(false, true, "archived");
+  const denied = await runForge({ ...request, mode: "learn", intent: "explain" }, learner.deps);
+  assert.equal(denied.ok, false);
+  if (!denied.ok) assert.equal(denied.error, "forbidden");
+  assert.equal(learner.calls.length, 0);
+
+  const owner = fixture(true, false, "archived");
+  editOutput(owner.deps);
+  const allowed = await runForge({ ...request, mode: "edit", intent: "improve" }, owner.deps);
+  assert.equal(allowed.ok, true);
+});
 function editOutput(deps: ForgeDependencies, output: ForgeProviderOutput = { text: "Proposition", patch: { title: null, subtitle: null, description: null, content: "Nouveau contenu", objectives: null } }) {
   deps.provider.generate = async () => ({ output, finishReason: "stop" });
 }

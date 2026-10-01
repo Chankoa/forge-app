@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { adjacentSwap, emptyModuleBlocker, inlineRenameKey, nextDisplayOrder } from "../lib/courses/structure-operations";
+import { adjacentSwap, courseDeletePreflight, emptyModuleBlocker, inlineRenameKey, nextDisplayOrder } from "../lib/courses/structure-operations";
 import { getPublicationReadiness } from "../lib/courses/publication";
 import { resolveContinueLessonId } from "../lib/learning/progress";
 
@@ -30,6 +30,17 @@ test("inline rename distinguishes Enter, Escape and ordinary typing", () => {
   assert.equal(inlineRenameKey("Enter"), "save");
   assert.equal(inlineRenameKey("Escape"), "cancel");
   assert.equal(inlineRenameKey("a"), null);
+});
+
+test("course deletion preflight accepts only an empty verified draft", () => {
+  const empty = { enrollments: 0, lessonProgress: 0, memberships: 0, sources: 0, resources: 0, provenance: 0 };
+  assert.deepEqual(courseDeletePreflight("draft", empty), { disposable: true, blockers: [] });
+  assert.equal(courseDeletePreflight("published", empty).disposable, false);
+  for (const key of Object.keys(empty) as Array<keyof typeof empty>) {
+    const withDependency = { ...empty, [key]: 1 };
+    assert.equal(courseDeletePreflight("draft", withDependency).disposable, false, key);
+  }
+  assert.equal(courseDeletePreflight("draft", { ...empty, sources: null }).disposable, false);
 });
 
 test("reordering changes sequence without changing lesson identity, progress or readiness", () => {

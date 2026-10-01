@@ -68,5 +68,5 @@ export async function listMyCourses(): Promise<Array<{ course: CourseDetail; sta
     const slug = authoredById.get(courseId) ?? (await client.from("courses").select("slug").eq("id", courseId).maybeSingle()).data?.slug;
     return slug ? getCourseDetail(slug) : null;
   }));
-  return Promise.all(details.filter((course): course is CourseDetail => Boolean(course)).map(async (course) => ({ course, state: await getLearningState(course), isOwner: authoredById.has(course.id) })));
+  return Promise.all(details.filter((course): course is CourseDetail => Boolean(course)).filter((course) => authoredById.has(course.id) || course.status !== "archived").map(async (course) => ({ course, state: await getLearningState(course), isOwner: authoredById.has(course.id) })));
 }
