@@ -2,13 +2,13 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { CourseCapabilities } from "@/lib/capabilities/course-capabilities";
 import { courseOverviewPath, getCourseContextLinks } from "@/lib/courses/context-navigation";
-import { ArrowLeft, BookOpen, Eye, LayoutDashboard, PenLine, Settings2, Upload } from "lucide-react";
+import { ArrowLeft, BookOpen, Eye, GraduationCap, LayoutDashboard, PenLine, Settings2, Upload } from "lucide-react";
 import { EnrollButton } from "@/components/learning/LearningActions";
 
-const icons = { "Vue d'ensemble": LayoutDashboard, "Gérer": Settings2, "Apprendre": BookOpen, "Prévisualiser": Eye, "Modifier": PenLine, "Publication": Upload };
+const icons = { "Vue d'ensemble": LayoutDashboard, "Gérer": Settings2, "Classroom": GraduationCap, "Apprendre": BookOpen, "Prévisualiser": Eye, "Modifier": PenLine, "Publication": Upload };
 
-export function CourseContextNavigation({ courseId, courseSlug, enrollable, capabilities, lessonSlug, learnLessonSlug, activeMode, overview = false, primaryLearningAction }: { courseId: string; courseSlug: string; enrollable: boolean; capabilities: CourseCapabilities; lessonSlug?: string; learnLessonSlug?: string; activeMode: "view" | "learn" | "preview" | "edit" | "publication"; overview?: boolean; primaryLearningAction?: ReactNode }) {
-  const activeLabel = activeMode === "view" ? "Vue d'ensemble" : activeMode === "learn" ? "Apprendre" : activeMode === "preview" ? "Prévisualiser" : activeMode === "edit" ? (lessonSlug ? "Modifier" : "Gérer") : "Publication";
+export function CourseContextNavigation({ courseId, courseSlug, enrollable, capabilities, lessonSlug, learnLessonSlug, activeMode, overview = false, primaryLearningAction }: { courseId: string; courseSlug: string; enrollable: boolean; capabilities: CourseCapabilities; lessonSlug?: string; learnLessonSlug?: string; activeMode: "view" | "learn" | "preview" | "edit" | "publication" | "classroom"; overview?: boolean; primaryLearningAction?: ReactNode }) {
+  const activeLabel = activeMode === "view" ? "Vue d'ensemble" : activeMode === "learn" ? "Apprendre" : activeMode === "preview" ? "Prévisualiser" : activeMode === "edit" ? (lessonSlug ? "Modifier" : "Gérer") : activeMode === "classroom" ? "Classroom" : "Publication";
   const links = getCourseContextLinks(courseSlug, capabilities, lessonSlug, learnLessonSlug);
   if (overview) return <div className="course-context-navigation course-context-navigation--overview"><Link className="course-back-link" href="/app/courses"><ArrowLeft size={15} /> Mes parcours</Link><nav className="course-overview-actions" aria-label="Actions du parcours">
     {links.filter((link) => link.label === "Apprendre" || link.label === "Prévisualiser" || link.label === "Publication").map((link) => { const Icon = icons[link.label]; return <Link className="course-overview-actions__secondary" href={link.href} key={link.label}><Icon size={16} />{link.label}</Link>; })}

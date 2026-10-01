@@ -11,8 +11,8 @@ export function CourseIdentityHeader({ course, capabilities, overview }: { cours
   return <>
     <DomainMetadata domain={course.domain} />
     <div className="course-context__title-row"><h1>{course.title}</h1><Badge success={course.status === "published"}>{statusLabel}</Badge></div>
-    <AuthorAttribution author={course.author} />
+    {!capabilities.canManageSources && <AuthorAttribution author={course.author} />}
     {overview && course.description && <p className="course-context__description">{course.description}</p>}
-    <RelationPills relations={courseRelations(capabilities.canLearn, capabilities.canEdit)} />
+    <RelationPills relations={courseRelations(capabilities.canLearn, capabilities.canManageSources, capabilities.membershipRole, capabilities.membershipStatus)} />
   </>;
 }

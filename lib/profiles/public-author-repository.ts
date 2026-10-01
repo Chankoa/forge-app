@@ -9,3 +9,8 @@ export async function getPublicCourseAuthor(client: PublicAuthorRpcClient, cours
   const { data, error } = await client.rpc("get_public_course_author", { target_course_id: course.id });
   return error ? null : publicAuthorIdentityFromRpcData(data);
 }
+
+export async function getCourseOwnerIdentity(client: PublicAuthorRpcClient, courseId: string): Promise<PublicAuthorIdentity | null> {
+  const { data, error } = await client.rpc("get_course_owner_identity", { target_course_id: courseId });
+  return error ? null : publicAuthorIdentityFromRpcData(data);
+}

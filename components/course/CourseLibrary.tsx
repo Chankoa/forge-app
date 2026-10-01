@@ -8,7 +8,7 @@ import { PersonalCourseCard, PersonalCourseRow } from "@/components/course/Cours
 import { courseCardAction, courseRelations, personalCardActions, type CourseCardAction, type CourseRelation } from "@/lib/courses/presentation";
 import { filterAndSortLibraryCourses, libraryCourseStatus, libraryStatusLabels, type LibraryCourse, type LibrarySort, type LibraryStatus, type LibraryView } from "@/lib/courses/library-view";
 
-const filters: Array<{ id: "all" | CourseRelation; label: string }> = [{ id: "all", label: "Tous" }, { id: "learn", label: "J’apprends" }, { id: "create", label: "Je crée" }];
+const filters: Array<{ id: "all" | CourseRelation; label: string }> = [{ id: "all", label: "Tous" }, { id: "learn", label: "J’apprends" }, { id: "create", label: "Je crée" }, { id: "edit", label: "J’édite" }, { id: "view", label: "Lecteur" }];
 const statuses: Array<Exclude<LibraryStatus, "all">> = ["draft", "published", "archived", "not_started", "in_progress", "completed"];
 
 function LibraryItem({ course, view }: { course: LibraryCourse; view: LibraryView }) {
@@ -22,7 +22,7 @@ function LibraryItem({ course, view }: { course: LibraryCourse; view: LibraryVie
     : <Link className="button button--secondary course-action" href={learnHref}><Eye size={16} aria-hidden="true" />Voir le parcours</Link>;
   const cardActions = personalCardActions({ isOwner: course.isOwner, enrolled: course.enrolled, percentage: course.percentage, hasLesson: Boolean(course.lessonSlug) });
   const action = renderAction(view === "cards" ? cardActions.primary : actionKind);
-  const props = { course, relations: courseRelations(course.enrolled, course.isOwner), action,
+  const props = { course, relations: courseRelations(course.enrolled, course.isOwner, course.collaborationRole ?? null, course.collaborationRole ? "active" : null), action,
     secondaryAction: view === "cards" ? cardActions.secondary ? renderAction(cardActions.secondary, true) : null : course.isOwner && course.enrolled ? <Link className="personal-course-row__learn-action" href={learnHref}>Apprendre <ArrowRight size={14} aria-hidden="true" /></Link> : null,
     menu: course.isOwner ? <OwnerCourseMenu title={course.title} manageHref={manageHref} /> : null };
   return view === "list" ? <PersonalCourseRow {...props} /> : <PersonalCourseCard {...props} menu={null} />;
@@ -36,7 +36,7 @@ export function CourseLibrary({ courses, initialView = "list" }: { courses: Libr
   const [view, setView] = useState<LibraryView>(initialView);
   const visibleStatuses = statuses.filter((item) => courses.some((course) => libraryCourseStatus(course) === item));
   const visible = filterAndSortLibraryCourses(courses, { relation, status, query, sort });
-  const emptyCopy = relation === "learn" ? "Vous ne suivez encore aucun parcours." : relation === "create" ? "Vous n’avez encore créé aucun parcours." : "Aucun parcours pour le moment.";
+  const emptyCopy = relation === "learn" ? "Vous ne suivez encore aucun parcours." : relation === "create" ? "Vous n’avez encore créé aucun parcours." : relation === "edit" ? "Vous ne modifiez encore aucun parcours partagé." : relation === "view" ? "Vous n’avez encore aucun parcours partagé en lecture." : "Aucun parcours pour le moment.";
   return <section className="course-library" aria-labelledby="course-library-heading">
     <div className="course-library__heading"><div><h2 id="course-library-heading">Votre bibliothèque</h2><p>{courses.length} parcours lié{courses.length > 1 ? "s" : ""} à votre activité.</p></div>
       <div className="course-library__controls"><label className="course-library__search"><Search size={17} aria-hidden="true" /><span className="sr-only">Rechercher un parcours</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un parcours" /></label>

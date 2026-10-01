@@ -11,12 +11,13 @@ import { useForgeProposal } from "@/components/forge/ForgeProposalContext";
 import { OwnerCourseOverview } from "@/components/course/OwnerCourseOverview";
 import { CurriculumAnalysis } from "@/components/forge/CurriculumAnalysis";
 import type { PublicationReadiness } from "@/lib/courses/publication";
+import type { CourseCapabilities } from "@/lib/capabilities/course-capabilities";
 
 type CockpitTab = "overview" | "information" | "structure" | "sources";
 
 type CourseLifecycleAction = (courseId: string, courseSlug: string) => Promise<void>;
 
-export function CourseEditor({ course, domains, readiness, showOverview = false, archiveAction, restoreAction }: { course: CourseDetail; domains: Array<{ id: string; name: string }>; readiness: PublicationReadiness; showOverview?: boolean; archiveAction?: CourseLifecycleAction; restoreAction?: CourseLifecycleAction }) {
+export function CourseEditor({ course, domains, readiness, capabilities, showOverview = false, archiveAction, restoreAction }: { course: CourseDetail; domains: Array<{ id: string; name: string }>; readiness: PublicationReadiness; capabilities: CourseCapabilities; showOverview?: boolean; archiveAction?: CourseLifecycleAction; restoreAction?: CourseLifecycleAction }) {
   const [message, setMessage] = useState("");
   const [messageError, setMessageError] = useState(false);
   const [tab, setTab] = useState<CockpitTab>(showOverview ? "overview" : "information");
@@ -44,7 +45,7 @@ export function CourseEditor({ course, domains, readiness, showOverview = false,
   const run = (action: () => Promise<void>, success: string) => startTransition(async () => {
     try { await action(); setMessage(success); setMessageError(false); } catch (error) { setMessage(error instanceof Error ? error.message : "La sauvegarde a échoué."); setMessageError(true); }
   });
-  const tabs: Array<{ id: CockpitTab; label: string }> = [{ id: "information", label: "Informations" }, { id: "structure", label: "Structure" }, { id: "sources", label: "Sources" }];
+  const tabs: Array<{ id: CockpitTab; label: string }> = [{ id: "information", label: "Informations" }, { id: "structure", label: "Structure" }, ...(capabilities.canManageSources ? [{ id: "sources" as const, label: "Sources" }] : [])];
 
   if (tab === "overview") return <OwnerCourseOverview course={course} readiness={readiness} archiveAction={archiveAction} restoreAction={restoreAction} />;
 

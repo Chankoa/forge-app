@@ -1,4 +1,6 @@
-export type CourseRelation = "learn" | "create";
+import type { CourseMembershipRole, CourseMembershipStatus } from "@/lib/capabilities/course-capabilities";
+
+export type CourseRelation = "learn" | "create" | "edit" | "view";
 
 export function domainLabel(domain: string | null | undefined): string {
   return domain?.trim() || "Sans domaine";
@@ -10,13 +12,14 @@ export function domainNameFromRelation(
   return Array.isArray(relation) ? relation[0]?.name ?? null : relation?.name ?? null;
 }
 
-export function courseRelations(enrolled: boolean, isOwner: boolean): CourseRelation[] {
-  return [enrolled ? "learn" : null, isOwner ? "create" : null].filter((value): value is CourseRelation => value !== null);
+export function courseRelations(enrolled: boolean, isOwner: boolean, membershipRole: CourseMembershipRole | null = null, membershipStatus: CourseMembershipStatus | null = null): CourseRelation[] {
+  const collaborator = !isOwner && membershipStatus === "active" ? (membershipRole === "editor" ? "edit" : membershipRole === "viewer" ? "view" : null) : null;
+  return [enrolled ? "learn" : null, collaborator, isOwner ? "create" : null].filter((value): value is CourseRelation => value !== null);
 }
 
-export function matchesCourseRelation(filter: "all" | CourseRelation, enrolled: boolean, isOwner: boolean): boolean {
+export function matchesCourseRelation(filter: "all" | CourseRelation, enrolled: boolean, isOwner: boolean, membershipRole: CourseMembershipRole | null = null, membershipStatus: CourseMembershipStatus | null = null): boolean {
   if (filter === "all") return true;
-  return filter === "learn" ? enrolled : isOwner;
+  return courseRelations(enrolled, isOwner, membershipRole, membershipStatus).includes(filter);
 }
 
 export function clampProgress(value: number): number {

@@ -29,3 +29,21 @@ test("Workspace sections follow Continue, My Paths, Learn and Forge links only t
   assert.match(rail, /recommandations personnalisées ne sont pas encore disponibles/);
   assert.doesNotMatch(rail, /Trouver des ressources|score de recommandation/);
 });
+
+test("Workspace collaboration awareness shows owned pending requests with the course manager deep link", () => {
+  const courses = [item("owned", true, false, 0)];
+  const rail = renderToStaticMarkup(createElement(WorkspaceContextRail, { courses, collaboration: { ownerRequests: [{ requestId: "request-1", courseId: "owned", courseTitle: "Parcours owned", requesterName: "Chandra Neutral", createdAt: "2026-10-01T10:00:00.000Z" }, { requestId: "request-other", courseId: "not-listed", courseTitle: "Parcours hors scope", requesterName: "Autre", createdAt: "2026-10-01T10:00:00.000Z" }], acceptedRequests: [] } }));
+  assert.match(rail, /Chandra Neutral souhaite collaborer sur/);
+  assert.match(rail, /href="\/app\/courses\/owned\?mode=collaborators#collaboration-requests"/);
+  assert.doesNotMatch(rail, /Parcours hors scope/);
+});
+
+test("Workspace collaboration awareness names accepted editor and viewer roles and disappears when empty", () => {
+  const courses = [item("editor-course", false, true, 0), item("viewer-course", false, true, 0)];
+  const rail = renderToStaticMarkup(createElement(WorkspaceContextRail, { courses, collaboration: { ownerRequests: [], acceptedRequests: [{ courseId: "editor-course", courseTitle: "Parcours editor-course", role: "editor", ownerName: "Chandra Proton", resolvedAt: "2026-10-01T10:00:00.000Z" }, { courseId: "viewer-course", courseTitle: "Parcours viewer-course", role: "viewer", ownerName: null, resolvedAt: "2026-10-01T11:00:00.000Z" }] } }));
+  assert.match(rail, /Vous êtes désormais Éditeur sur Parcours editor-course · Par Chandra Proton/);
+  assert.match(rail, /Vous êtes désormais Lecteur sur Parcours viewer-course/);
+  assert.match(rail, /href="\/app\/courses\/editor-course"/);
+  const emptyRail = renderToStaticMarkup(createElement(WorkspaceContextRail, { courses }));
+  assert.doesNotMatch(emptyRail, /workspace-collaboration-title|>Collaboration</);
+});

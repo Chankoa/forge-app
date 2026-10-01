@@ -1,7 +1,7 @@
-export type ProfileCourseProjection = { course: { status: string | null; visibility: string | null; domain: string | null }; isOwner: boolean; state: { enrollment: unknown | null } };
+export type ProfileCourseProjection = { course: { status: string | null; visibility: string | null; domain: string | null }; isOwner: boolean; collaborationRole?: "editor" | "viewer" | null; state: { enrollment: unknown | null } };
 
 export function profileCourseSections<T extends ProfileCourseProjection>(courses: T[]) {
-  return { authored: courses.filter((item) => item.isOwner), learning: courses.filter((item) => item.state.enrollment !== null) };
+  return { authored: courses.filter((item) => item.isOwner), collaborations: courses.filter((item) => !item.isOwner && (item.collaborationRole === "editor" || item.collaborationRole === "viewer")), learning: courses.filter((item) => item.state.enrollment !== null) };
 }
 
 export function publicAuthorDomains(courses: ProfileCourseProjection[]): string[] {

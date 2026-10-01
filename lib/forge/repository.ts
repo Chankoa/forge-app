@@ -3,6 +3,7 @@ import type { createServerSupabaseClient } from "../supabase/server";
 import type { ForgeReader } from "./context";
 import { ForgeError } from "./contracts";
 import { domainNameFromRelation } from "@/lib/courses/presentation";
+import type { CourseMembershipRole, CourseMembershipStatus } from "@/lib/capabilities/course-capabilities";
 
 type Client = NonNullable<Awaited<ReturnType<typeof createServerSupabaseClient>>>;
 export function createForgeReader(client: Client): ForgeReader {
@@ -16,6 +17,11 @@ export function createForgeReader(client: Client): ForgeReader {
       const { data, error } = await client.from("enrollments").select("id").eq("course_id", courseId).eq("user_id", userId).maybeSingle();
       if (error) throw new ForgeError("context_unavailable");
       return Boolean(data);
+    },
+    async membership(courseId, userId) {
+      const { data, error } = await client.from("course_memberships").select("role,status").eq("course_id", courseId).eq("user_id", userId).maybeSingle();
+      if (error) throw new ForgeError("context_unavailable");
+      return { role: (data?.role ?? null) as CourseMembershipRole | null, status: (data?.status ?? null) as CourseMembershipStatus | null };
     },
     async lesson(courseId, slug) {
       const { data, error } = await client.from("lessons").select("id,course_id,module_id,title,description,content,objectives").eq("course_id", courseId).eq("slug", slug).maybeSingle();

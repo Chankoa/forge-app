@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BookOpen, Check, ChevronDown, PenLine, AlertCircle } from "lucide-react";
+import { ArrowRight, BookOpen, Check, ChevronDown, PenLine, AlertCircle, Users } from "lucide-react";
 import type { CourseDetail } from "@/lib/courses/contracts";
 import type { PublicationReadiness } from "@/lib/courses/publication";
 import { knownCourseDuration } from "@/lib/courses/presentation";
@@ -22,6 +22,16 @@ export function OwnerCourseOverview({ course, readiness, archiveAction, restoreA
     <section className="owner-overview__section" aria-labelledby="overview-lifecycle-title">
       <div className="owner-overview__section-heading"><div><p className="eyebrow">Cycle de vie</p><h2 id="overview-lifecycle-title">{course.status === "archived" ? "Parcours archivé" : "Disponibilité du parcours"}</h2></div><CourseLifecycleControls courseId={course.id} courseSlug={course.slug} status={course.status} archiveAction={archiveAction} restoreAction={restoreAction} /></div>
       <p>{course.status === "archived" ? "Le parcours reste modifiable pour vous. Restaurez-le avant toute nouvelle publication." : "L’archivage retire le parcours de l’Explorer et suspend l’accès des apprenants sans supprimer leurs données."}</p>
+    </section>
+
+    <section className="owner-overview__section" aria-labelledby="overview-collaborators-title">
+      <div className="owner-overview__section-heading"><div><p className="eyebrow"><Users size={15} /> Équipe du parcours</p><h2 id="overview-collaborators-title">Collaborateurs</h2></div><Link className="owner-overview__section-link" href={`/app/courses/${course.slug}?mode=collaborators`}>Gérer les collaborateurs <ArrowRight size={16} /></Link></div>
+      <p>Ajoutez des lecteurs ou des éditeurs, ajustez leur rôle et retirez leur accès sans modifier la propriété du parcours.</p>
+    </section>
+
+    <section className="owner-overview__section" aria-labelledby="overview-classroom-title">
+      <div className="owner-overview__section-heading"><div><p className="eyebrow"><Users size={15} /> Classroom</p><h2 id="overview-classroom-title">Apprenants</h2></div><Link className="owner-overview__section-link" href={`/app/courses/${course.slug}?mode=classroom`}>Voir le Classroom <ArrowRight size={16} /></Link></div>
+      <p>Consultez les inscriptions et la progression du parcours, sans modifier les données des apprenants.</p>
     </section>
 
     <section className="owner-overview__section" aria-labelledby="overview-modules-title">

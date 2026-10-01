@@ -5,7 +5,7 @@ import { parseForgeConfig } from "@/lib/forge/config";
 import { createForgeRateLimiter } from "@/lib/forge/rate-limit";
 import { publicPreviewRequestSchema } from "@/lib/forge/public-contracts";
 import { createIntelligenceProvider } from "@/lib/forge/intelligence/provider";
-import { getOwnedCurriculumContext, getPublicCandidates } from "@/lib/forge/intelligence/repository";
+import { getAuthorableCurriculumContext, getPublicCandidates } from "@/lib/forge/intelligence/repository";
 import { runIntelligence } from "@/lib/forge/intelligence/service";
 import { contentRequestSchema } from "@/lib/forge/intelligence/contracts";
 import { runContentIntelligence, type ContentResponse } from "@/lib/forge/intelligence/content";
@@ -57,7 +57,7 @@ export async function analyzeCurriculumAction(courseId: string): Promise<Intelli
   const { data: { user } } = await client.auth.getUser();
   if (!user) return { ok: false, error: "unauthenticated" };
   try {
-    const context = await getOwnedCurriculumContext(client, courseId, user.id);
+    const context = await getAuthorableCurriculumContext(client, courseId, user.id);
     if (!context) return { ok: false, error: "forbidden" };
     const config = parseForgeConfig(process.env);
     return await runIntelligence("curriculum_analysis", null, context, { provider: createIntelligenceProvider(config, process.env), maxInputChars: config.maxInputChars, consumeRateLimit: () => consume(user.id, config.rateLimitPerHour), telemetry: (data) => console.info("[forge] intelligence " + JSON.stringify({ ...data, model: process.env.FORGE_CURRICULUM_ANALYSIS_MODEL || config.model })) });

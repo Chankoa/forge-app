@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { domainNameFromRelation } from "@/lib/courses/presentation";
 import type { CurriculumContext, SubjectCandidate } from "./contracts";
 import { selectPlausibleCandidates, visiblePublishedCandidates } from "./candidates";
+import { resolveCourseCapabilities, type CourseMembershipRole, type CourseMembershipStatus } from "@/lib/capabilities/course-capabilities";
 
 type Client = NonNullable<Awaited<ReturnType<typeof createServerSupabaseClient>>>;
 type CandidateRow = { id: string; slug: string; title: string; description: string | null; level: string | null; status: string | null; visibility: string | null; domains: { name: string } | { name: string }[] | null };
@@ -18,9 +19,12 @@ export async function getPublicCandidates(client: Client, intent: string): Promi
   return selectPlausibleCandidates(intent, candidates);
 }
 
-export async function getOwnedCurriculumContext(client: Client, courseId: string, userId: string): Promise<CurriculumContext | null> {
+export async function getAuthorableCurriculumContext(client: Client, courseId: string, userId: string): Promise<CurriculumContext | null> {
   const { data: course, error } = await client.from("courses").select("id,title,description,subtitle,teacher_id,domains(name)").eq("id", courseId).maybeSingle();
-  if (error || !course || course.teacher_id !== userId) return null;
+  if (error || !course) return null;
+  const { data: membership } = await client.from("course_memberships").select("role,status").eq("course_id", courseId).eq("user_id", userId).maybeSingle();
+  const capabilities = resolveCourseCapabilities({ isOwner: course.teacher_id === userId, isEnrolled: false, membershipRole: (membership?.role ?? null) as CourseMembershipRole | null, membershipStatus: (membership?.status ?? null) as CourseMembershipStatus | null });
+  if (!capabilities.canUseForge) return null;
   const [{ data: modules, error: modulesError }, { data: lessons, error: lessonsError }] = await Promise.all([
     client.from("course_modules").select("id,title,display_order").eq("course_id", courseId).order("display_order"),
     client.from("lessons").select("id,module_id,title,display_order,description,objectives").eq("course_id", courseId).order("display_order"),

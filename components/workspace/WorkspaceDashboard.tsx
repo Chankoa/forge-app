@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { ArrowRight, BookOpen, Compass, Sparkles } from "lucide-react";
+import { ArrowRight, BookOpen, Compass, Handshake, Sparkles } from "lucide-react";
 import { CourseCover, PublicationStatus, RelationPills } from "@/components/course/CoursePresentation";
 import { DomainMetadata } from "@/components/course/DomainMetadata";
 import { courseRelations } from "@/lib/courses/presentation";
 import { selectWorkspaceCourses, workspaceCourseAction, workspaceLesson, type WorkspaceCourse } from "@/lib/courses/workspace-view";
+import type { WorkspaceCollaborationAwareness } from "@/lib/courses/collaboration-awareness-repository";
 
 function WorkspaceProgress({ item }: { item: WorkspaceCourse }) {
   if (!item.state.enrollment) return null;
@@ -35,11 +36,20 @@ export function WorkspaceSections({ courses }: { courses: WorkspaceCourse[] }) {
   </div>;
 }
 
-export function WorkspaceContextRail({ courses }: { courses: WorkspaceCourse[] }) {
+function WorkspaceCollaborationAwarenessBlock({ courses, collaboration }: { courses: WorkspaceCourse[]; collaboration: WorkspaceCollaborationAwareness }) {
+  const coursesById = new Map(courses.map((item) => [item.course.id, item.course]));
+  const ownerRequests = collaboration.ownerRequests.flatMap((request) => { const course = coursesById.get(request.courseId); return course ? [{ ...request, slug: course.slug }] : []; });
+  const acceptedRequests = collaboration.acceptedRequests.flatMap((request) => { const course = coursesById.get(request.courseId); return course ? [{ ...request, slug: course.slug }] : []; });
+  if (!ownerRequests.length && !acceptedRequests.length) return null;
+  return <section className="workspace-dashboard__rail-section workspace-dashboard__collaboration" aria-labelledby="workspace-collaboration-title"><div className="workspace-dashboard__rail-title"><Handshake size={18} aria-hidden="true" /><h2 id="workspace-collaboration-title">Collaboration</h2></div><div className="workspace-dashboard__collaboration-list">{ownerRequests.map((request) => <article key={request.requestId}><p><strong>{request.requesterName} souhaite collaborer sur</strong><span>{request.courseTitle}</span></p><Link href={`/app/courses/${request.slug}?mode=collaborators#collaboration-requests`}>Voir la demande <ArrowRight size={15} aria-hidden="true" /></Link></article>)}{acceptedRequests.map((request) => <article key={`${request.courseId}-${request.resolvedAt}`}><p><strong>Votre demande de collaboration a été acceptée</strong><span>Vous êtes désormais {request.role === "editor" ? "Éditeur" : "Lecteur"} sur {request.courseTitle}{request.ownerName ? ` · Par ${request.ownerName}` : ""}</span></p><Link href={`/app/courses/${request.slug}`}>Ouvrir le parcours <ArrowRight size={15} aria-hidden="true" /></Link></article>)}</div></section>;
+}
+
+export function WorkspaceContextRail({ courses, collaboration = { ownerRequests: [], acceptedRequests: [] } }: { courses: WorkspaceCourse[]; collaboration?: WorkspaceCollaborationAwareness }) {
   const { editableLesson, learning } = selectWorkspaceCourses(courses);
   const learnerLesson = learning && workspaceLesson(learning);
   return <aside className="workspace-dashboard__rail" aria-label="Raccourcis contextuels">
     <section className="workspace-dashboard__rail-section workspace-dashboard__forge" aria-labelledby="workspace-forge-title"><div className="workspace-dashboard__rail-title"><Sparkles size={18} aria-hidden="true" /><h2 id="workspace-forge-title">Forge</h2></div><p>Retrouvez Forge dans le contexte de votre parcours.</p><nav aria-label="Actions Forge disponibles"><Link href="/app/create">M’aider à créer un parcours <ArrowRight size={15} aria-hidden="true" /></Link>{editableLesson?.lesson && <Link href={`/app/courses/${editableLesson.item.course.slug}/lessons/${editableLesson.lesson.slug}?mode=edit`}>Améliorer une leçon <ArrowRight size={15} aria-hidden="true" /></Link>}{learning && learnerLesson && <Link href={`/app/courses/${learning.course.slug}/lessons/${learnerLesson.slug}`}>Poser une question sur une leçon <ArrowRight size={15} aria-hidden="true" /></Link>}</nav></section>
+    <WorkspaceCollaborationAwarenessBlock courses={courses} collaboration={collaboration} />
     <section className="workspace-dashboard__rail-section" aria-labelledby="workspace-recommendations-title"><div className="workspace-dashboard__rail-title"><BookOpen size={18} aria-hidden="true" /><h2 id="workspace-recommendations-title">Recommandations</h2></div><p>Les recommandations personnalisées ne sont pas encore disponibles.</p><Link href="/app/explore">Voir les parcours publiés <ArrowRight size={15} aria-hidden="true" /></Link></section>
     <section className="workspace-dashboard__rail-section" aria-labelledby="workspace-explore-title"><div className="workspace-dashboard__rail-title"><Compass size={18} aria-hidden="true" /><h2 id="workspace-explore-title">Explorer</h2></div><nav aria-label="Destinations à explorer"><Link href="/app/explore">Parcours publiés <ArrowRight size={15} aria-hidden="true" /></Link><Link href="/app/courses">Mes parcours <ArrowRight size={15} aria-hidden="true" /></Link></nav></section>
   </aside>;

@@ -5,20 +5,20 @@ import type { EnrollmentState, LearningState } from "@/lib/learning/contracts";
 import { progressPercentage, resolveContinueLessonId } from "@/lib/learning/progress";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { domainNameFromRelation } from "./presentation";
-import { getPublicCourseAuthor } from "@/lib/profiles/public-author-repository";
+import { getCourseOwnerIdentity, getPublicCourseAuthor } from "@/lib/profiles/public-author-repository";
 
-type CourseRow = { id: string; slug: string; title: string; subtitle: string | null; description: string | null; domain_id: string | null; status: string | null; visibility: string | null; duration_minutes: number | null; domains: { name: string } | { name: string }[] | null };
+type CourseRow = { id: string; slug: string; title: string; subtitle: string | null; description: string | null; domain_id: string | null; status: string | null; visibility: string | null; collaboration_requests_enabled: boolean; duration_minutes: number | null; domains: { name: string } | { name: string }[] | null };
 type ModuleRow = { id: string; title: string; display_order: number };
 type LessonRow = { id: string; module_id: string; slug: string; title: string; description: string | null; content: string | null; objectives: string[] | null; duration_minutes: number | null; type: string; status: string; display_order: number };
 type EnrollmentRow = { id: string; course_id: string; status: EnrollmentState["status"]; current_lesson_id: string | null };
 type ProgressRow = { lesson_id: string; completed: boolean; updated_at: string };
 
-function mapSummary(row: CourseRow): CourseSummary { return { id: row.id, slug: row.slug, title: row.title, description: row.description, domain: domainNameFromRelation(row.domains), status: row.status, durationMinutes: row.duration_minutes }; }
+function mapSummary(row: CourseRow): CourseSummary { return { id: row.id, slug: row.slug, title: row.title, description: row.description, domain: domainNameFromRelation(row.domains), status: row.status, collaborationRequestsEnabled: row.collaboration_requests_enabled, durationMinutes: row.duration_minutes }; }
 
 export async function getCourseDetail(courseSlug: string): Promise<CourseDetail | null> {
   const client = await createServerSupabaseClient();
   if (!client) return null;
-  const { data: courseData, error: courseError } = await client.from("courses").select("id,slug,title,subtitle,description,domain_id,status,visibility,duration_minutes,domains(name)").eq("slug", courseSlug).maybeSingle();
+  const { data: courseData, error: courseError } = await client.from("courses").select("id,slug,title,subtitle,description,domain_id,status,visibility,collaboration_requests_enabled,duration_minutes,domains(name)").eq("slug", courseSlug).maybeSingle();
   if (courseError || !courseData) return null;
   const course = courseData as CourseRow;
   const [{ data: moduleData, error: moduleError }, { data: lessonData, error: lessonError }] = await Promise.all([
@@ -28,7 +28,7 @@ export async function getCourseDetail(courseSlug: string): Promise<CourseDetail 
   if (moduleError || lessonError) return null;
   const lessons = (lessonData ?? []) as LessonRow[];
   const outline: CourseOutline = ((moduleData ?? []) as ModuleRow[]).map((module) => ({ id: module.id, moduleTitle: module.title, lessons: lessons.filter((lesson) => lesson.module_id === module.id).map((lesson): CourseLesson => ({ id: lesson.id, slug: lesson.slug, title: lesson.title, description: lesson.description, content: lesson.content, objectives: lesson.objectives ?? [], durationMinutes: lesson.duration_minutes, contentType: lesson.type, publishingStatus: lesson.status, status: "not-started" })) }));
-  const author = await getPublicCourseAuthor(client, course);
+  const author = await getPublicCourseAuthor(client, course) ?? await getCourseOwnerIdentity(client, course.id);
   return { ...mapSummary(course), ...(author ? { author } : {}), domainId: course.domain_id, subtitle: course.subtitle, visibility: course.visibility, outline };
 }
 
@@ -55,20 +55,22 @@ export async function listMyLearningCourses(): Promise<Array<{ course: CourseDet
   return (await Promise.all(details.filter((detail): detail is CourseDetail => Boolean(detail)).map(async (course) => ({ course, state: await getLearningState(course) }))));
 }
 
-export async function listMyCourses(): Promise<Array<{ course: CourseDetail; state: LearningState; isOwner: boolean }>> {
+export async function listMyCourses(): Promise<Array<{ course: CourseDetail; state: LearningState; isOwner: boolean; collaborationRole: "editor" | "viewer" | null }>> {
   const client = await createServerSupabaseClient();
   if (!client) return [];
   const { data: { user } } = await client.auth.getUser();
   if (!user) return [];
-  const [{ data: enrollments }, { data: authored }] = await Promise.all([
+  const [{ data: enrollments }, { data: authored }, { data: memberships }] = await Promise.all([
     client.from("enrollments").select("course_id"),
     client.from("courses").select("id,slug").eq("teacher_id", user.id),
+    client.from("course_memberships").select("course_id,role,status").eq("status", "active").in("role", ["editor", "viewer"]),
   ]);
   const authoredById = new Map((authored ?? []).map((course: { id: string; slug: string }) => [course.id, course.slug]));
-  const courseIds = new Set([...(enrollments ?? []).map((item: { course_id: string }) => item.course_id), ...authoredById.keys()]);
+  const collaborationByCourseId = new Map((memberships ?? []).map((membership: { course_id: string; role: "editor" | "viewer" }) => [membership.course_id, membership.role]));
+  const courseIds = new Set([...(enrollments ?? []).map((item: { course_id: string }) => item.course_id), ...authoredById.keys(), ...collaborationByCourseId.keys()]);
   const details = await Promise.all([...courseIds].map(async (courseId) => {
     const slug = authoredById.get(courseId) ?? (await client.from("courses").select("slug").eq("id", courseId).maybeSingle()).data?.slug;
     return slug ? getCourseDetail(slug) : null;
   }));
-  return Promise.all(details.filter((course): course is CourseDetail => Boolean(course)).filter((course) => authoredById.has(course.id) || course.status !== "archived").map(async (course) => ({ course, state: await getLearningState(course), isOwner: authoredById.has(course.id) })));
+  return Promise.all(details.filter((course): course is CourseDetail => Boolean(course)).filter((course) => authoredById.has(course.id) || collaborationByCourseId.has(course.id) || course.status !== "archived").map(async (course) => ({ course, state: await getLearningState(course), isOwner: authoredById.has(course.id), collaborationRole: authoredById.has(course.id) ? null : collaborationByCourseId.get(course.id) ?? null })));
 }
