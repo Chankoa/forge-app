@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { publicPreviewRequestSchema } from "../public-contracts";
 
-export const intelligenceCapabilities = ["subject_discovery", "curriculum_analysis"] as const;
+export const intelligenceCapabilities = ["subject_discovery", "curriculum_analysis", "content_intelligence"] as const;
 export type IntelligenceCapability = (typeof intelligenceCapabilities)[number];
+export type AnalysisCapability = Exclude<IntelligenceCapability, "content_intelligence">;
 
 export const subjectDiscoveryRequestSchema = publicPreviewRequestSchema;
 export const subjectCandidateSchema = z.object({
@@ -55,3 +56,35 @@ export class IntelligenceGenerationError extends Error {
 
 export type IntelligenceError = "invalid_request" | "unauthenticated" | "forbidden" | "context_unavailable" | "not_configured" | "provider_auth" | "provider_not_found" | "provider_network" | "provider_error" | "timeout" | "rate_limited" | "invalid_result";
 export type IntelligenceResponse<T> = { ok: true; result: T } | { ok: false; error: IntelligenceError };
+
+export const contentTasks = ["improve", "clarify", "adapt_level", "add_example", "suggest_activity", "coherence_review"] as const;
+export type ContentTask = (typeof contentTasks)[number];
+export const contentRequestSchema = z.object({
+  courseSlug: z.string().regex(/^[a-zA-Z0-9_-]+$/).max(180),
+  lessonSlug: z.string().regex(/^[a-zA-Z0-9_-]+$/).max(180),
+  task: z.enum(contentTasks),
+  targetLevel: z.enum(["beginner", "intermediate", "advanced"]).optional(),
+  input: z.string().trim().max(2000).optional(),
+  sourceIds: z.array(z.uuid()).max(4).refine((ids) => new Set(ids).size === ids.length).default([]),
+}).strict().superRefine((value, ctx) => {
+  if (value.task === "adapt_level" && !value.targetLevel) ctx.addIssue({ code: "custom", message: "targetLevel required" });
+  if (value.task !== "adapt_level" && value.targetLevel) ctx.addIssue({ code: "custom", message: "targetLevel not applicable" });
+});
+export type ContentRequest = z.infer<typeof contentRequestSchema>;
+export const contentTransformSchema = z.object({
+  rationale: z.string().trim().min(1).max(700),
+  title: z.string().trim().min(2).max(220).nullable(),
+  content: z.string().trim().min(1).max(3800).nullable(),
+  addition: z.string().trim().min(1).max(2500).nullable(),
+}).strict();
+export const contentFindingSchema = z.object({
+  type: z.enum(["objective_not_covered", "content_off_scope", "level_mismatch", "missing_example", "weak_progression", "excessive_complexity", "insufficient_depth"]),
+  importance: z.enum(["info", "attention", "important"]),
+  reason: z.string().trim().min(1).max(400),
+  suggestion: z.string().trim().min(1).max(400),
+}).strict();
+export const contentReviewSchema = z.object({
+  summary: z.string().trim().min(1).max(600),
+  findings: z.array(contentFindingSchema).max(4),
+}).strict();
+export type ContentReview = z.infer<typeof contentReviewSchema>;

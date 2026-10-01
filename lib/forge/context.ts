@@ -2,7 +2,7 @@ import { resolveCourseCapabilities } from "../capabilities/course-capabilities";
 import { ForgeError, type ForgeContext, type ForgeRequest, type ForgeWarning } from "./contracts";
 import { resolveForgeSources, type SourceReader } from "./sources";
 
-export type ForgeCourseRow = { id: string; teacher_id: string; title: string; description: string | null; status: string };
+export type ForgeCourseRow = { id: string; teacher_id: string; title: string; description: string | null; status: string; domain?: string | null; level?: string | null };
 export type ForgeLessonRow = { id: string; course_id: string; module_id: string; title: string; description: string | null; content: string | null; objectives: string[] | null };
 // Read-only port: generation has no mutation capability. Implemented with session RLS.
 export interface ForgeReader extends SourceReader {
@@ -29,7 +29,7 @@ export async function buildForgeContext(reader: ForgeReader, userId: string, req
   const titles = !lesson ? await reader.lessonTitles(course.id) : [];
   const resolved = await resolveForgeSources(reader, course.id, request.sourceIds, request.mode === "learn" && course.status !== "published");
   return {
-    course: { id: course.id, title: course.title, summary: course.description ?? "" }, module: currentModule,
+    course: { id: course.id, title: course.title, summary: course.description ?? "", domain: course.domain, level: course.level }, module: currentModule,
     lesson: lesson ? { id: lesson.id, title: lesson.title, summary: lesson.description ?? "", content: lesson.content ?? "", objectives: lesson.objectives ?? [] } : undefined,
     outline: lesson ? [] : modules.map((m) => ({ title: m.title, lessons: titles.filter((l) => l.module_id === m.id).map((l) => l.title) })),
     sources: resolved.sources, warnings: resolved.warnings,

@@ -2,16 +2,16 @@ import { resolveCapability } from "./capabilities";
 import {
   curriculumContextSchema, curriculumFindingSchema, curriculumGenerationSchema,
   curriculumResultSchema, subjectDiscoveryResultSchema,
-  type CurriculumContext, type CurriculumReview, type IntelligenceCapability,
+  type CurriculumContext, type CurriculumReview, type AnalysisCapability,
   type IntelligenceError, type IntelligenceFailureCategory, type IntelligenceResponse,
   type SubjectCandidate, type SubjectDiscoveryResult,
 } from "./contracts";
 import { publicPreviewRequestSchema } from "../public-contracts";
 
-export type IntelligenceProvider = { availability: "configured" | "not_configured"; generate(capability: IntelligenceCapability, messages: { system: string; prompt: string }): Promise<{ output: unknown; finishReason: string }> };
+export type IntelligenceProvider = { availability: "configured" | "not_configured"; generate(capability: AnalysisCapability, messages: { system: string; prompt: string }): Promise<{ output: unknown; finishReason: string }> };
 type Deps = { provider: IntelligenceProvider; maxInputChars?: number; consumeRateLimit(): void; telemetry?(data: Record<string, string | number>): void };
 
-export function validateReferences(capability: IntelligenceCapability, result: SubjectDiscoveryResult | CurriculumReview, context: SubjectCandidate[] | CurriculumContext) {
+export function validateReferences(capability: AnalysisCapability, result: SubjectDiscoveryResult | CurriculumReview, context: SubjectCandidate[] | CurriculumContext) {
   if (capability === "subject_discovery") {
     const allowed = new Set((context as SubjectCandidate[]).map((course) => course.id));
     const matches = (result as SubjectDiscoveryResult).matches;
@@ -68,7 +68,7 @@ export function validateCurriculumOutput(raw: unknown, context: CurriculumContex
 
 export async function runIntelligence(capability: "subject_discovery", raw: unknown, context: SubjectCandidate[], deps: Deps): Promise<IntelligenceResponse<SubjectDiscoveryResult>>;
 export async function runIntelligence(capability: "curriculum_analysis", raw: unknown, context: CurriculumContext, deps: Deps): Promise<IntelligenceResponse<CurriculumReview>>;
-export async function runIntelligence(capability: IntelligenceCapability, raw: unknown, context: SubjectCandidate[] | CurriculumContext, deps: Deps): Promise<IntelligenceResponse<SubjectDiscoveryResult | CurriculumReview>> {
+export async function runIntelligence(capability: AnalysisCapability, raw: unknown, context: SubjectCandidate[] | CurriculumContext, deps: Deps): Promise<IntelligenceResponse<SubjectDiscoveryResult | CurriculumReview>> {
   const started = Date.now();
   const definition = resolveCapability(capability);
   if (!definition) return { ok: false, error: "invalid_request" };

@@ -24,11 +24,11 @@ export class ForgeError extends Error {
   constructor(public readonly code: ForgeErrorCode) { super(code); }
 }
 // Display DTO only. Full context stays on the server.
-export type ForgeRailContext = { mode: ForgeMode; courseSlug: string; lessonSlug?: string; courseTitle: string; lessonTitle?: string };
+export type ForgeRailContext = { mode: ForgeMode; courseSlug: string; lessonSlug?: string; courseTitle: string; lessonTitle?: string; level?: string | null; hasLessonContent?: boolean };
 export type ForgeSource = { id: string; title: string; text: string };
 export type ForgeWarning = { code: "truncated" | "not_ready" | "unsupported_type" | "extraction_unavailable"; target: string };
 export type ForgeContext = {
-  course: { id: string; title: string; summary: string };
+  course: { id: string; title: string; summary: string; domain?: string | null; level?: string | null };
   module?: { id: string; title: string };
   lesson?: { id: string; title: string; summary: string; content: string; objectives: string[] };
   outline: Array<{ title: string; lessons: string[] }>;

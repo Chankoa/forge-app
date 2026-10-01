@@ -2,14 +2,15 @@ import "server-only";
 import type { createServerSupabaseClient } from "../supabase/server";
 import type { ForgeReader } from "./context";
 import { ForgeError } from "./contracts";
+import { domainNameFromRelation } from "@/lib/courses/presentation";
 
 type Client = NonNullable<Awaited<ReturnType<typeof createServerSupabaseClient>>>;
 export function createForgeReader(client: Client): ForgeReader {
   return {
     async course(slug) {
-      const { data, error } = await client.from("courses").select("id,teacher_id,title,description,status").eq("slug", slug).maybeSingle();
+      const { data, error } = await client.from("courses").select("id,teacher_id,title,description,status,level,domains(name)").eq("slug", slug).maybeSingle();
       if (error) throw new ForgeError("context_unavailable");
-      return data;
+      return data ? { id: data.id, teacher_id: data.teacher_id, title: data.title, description: data.description, status: data.status, level: data.level, domain: domainNameFromRelation(data.domains) } : null;
     },
     async enrolled(courseId, userId) {
       const { data, error } = await client.from("enrollments").select("id").eq("course_id", courseId).eq("user_id", userId).maybeSingle();

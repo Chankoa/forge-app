@@ -7,9 +7,30 @@ import { publicPreviewRequestSchema } from "@/lib/forge/public-contracts";
 import { createIntelligenceProvider } from "@/lib/forge/intelligence/provider";
 import { getOwnedCurriculumContext, getPublicCandidates } from "@/lib/forge/intelligence/repository";
 import { runIntelligence } from "@/lib/forge/intelligence/service";
+import { contentRequestSchema } from "@/lib/forge/intelligence/contracts";
+import { runContentIntelligence, type ContentResponse } from "@/lib/forge/intelligence/content";
+import { createContentProvider } from "@/lib/forge/intelligence/provider";
+import { createForgeReader } from "@/lib/forge/repository";
 import type { CurriculumReview, IntelligenceResponse, SubjectDiscoveryResult } from "@/lib/forge/intelligence/contracts";
 
 const consume = createForgeRateLimiter();
+
+export async function analyzeLessonContentAction(raw: unknown): Promise<ContentResponse> {
+  if (!contentRequestSchema.safeParse(raw).success) return { ok: false, error: "invalid_request" };
+  try {
+    const client = await createServerSupabaseClient();
+    if (!client) return { ok: false, error: "context_unavailable" };
+    const { data: { user } } = await client.auth.getUser();
+    if (!user) return { ok: false, error: "unauthenticated" };
+    const config = parseForgeConfig(process.env);
+    return await runContentIntelligence(raw, {
+      userId: user.id, reader: createForgeReader(client), provider: createContentProvider(config, process.env),
+      maxInputChars: config.maxInputChars,
+      consumeRateLimit: (userId) => consume(userId, config.rateLimitPerHour),
+      telemetry: (data) => console.info("[forge] intelligence", { ...data, model: process.env.FORGE_CONTENT_INTELLIGENCE_MODEL || config.model }),
+    });
+  } catch { return { ok: false, error: "context_unavailable" }; }
+}
 
 export async function discoverSubjectAction(raw: unknown): Promise<IntelligenceResponse<{ summary: string; matches: Array<SubjectDiscoveryResult["matches"][number] & { course: { slug: string; title: string; description: string | null; domain: string | null } }> }>> {
   const parsed = publicPreviewRequestSchema.safeParse(raw);

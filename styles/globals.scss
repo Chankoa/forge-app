@@ -982,3 +982,13 @@ textarea,select { font:inherit; }
   .cockpit-program > .section-heading { align-items: stretch; }
   .cockpit-program > .section-heading form input { min-width: 0; flex: 1 1 140px; }
 }
+.forge-content-intelligence { border-top: 1px solid var(--border, #e2e8f0); margin-top: 1rem; padding-top: 1rem; min-width: 0; }
+.forge-content-intelligence h3 { font-size: .9rem; margin: 0 0 .35rem; }
+.forge-content-intelligence__level { display: flex; align-items: end; gap: .5rem; flex-wrap: wrap; margin-top: .75rem; }
+.forge-content-intelligence__level label { display: grid; gap: .3rem; font-size: .8rem; }
+.forge-content-intelligence__level select { min-height: 44px; }
+.forge-content-intelligence__review { border-top: 1px solid var(--border, #e2e8f0); margin-top: 1rem; padding-top: 1rem; overflow-wrap: anywhere; }
+.forge-content-intelligence__review h4 { margin: 0 0 .5rem; }
+.forge-content-intelligence__review ul { margin: .75rem 0 0; padding-left: 1.25rem; }
+.forge-content-intelligence__review li { margin-bottom: .75rem; }
+.forge-content-intelligence__review li p { margin: .25rem 0; }
