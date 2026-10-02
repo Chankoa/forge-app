@@ -9,7 +9,8 @@ import { classroomDataFromRows } from "../lib/courses/classroom";
 import { getCourseContextLinks } from "../lib/courses/context-navigation";
 
 const outline = [{ id: "module", moduleTitle: "Module", lessons: [{ id: "lesson-1", slug: "one", title: "Première leçon", description: null, content: null, objectives: [], durationMinutes: null, contentType: "reading", publishingStatus: "published", status: "not-started" as const }, { id: "lesson-2", slug: "two", title: "Deuxième leçon", description: null, content: null, objectives: [], durationMinutes: null, contentType: "reading", publishingStatus: "published", status: "not-started" as const }] }];
-const route = readFileSync(new URL("../app/app/courses/[courseSlug]/page.tsx", import.meta.url), "utf8");
+const courseRoute = readFileSync(new URL("../app/app/courses/[courseSlug]/page.tsx", import.meta.url), "utf8");
+const classroomRoute = readFileSync(new URL("../app/app/courses/[courseSlug]/classroom/page.tsx", import.meta.url), "utf8");
 const repository = readFileSync(new URL("../lib/courses/classroom-repository.ts", import.meta.url), "utf8");
 
 test("Classroom progress uses current-course lessons, includes zero progress, and rounds the learner mean", () => {
@@ -26,18 +27,32 @@ test("Classroom returns zero progress for a course with no lessons", () => {
   assert.equal(data.averageProgress, 0);
 });
 
-test("Classroom access is canonical-owner-only in capability, route, and navigation contracts", () => {
-  const owner = resolveCourseCapabilities({ isOwner: true, isEnrolled: false, courseStatus: "archived" });
+test("Classroom access is canonical-owner-only in capability, dedicated route, and navigation contracts", () => {
+  const archivedOwner = resolveCourseCapabilities({ isOwner: true, isEnrolled: false, courseStatus: "archived" });
+  const owner = resolveCourseCapabilities({ isOwner: true, isEnrolled: false, courseStatus: "published" });
   const editor = resolveCourseCapabilities({ isOwner: false, isEnrolled: false, courseStatus: "published", membershipRole: "editor", membershipStatus: "active" });
   const viewer = resolveCourseCapabilities({ isOwner: false, isEnrolled: false, courseStatus: "published", membershipRole: "viewer", membershipStatus: "active" });
   const learner = resolveCourseCapabilities({ isOwner: false, isEnrolled: true, courseStatus: "published" });
+  const unrelated = resolveCourseCapabilities({ isOwner: false, isEnrolled: false, courseStatus: "published" });
   assert.equal(owner.canViewClassroom, true);
+  assert.equal(archivedOwner.canViewClassroom, true);
   assert.equal(editor.canViewClassroom, false);
   assert.equal(viewer.canViewClassroom, false);
   assert.equal(learner.canViewClassroom, false);
+  assert.equal(unrelated.canViewClassroom, false);
   assert.equal(getCourseContextLinks("course", owner).some((link) => link.label === "Classroom"), true);
   assert.equal(getCourseContextLinks("course", editor).some((link) => link.label === "Classroom"), false);
-  assert.match(route, /classroomMode && !relationship\.isOwner/);
+  assert.equal(getCourseContextLinks("course", viewer).some((link) => link.label === "Classroom"), false);
+  assert.equal(getCourseContextLinks("course", learner).some((link) => link.label === "Classroom"), false);
+  assert.equal(getCourseContextLinks("course", unrelated).some((link) => link.label === "Classroom"), false);
+  assert.match(classroomRoute, /!capabilities\.canViewClassroom/);
+  assert.match(classroomRoute, /getCourseClassroom\(course\)/);
+  assert.match(classroomRoute, /course\.status === "archived"/);
+});
+
+test("legacy Classroom mode redirects to the dedicated course-scoped route", () => {
+  assert.match(courseRoute, /requestedMode === "classroom"\) redirect\(`\/app\/courses\/\$\{courseSlug\}\/classroom`\)/);
+  assert.doesNotMatch(courseRoute, /getCourseClassroom|CourseClassroom/);
 });
 
 test("Classroom rendering exposes operational learner progress only", () => {

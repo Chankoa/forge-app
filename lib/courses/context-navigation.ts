@@ -4,6 +4,8 @@ export type CourseContextLink = { label: "Vue d'ensemble" | "Gérer" | "Classroo
 
 export function courseOverviewPath(courseSlug: string) { return `/app/courses/${courseSlug}`; }
 
+export function courseClassroomPath(courseSlug: string) { return `${courseOverviewPath(courseSlug)}/classroom`; }
+
 export function courseLessonPath(courseSlug: string, lessonSlug: string) { return `${courseOverviewPath(courseSlug)}/lessons/${lessonSlug}`; }
 
 export function publicationCorrectionPath(courseSlug: string, kind: "blocking" | "recommended", lessonSlug?: string) {
@@ -17,7 +19,7 @@ export function getCourseContextLinks(courseSlug: string, capabilities: CourseCa
   const learnLessonPath = learnLesson ? courseLessonPath(courseSlug, learnLesson) : courseOverviewPath(courseSlug);
   return [
     { label: capabilities.canEdit && !lessonSlug ? "Gérer" as const : "Vue d'ensemble", href: courseOverviewPath(courseSlug) },
-		...(capabilities.canViewClassroom && !lessonSlug ? [{ label: "Classroom" as const, href: `${courseOverviewPath(courseSlug)}?mode=classroom` }] : []),
+    ...(capabilities.canViewClassroom && !lessonSlug ? [{ label: "Classroom" as const, href: courseClassroomPath(courseSlug) }] : []),
     ...(capabilities.canLearn ? [{ label: "Apprendre" as const, href: learnLessonPath }] : []),
     ...(capabilities.canPreview && learnLesson ? [{ label: "Prévisualiser" as const, href: `${learnLessonPath}?mode=preview` }] : []),
     // The Cockpit owns course-wide editing. "Modifier" remains only for the

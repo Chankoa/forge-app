@@ -5,6 +5,7 @@ import type { PublicationReadiness } from "@/lib/courses/publication";
 import { knownCourseDuration } from "@/lib/courses/presentation";
 import { CourseMetrics } from "./CourseMetrics";
 import { CourseLifecycleControls } from "./CourseLifecycleControls";
+import { courseClassroomPath } from "@/lib/courses/context-navigation";
 
 type CourseLifecycleAction = (courseId: string, courseSlug: string) => Promise<void>;
 
@@ -18,21 +19,6 @@ export function OwnerCourseOverview({ course, readiness, archiveAction, restoreA
 
   return <div className="owner-overview">
     <CourseMetrics modules={course.outline.length} lessons={lessons.length} durationMinutes={duration} publication={course.status === "published" ? "Publié" : readiness.ready ? "Prêt à publier" : "À compléter"} />
-
-    <section className="owner-overview__section" aria-labelledby="overview-lifecycle-title">
-      <div className="owner-overview__section-heading"><div><p className="eyebrow">Cycle de vie</p><h2 id="overview-lifecycle-title">{course.status === "archived" ? "Parcours archivé" : "Disponibilité du parcours"}</h2></div><CourseLifecycleControls courseId={course.id} courseSlug={course.slug} status={course.status} archiveAction={archiveAction} restoreAction={restoreAction} /></div>
-      <p>{course.status === "archived" ? "Le parcours reste modifiable pour vous. Restaurez-le avant toute nouvelle publication." : "L’archivage retire le parcours de l’Explorer et suspend l’accès des apprenants sans supprimer leurs données."}</p>
-    </section>
-
-    <section className="owner-overview__section" aria-labelledby="overview-collaborators-title">
-      <div className="owner-overview__section-heading"><div><p className="eyebrow"><Users size={15} /> Équipe du parcours</p><h2 id="overview-collaborators-title">Collaborateurs</h2></div><Link className="owner-overview__section-link" href={`/app/courses/${course.slug}?mode=collaborators`}>Gérer les collaborateurs <ArrowRight size={16} /></Link></div>
-      <p>Ajoutez des lecteurs ou des éditeurs, ajustez leur rôle et retirez leur accès sans modifier la propriété du parcours.</p>
-    </section>
-
-    <section className="owner-overview__section" aria-labelledby="overview-classroom-title">
-      <div className="owner-overview__section-heading"><div><p className="eyebrow"><Users size={15} /> Classroom</p><h2 id="overview-classroom-title">Apprenants</h2></div><Link className="owner-overview__section-link" href={`/app/courses/${course.slug}?mode=classroom`}>Voir le Classroom <ArrowRight size={16} /></Link></div>
-      <p>Consultez les inscriptions et la progression du parcours, sans modifier les données des apprenants.</p>
-    </section>
 
     <section className="owner-overview__section" aria-labelledby="overview-modules-title">
       <div className="owner-overview__section-heading"><div><p className="eyebrow">Structure du parcours</p><h2 id="overview-modules-title">Modules</h2></div><Link className="owner-overview__section-link" href={structureHref}>Gérer la structure <ArrowRight size={16} /></Link></div>
@@ -54,6 +40,21 @@ export function OwnerCourseOverview({ course, readiness, archiveAction, restoreA
       {readiness.blocking.map((issue) => <div className="owner-overview__issue" key={issue}><AlertCircle size={18} aria-hidden="true" /><span>{issue}</span><Link href={structureHref}>Corriger <ArrowRight size={15} /></Link></div>)}
       {readiness.recommended.map((issue) => <div className="owner-overview__issue" key={issue}><BookOpen size={18} aria-hidden="true" /><span>{issue}</span><Link href={firstIncompleteLesson ? `/app/courses/${course.slug}/lessons/${firstIncompleteLesson.slug}?mode=edit` : publicationHref}>Compléter <ArrowRight size={15} /></Link></div>)}
       {issueCount === 0 && <p className="owner-overview__ready"><Check size={17} /> Aucun élément à finaliser.</p>}
+    </section>
+
+    <section className="owner-overview__section" aria-labelledby="overview-lifecycle-title">
+      <div className="owner-overview__section-heading"><div><p className="eyebrow">Disponibilité</p><h2 id="overview-lifecycle-title">{course.status === "archived" ? "Parcours archivé" : "Disponibilité du parcours"}</h2></div><CourseLifecycleControls courseId={course.id} courseSlug={course.slug} status={course.status} archiveAction={archiveAction} restoreAction={restoreAction} /></div>
+      <p>{course.status === "archived" ? "Le parcours reste modifiable pour vous. Restaurez-le avant toute nouvelle publication." : "L’archivage retire le parcours de l’Explorer et suspend l’accès des apprenants sans supprimer leurs données."}</p>
+    </section>
+
+    <section className="owner-overview__section" aria-labelledby="overview-collaborators-title">
+      <div className="owner-overview__section-heading"><div><p className="eyebrow"><Users size={15} /> Équipe du parcours</p><h2 id="overview-collaborators-title">Collaborateurs</h2></div><Link className="owner-overview__section-link" href={`/app/courses/${course.slug}?mode=collaborators`}>Gérer les collaborateurs <ArrowRight size={16} /></Link></div>
+      <p>Ajoutez des lecteurs ou des éditeurs, ajustez leur rôle et retirez leur accès sans modifier la propriété du parcours.</p>
+    </section>
+
+    <section className="owner-overview__section" aria-labelledby="overview-classroom-title">
+      <div className="owner-overview__section-heading"><div><p className="eyebrow"><Users size={15} /> Classroom</p><h2 id="overview-classroom-title">Apprenants</h2></div><Link className="owner-overview__section-link" href={courseClassroomPath(course.slug)}>Voir le Classroom <ArrowRight size={16} /></Link></div>
+      <p>Consultez les inscriptions et la progression du parcours, sans modifier les données des apprenants.</p>
     </section>
   </div>;
 }

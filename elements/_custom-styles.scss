@@ -1,0 +1,50 @@
+/* IMPROVEMENTS
+@date : 02.10.26
+@ to-do :
+*
+*/
+
+/* Rail Structure ( grands écrans) */
+.course-workspace .workspace-columns {
+	grid-template-columns: 320px minmax(0,1fr) minmax(320px,340px);
+}
+
+/* paddings des blocs summary */
+.outline-module summary {
+	border-radius: var(--radius-sm);
+	min-height: 44px;
+	padding: .5rem; /* modif */
+}
+
+/* timeline */
+.outline-module ol::before {
+	content: "";
+	background: var(--border);
+	width: 1px;
+	position: absolute;
+	top: 9px;
+	bottom: 16px;
+	left: 14px; /* modif */
+}
+
+/* Cockpit */
+/* En tête */
+.cockpit-program > .section-heading {
+	margin-bottom: 16px;
+	padding-top: 1rem;
+	border: none;
+}
+
+
+.cockpit-lessons li > div {
+	gap: 3px;
+	min-width: 0;
+	display: inline-flex;
+}
+
+/* Annuler le bloc */
+.cockpit-lessons li > div {
+	gap: 3px;
+	min-width: 0;
+	display: grid;
+}
