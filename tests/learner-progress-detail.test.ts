@@ -60,3 +60,10 @@ test("learner detail renders only scoped learning information and returns to its
   assert.match(html, /À faire.*Troisième leçon/);
   assert.doesNotMatch(html, /email|note|rôle|compte/i);
 });
+
+test("completed learner detail labels a retained current lesson as the last lesson", () => {
+  const detail = classroomLearnerDetailFromRows(outline, { user_id: "learner", status: "completed", current_lesson_id: "lesson-b" }, outline.flatMap((module) => module.lessons.map((lesson) => ({ user_id: "learner", lesson_id: lesson.id, completed: true }))), { id: "learner", name: "Aline Martin" });
+  const html = renderToStaticMarkup(createElement(LearnerProgressDetail, { courseSlug: "course", detail, archived: false }));
+  assert.match(html, /Dernière leçon.*Deuxième leçon/);
+  assert.doesNotMatch(html, /Leçon en cours.*Deuxième leçon/);
+});
