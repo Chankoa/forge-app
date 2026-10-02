@@ -6,6 +6,7 @@ import { progressPercentage, resolveContinueLessonId } from "@/lib/learning/prog
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { domainNameFromRelation } from "./presentation";
 import { getCourseOwnerIdentity, getPublicCourseAuthor } from "@/lib/profiles/public-author-repository";
+import { getCourseProvenance } from "./provenance-repository";
 
 type CourseRow = { id: string; slug: string; title: string; subtitle: string | null; description: string | null; domain_id: string | null; status: string | null; visibility: string | null; collaboration_requests_enabled: boolean; duration_minutes: number | null; domains: { name: string } | { name: string }[] | null };
 type ModuleRow = { id: string; title: string; display_order: number };
@@ -28,8 +29,9 @@ export async function getCourseDetail(courseSlug: string): Promise<CourseDetail 
   if (moduleError || lessonError) return null;
   const lessons = (lessonData ?? []) as LessonRow[];
   const outline: CourseOutline = ((moduleData ?? []) as ModuleRow[]).map((module) => ({ id: module.id, moduleTitle: module.title, lessons: lessons.filter((lesson) => lesson.module_id === module.id).map((lesson): CourseLesson => ({ id: lesson.id, slug: lesson.slug, title: lesson.title, description: lesson.description, content: lesson.content, objectives: lesson.objectives ?? [], durationMinutes: lesson.duration_minutes, contentType: lesson.type, publishingStatus: lesson.status, status: "not-started" })) }));
-  const author = await getPublicCourseAuthor(client, course) ?? await getCourseOwnerIdentity(client, course.id);
-  return { ...mapSummary(course), ...(author ? { author } : {}), domainId: course.domain_id, subtitle: course.subtitle, visibility: course.visibility, outline };
+  const [publicAuthor, provenance] = await Promise.all([getPublicCourseAuthor(client, course), getCourseProvenance(course.id)]);
+  const author = publicAuthor ?? await getCourseOwnerIdentity(client, course.id);
+  return { ...mapSummary(course), ...(author ? { author } : {}), domainId: course.domain_id, subtitle: course.subtitle, visibility: course.visibility, outline, provenance };
 }
 
 export async function getLearningState(course: CourseDetail): Promise<LearningState> {

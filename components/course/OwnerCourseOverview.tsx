@@ -6,6 +6,9 @@ import { knownCourseDuration } from "@/lib/courses/presentation";
 import { CourseMetrics } from "./CourseMetrics";
 import { CourseLifecycleControls } from "./CourseLifecycleControls";
 import { courseClassroomPath } from "@/lib/courses/context-navigation";
+import { canOfferOwnerCourseRemix } from "@/lib/courses/remix";
+import { CourseProvenance } from "./CourseProvenance";
+import { CourseRemixButton } from "./CourseRemixButton";
 
 type CourseLifecycleAction = (courseId: string, courseSlug: string) => Promise<void>;
 
@@ -16,9 +19,16 @@ export function OwnerCourseOverview({ course, readiness, archiveAction, restoreA
   const publicationHref = `/app/courses/${course.slug}?mode=publication`;
   const structureHref = `/app/courses/${course.slug}?mode=edit#cockpit-program-title`;
   const issueCount = readiness.blocking.length + readiness.recommended.length;
+  const canRemix = canOfferOwnerCourseRemix({ isAuthenticated: true, isOwner: true, status: course.status, visibility: course.visibility });
 
   return <div className="owner-overview">
     <CourseMetrics modules={course.outline.length} lessons={lessons.length} durationMinutes={duration} publication={course.status === "published" ? "Publié" : readiness.ready ? "Prêt à publier" : "À compléter"} />
+    <CourseProvenance provenance={course.provenance} />
+
+    {canRemix && <section className="owner-overview__section owner-overview__remix" aria-labelledby="overview-remix-title">
+      <div className="owner-overview__section-heading"><div><p className="eyebrow">Remix</p><h2 id="overview-remix-title">Créer une copie indépendante</h2></div><CourseRemixButton courseId={course.id} compact /></div>
+      <p>Le remix repart en brouillon privé. Les relations, sources et données d’apprentissage ne sont pas reprises.</p>
+    </section>}
 
     <section className="owner-overview__section" aria-labelledby="overview-modules-title">
       <div className="owner-overview__section-heading"><div><p className="eyebrow">Structure du parcours</p><h2 id="overview-modules-title">Modules</h2></div><Link className="owner-overview__section-link" href={structureHref}>Gérer la structure <ArrowRight size={16} /></Link></div>

@@ -131,6 +131,7 @@ button { cursor: pointer; }
 .forge-result__text { display:-webkit-box; overflow:hidden; -webkit-box-orient:vertical; -webkit-line-clamp:5; }.forge-proposal-dialog { width:min(900px,calc(100vw - 48px)); max-height:calc(100dvh - 48px); padding:0; border:1px solid var(--border); border-radius:var(--radius-lg); color:var(--text-primary); background:var(--surface); box-shadow:0 24px 70px rgb(15 23 42 / .35); }.forge-proposal-dialog::backdrop { background:rgb(15 23 42 / .48); }.forge-proposal-dialog header { display:flex; justify-content:space-between; gap:var(--space-4); padding:var(--space-5) var(--space-6); border-bottom:1px solid var(--border); }.forge-proposal-dialog h2 { margin:var(--space-1) 0 0; font:var(--font-object); }.forge-proposal-dialog__body { max-height:calc(100dvh - 215px); overflow:auto; padding:var(--space-6); }.forge-proposal-summary { white-space:pre-wrap; color:var(--text-secondary); line-height:1.65; }.forge-proposal-dialog pre { margin:var(--space-5) 0; padding:var(--space-4); overflow:auto; white-space:pre-wrap; border-radius:var(--radius-md); background:var(--surface-soft); font:400 14px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace; }.forge-proposal-dialog footer { position:sticky; bottom:0; display:flex; justify-content:flex-end; flex-wrap:wrap; gap:var(--space-2); padding:var(--space-4) var(--space-6); border-top:1px solid var(--border); background:var(--surface); }.forge-adjust { display:grid; gap:var(--space-2); margin-top:var(--space-5); font:var(--font-label); }.forge-adjust textarea { min-height:92px; padding:var(--space-3); border:1px solid var(--border); border-radius:var(--radius-md); color:var(--text-primary); background:var(--surface-control); resize:vertical; }
 @media (max-width:1099px) { .workspace-columns,.workspace-columns[data-structure],.workspace-columns[data-forge] { display:block; }.forge-proposal-dialog { width:min(900px,calc(100vw - 32px)); } }
 @media (max-width:600px) { .forge-proposal-dialog { width:calc(100vw - 16px); max-height:calc(100dvh - 16px); }.forge-proposal-dialog header,.forge-proposal-dialog__body,.forge-proposal-dialog footer { padding:var(--space-4); }.forge-proposal-dialog__body { max-height:calc(100dvh - 185px); }.forge-proposal-dialog footer { justify-content:stretch; }.forge-proposal-dialog footer .button { flex:1 1 42%; } }
+@media (max-width:600px) { .course-remix-dialog { width:calc(100vw - 16px); }.course-remix-dialog__body, .course-remix-dialog footer { padding:var(--space-4); }.course-remix-dialog footer .button { flex:1 1 42%; } }
 @media (max-width:700px) { .course-overview__intro { align-items:stretch; flex-direction:column; }.course-overview__stats { grid-template-columns:repeat(2,minmax(0,1fr)); }.course-program { padding:12px; }.course-program p { padding-left:0; } }
 
 /* F6 — first value loop */
@@ -322,6 +323,16 @@ textarea,select { font:inherit; }
 .owner-overview__summary strong { color: var(--text-primary); font: var(--font-label); }
 .owner-overview__summary small { color: var(--text-muted); font: var(--font-caption); }
 .owner-overview__section { margin-top: 28px; }
+.course-provenance { margin: 16px 0 0; color: var(--text-secondary); font: var(--font-label); }
+.course-provenance a { color: var(--violet); }
+.course-overview__remix { margin: 18px 0; }
+.course-remix-dialog { width: min(500px, calc(100vw - 32px)); padding: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text-primary); box-shadow: 0 20px 50px rgb(0 0 0 / 20%); }
+.course-remix-dialog::backdrop { background: rgb(0 0 0 / 42%); }
+.course-remix-dialog__body, .course-remix-dialog footer { padding: var(--space-5); }
+.course-remix-dialog__body h2 { margin: 4px 0 10px; font: var(--font-object); }
+.course-remix-dialog__body p { margin: 0; }
+.course-remix-dialog__body .form-error { margin-top: 14px; }
+.course-remix-dialog footer { display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border); }
 .owner-overview__section-heading { display: flex; align-items: end; justify-content: space-between; gap: 14px; margin-bottom: 12px; }
 .owner-overview__section-heading h2 { margin: 3px 0 0; font: var(--font-object); }
 .owner-overview__section-heading .eyebrow { margin: 0; }

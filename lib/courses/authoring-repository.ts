@@ -5,9 +5,9 @@ import type { CourseMembershipRole, CourseMembershipStatus } from "@/lib/capabil
 
 export async function getAuthoringRelationship(courseId: string) {
   const client = await createServerSupabaseClient();
-  if (!client) return { configured: false, isOwner: false, isEnrolled: false, membershipRole: null, membershipStatus: null };
+  if (!client) return { configured: false, isAuthenticated: false, isOwner: false, isEnrolled: false, membershipRole: null, membershipStatus: null };
   const { data: { user } } = await client.auth.getUser();
-  if (!user) return { configured: true, isOwner: false, isEnrolled: false, membershipRole: null, membershipStatus: null };
+  if (!user) return { configured: true, isAuthenticated: false, isOwner: false, isEnrolled: false, membershipRole: null, membershipStatus: null };
   const [{ data: course }, { data: enrollment }, { data: membership }] = await Promise.all([
     client.from("courses").select("teacher_id").eq("id", courseId).maybeSingle(),
     client.from("enrollments").select("id").eq("course_id", courseId).eq("user_id", user.id).maybeSingle(),
@@ -15,6 +15,7 @@ export async function getAuthoringRelationship(courseId: string) {
   ]);
   return {
     configured: true,
+    isAuthenticated: true,
     isOwner: course?.teacher_id === user.id,
     isEnrolled: Boolean(enrollment),
     membershipRole: (membership?.role ?? null) as CourseMembershipRole | null,

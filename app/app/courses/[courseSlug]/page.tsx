@@ -16,6 +16,9 @@ import { listCourseCollaborators } from "@/lib/courses/collaborator-repository";
 import { getMyCourseCollaborationRequest, listCourseCollaborationRequests } from "@/lib/courses/collaboration-request-repository";
 import { LearnerCollaborationRequest } from "@/components/course/LearnerCollaborationRequest";
 import { redirect } from "next/navigation";
+import { canOfferPublicCourseRemix } from "@/lib/courses/remix";
+import { CourseRemixButton } from "@/components/course/CourseRemixButton";
+import { CourseProvenance } from "@/components/course/CourseProvenance";
 
 export default async function CoursePage({ params, searchParams }: { params: Promise<{ courseSlug: string }>; searchParams: Promise<{ mode?: string }> }) {
   const { courseSlug } = await params;
@@ -38,6 +41,7 @@ export default async function CoursePage({ params, searchParams }: { params: Pro
   const continueLesson = outline.flatMap((module) => module.lessons).find((lesson) => lesson.id === state.continueLessonId);
   const lessonCount = outline.reduce((total, module) => total + module.lessons.length, 0);
   const purpose = course.subtitle?.trim() || course.description?.trim();
+  const canRemixPublicCourse = canOfferPublicCourseRemix({ isAuthenticated: relationship.isAuthenticated, isOwner: relationship.isOwner, status: course.status, visibility: course.visibility });
   const primaryAction = state.enrollment && continueLesson
       ? <StartCourseLink href={`/app/courses/${course.slug}/lessons/${continueLesson.slug}`} label={state.enrollment.status === "completed" ? "Revoir le parcours" : state.percentage ? "Continuer" : "Commencer"} />
       : null;
@@ -49,6 +53,8 @@ export default async function CoursePage({ params, searchParams }: { params: Pro
     : mode === "publication"
       ? <PublicationPanel course={course} readiness={readiness} />
       : <div className="course-overview course-overview--learner">
+          <CourseProvenance provenance={course.provenance} />
+          {canRemixPublicCourse && <div className="course-overview__remix"><CourseRemixButton courseId={course.id} /></div>}
           {purpose && <section className="course-overview__purpose" aria-labelledby="learner-purpose-title"><p className="eyebrow">Votre apprentissage</p><h2 id="learner-purpose-title">Objectif du parcours</h2><p>{purpose}</p></section>}
           <LearnerCollaborationRequest courseId={course.id} pending={Boolean(myRequestData.request)} canRequest={myRequestData.available && !myRequestData.request && Boolean(state.enrollment) && !relationship.isOwner && course.status === "published" && Boolean(course.collaborationRequestsEnabled) && !(relationship.membershipStatus === "active" && (relationship.membershipRole === "editor" || relationship.membershipRole === "viewer"))} />
           <CourseMetrics modules={outline.length} lessons={lessonCount} durationMinutes={knownCourseDuration(course)} progress={state.enrollment ? state.percentage : undefined} />
