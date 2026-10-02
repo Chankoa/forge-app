@@ -1,8 +1,8 @@
 import "server-only";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { CourseDetail } from "./contracts";
-import { classroomDataFromRows, classroomLearnerDetailFromRows, type ClassroomData, type ClassroomEnrollmentRow, type ClassroomLearnerDetail, type ClassroomProfileRow, type ClassroomProgressRow } from "./classroom";
+import type { CourseDetail, CourseOutline } from "./contracts";
+import { classroomDataFromRows, classroomLearnerDetailFromRows, globalClassroomOverviewFromRows, type ClassroomData, type ClassroomEnrollmentRow, type ClassroomLearnerDetail, type ClassroomProfileRow, type ClassroomProgressRow, type GlobalClassroomOverview } from "./classroom";
 
 export type { ClassroomData } from "./classroom";
 
@@ -44,4 +44,32 @@ export async function getCourseClassroomLearnerDetail(course: CourseDetail, lear
   if (progressError || profileError) return null;
 
   return classroomLearnerDetailFromRows(course.outline, enrollmentData as ClassroomEnrollmentRow, (progressData ?? []) as ClassroomProgressRow[], (profileData ?? undefined) as ClassroomProfileRow | undefined);
+}
+
+export async function getGlobalClassroomOverview(): Promise<GlobalClassroomOverview[]> {
+  const client = await createServerSupabaseClient();
+  if (!client) return [];
+  const { data: { user } } = await client.auth.getUser();
+  if (!user) return [];
+  const { data: courseData, error: courseError } = await client.from("courses").select("id,slug,title,status,visibility").eq("teacher_id", user.id).order("title");
+  if (courseError || !courseData?.length) return [];
+  const courseIds = courseData.map((course: { id: string }) => course.id);
+  const [{ data: moduleData, error: moduleError }, { data: lessonData, error: lessonError }, { data: enrollmentData, error: enrollmentError }, { data: progressData, error: progressError }] = await Promise.all([
+    client.from("course_modules").select("id,course_id,title,display_order").in("course_id", courseIds).order("display_order"),
+    client.from("lessons").select("id,course_id,module_id,slug,title,duration_minutes,type,status,display_order").in("course_id", courseIds).order("display_order"),
+    client.from("enrollments").select("course_id,user_id,status,current_lesson_id").in("course_id", courseIds),
+    client.from("lesson_progress").select("course_id,user_id,lesson_id,completed").in("course_id", courseIds),
+  ]);
+  if (moduleError || lessonError || enrollmentError || progressError) return [];
+  const modules = (moduleData ?? []) as Array<{ id: string; course_id: string; title: string }>;
+  const lessons = (lessonData ?? []) as Array<{ id: string; course_id: string; module_id: string; slug: string; title: string; duration_minutes: number | null; type: string; status: string }>;
+  const courses = courseData.map((course: { id: string; slug: string; title: string; status: string | null; visibility: string | null }) => ({
+    ...course,
+    outline: modules.filter((module) => module.course_id === course.id).map((module): CourseOutline[number] => ({
+      id: module.id,
+      moduleTitle: module.title,
+      lessons: lessons.filter((lesson) => lesson.course_id === course.id && lesson.module_id === module.id).map((lesson) => ({ id: lesson.id, slug: lesson.slug, title: lesson.title, description: null, content: null, objectives: [], durationMinutes: lesson.duration_minutes, contentType: lesson.type, publishingStatus: lesson.status, status: "not-started" })),
+    })),
+  }));
+  return globalClassroomOverviewFromRows(courses, (enrollmentData ?? []) as Array<ClassroomEnrollmentRow & { course_id: string }>, (progressData ?? []) as Array<ClassroomProgressRow & { course_id: string }>);
 }

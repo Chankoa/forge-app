@@ -3,19 +3,19 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
-import { CircleUserRound, Compass, Home, Library, LogOut, PanelLeftClose, PanelLeftOpen, PenLine, Sparkles } from "lucide-react";
+import { CircleUserRound, Compass, GraduationCap, Home, Library, LogOut, PanelLeftClose, PanelLeftOpen, PenLine, Sparkles } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { IconButton } from "@/components/ui/IconButton";
 import { createBrowserClient } from "@/lib/supabase/browser";
 
-const links = [["/app", "Accueil", Home], ["/app/courses", "Mes parcours", Library], ["/app/explore", "Explorer", Compass], ["/app/create", "Créer", PenLine], ["/app/profile", "Profil", CircleUserRound]] as const;
+const links = [["/app", "Accueil", Home], ["/app/courses", "Mes parcours", Library], ["/app/explore", "Explorer", Compass], ["/app/create", "Créer", PenLine], ["/app/classroom", "Classroom", GraduationCap], ["/app/profile", "Profil", CircleUserRound]] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const courseShell = /^\/app\/courses\/[^/]+/.test(pathname);
-  const activeHref = pathname.startsWith("/app/courses/") ? "/app/courses" : links.find(([href]) => href === pathname)?.[0];
+  const activeHref = pathname === "/app/classroom" || /^\/app\/courses\/[^/]+\/classroom/.test(pathname) ? "/app/classroom" : pathname.startsWith("/app/courses/") ? "/app/courses" : links.find(([href]) => href === pathname)?.[0];
 
   async function signOut() {
     const client = createBrowserClient();

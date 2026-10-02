@@ -8,6 +8,10 @@ export type ClassroomProfileRow = { id: string; name: string | null };
 export type ClassroomLearner = { id: string; displayName: string; initials: string; progress: number; completedLessons: number; totalLessons: number; currentLessonTitle: string | null; status: "not-started" | "in-progress" | "completed" };
 export type ClassroomData = { totalLearners: number; averageProgress: number | null; completedLearners: number; learners: ClassroomLearner[] };
 export type ClassroomLearnerDetail = ClassroomLearner & { modules: Array<{ id: string; title: string; completedLessons: number; totalLessons: number; progress: number; lessons: Array<{ id: string; title: string; durationMinutes: number | null; state: "completed" | "current" | "todo" }> }> };
+export type GlobalClassroomCourse = { id: string; slug: string; title: string; status: string | null; visibility: string | null; outline: CourseOutline };
+export type GlobalClassroomEnrollmentRow = ClassroomEnrollmentRow & { course_id: string };
+export type GlobalClassroomProgressRow = ClassroomProgressRow & { course_id: string };
+export type GlobalClassroomOverview = { id: string; slug: string; title: string; status: string | null; visibility: string | null; totalLessons: number; totalLearners: number; averageProgress: number | null; completedLearners: number };
 
 function classroomStatus(value: string): ClassroomLearner["status"] { return value === "completed" || value === "in-progress" ? value : "not-started"; }
 
@@ -47,4 +51,11 @@ export function classroomLearnerDetailFromRows(outline: CourseOutline, enrollmen
       };
     }),
   };
+}
+
+export function globalClassroomOverviewFromRows(courses: GlobalClassroomCourse[], enrollments: GlobalClassroomEnrollmentRow[], progressRows: GlobalClassroomProgressRow[]): GlobalClassroomOverview[] {
+  return courses.map((course) => {
+    const classroom = classroomDataFromRows(course.outline, enrollments.filter((enrollment) => enrollment.course_id === course.id), progressRows.filter((progress) => progress.course_id === course.id), []);
+    return { id: course.id, slug: course.slug, title: course.title, status: course.status, visibility: course.visibility, totalLessons: course.outline.flatMap((module) => module.lessons).length, totalLearners: classroom.totalLearners, averageProgress: classroom.averageProgress, completedLearners: classroom.completedLearners };
+  }).sort((first, second) => Number(first.status === "archived") - Number(second.status === "archived") || first.title.localeCompare(second.title, "fr"));
 }
