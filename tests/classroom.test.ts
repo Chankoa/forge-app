@@ -56,7 +56,7 @@ test("legacy Classroom mode redirects to the dedicated course-scoped route", () 
 });
 
 test("Classroom rendering exposes operational learner progress only", () => {
-  const html = renderToStaticMarkup(createElement(CourseClassroom, { archived: true, data: { totalLearners: 1, averageProgress: 50, completedLearners: 0, learners: [{ displayName: "Aline Martin", initials: "AM", progress: 50, completedLessons: 1, totalLessons: 2, currentLessonTitle: "Deuxième leçon", status: "in-progress" }] } }));
+  const html = renderToStaticMarkup(createElement(CourseClassroom, { archived: true, courseSlug: "course", data: { totalLearners: 1, averageProgress: 50, completedLearners: 0, learners: [{ id: "learner-a", displayName: "Aline Martin", initials: "AM", progress: 50, completedLessons: 1, totalLessons: 2, currentLessonTitle: "Deuxième leçon", status: "in-progress" }] } }));
   assert.match(html, /Parcours archivé.*lecture seule/);
   assert.match(html, /Aline Martin/);
   assert.match(html, /1 \/ 2 leçons/);

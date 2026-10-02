@@ -6,6 +6,8 @@ export function courseOverviewPath(courseSlug: string) { return `/app/courses/${
 
 export function courseClassroomPath(courseSlug: string) { return `${courseOverviewPath(courseSlug)}/classroom`; }
 
+export function courseClassroomLearnerPath(courseSlug: string, learnerId: string) { return `${courseClassroomPath(courseSlug)}/learners/${learnerId}`; }
+
 export function courseLessonPath(courseSlug: string, lessonSlug: string) { return `${courseOverviewPath(courseSlug)}/lessons/${lessonSlug}`; }
 
 export function publicationCorrectionPath(courseSlug: string, kind: "blocking" | "recommended", lessonSlug?: string) {

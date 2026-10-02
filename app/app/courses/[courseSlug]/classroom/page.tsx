@@ -17,5 +17,5 @@ export default async function CourseClassroomPage({ params }: { params: Promise<
   const classroom = await getCourseClassroom(course);
   const outline = course.outline.map((module) => ({ ...module, lessons: module.lessons.map((lesson) => ({ ...lesson, status: state.completedLessonIds.has(lesson.id) ? "completed" as const : state.continueLessonId === lesson.id ? "in-progress" as const : "not-started" as const })) }));
 
-  return <CourseWorkspace course={course} mode="classroom" capabilities={capabilities} outline={outline} forgeContext={{ mode: "learn", courseTitle: course.title }} content={classroom ? <CourseClassroom data={classroom} archived={course.status === "archived"} /> : <p className="env-note">Le Classroom est momentanément indisponible.</p>} />;
+  return <CourseWorkspace course={course} mode="classroom" capabilities={capabilities} outline={outline} forgeContext={{ mode: "learn", courseTitle: course.title }} content={classroom ? <CourseClassroom data={classroom} archived={course.status === "archived"} courseSlug={course.slug} /> : <p className="env-note">Le Classroom est momentanément indisponible.</p>} />;
 }
