@@ -10,7 +10,7 @@ import { getLessonNavigation } from "@/lib/courses/lesson-navigation";
 export default async function LessonPage({ params, searchParams }: { params: Promise<{ courseSlug: string; lessonSlug: string }>; searchParams: Promise<{ mode?: string }> }) {
   const { courseSlug, lessonSlug } = await params; const { mode } = await searchParams;
   const course = await getCourseDetail(courseSlug);
-  if (!course) return <p className="env-note">Parcours introuvable ou lecture Supabase indisponible.</p>;
+  if (!course) return <p className="env-note">Ce parcours est introuvable ou momentanément indisponible.</p>;
   const [state, relation] = await Promise.all([getLearningState(course), getAuthoringRelationship(course.id)]);
   const capabilities = resolveCourseCapabilities({ isOwner: relation.isOwner, isEnrolled: state.enrollment !== null, courseStatus: course.status, membershipRole: relation.membershipRole, membershipStatus: relation.membershipStatus }); const edit = mode === "edit"; const preview = mode === "preview" && capabilities.canPreview; const viewerReadOnly = !mode && capabilities.canPreview && !capabilities.canEdit; const readOnly = preview || viewerReadOnly;
   if (!canAccessLessonMode(capabilities, mode) && !viewerReadOnly) return <p className="env-note">{edit ? "La capacité de modification est requise pour éditer cette leçon." : "L&apos;inscription est requise pour accéder aux leçons."} <Link href={`/app/courses/${course.slug}`}>Vue d&apos;ensemble du parcours</Link></p>;

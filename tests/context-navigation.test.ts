@@ -31,7 +31,8 @@ test("course context links contain no legacy route", () => { for (const link of 
 test("course-local back action returns to the same course overview while UJ05 returns to My paths", () => {
   const props = { courseId: "course-id", courseSlug, enrollable: false, capabilities: owner, lessonSlug, activeMode: "edit" as const };
   const local = renderToStaticMarkup(createElement(CourseContextNavigation, props));
-  assert.match(local, /href="\/app\/courses\/workflow-ia"[^>]*>.*?Vue d’ensemble/);
+  assert.equal((local.match(/href="\/app\/courses\/workflow-ia"/g) ?? []).length, 1);
+  assert.match(local, /href="\/app\/courses\/workflow-ia"[^>]*>.*?Vue d&#x27;ensemble/);
   const overview = renderToStaticMarkup(createElement(CourseContextNavigation, { ...props, overview: true }));
   assert.match(overview, /href="\/app\/courses"[^>]*>.*?Mes parcours/);
 });

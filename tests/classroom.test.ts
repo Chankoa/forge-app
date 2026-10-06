@@ -58,10 +58,10 @@ test("legacy Classroom mode redirects to the dedicated course-scoped route", () 
 test("Classroom rendering exposes operational learner progress only", () => {
   const html = renderToStaticMarkup(createElement(CourseClassroom, { archived: true, courseSlug: "course", data: { totalLearners: 1, averageProgress: 50, completedLearners: 0, learners: [{ id: "learner-a", displayName: "Aline Martin", initials: "AM", progress: 50, completedLessons: 1, totalLessons: 2, currentLessonTitle: "Deuxième leçon", status: "in-progress" }] } }));
   assert.match(html, /Parcours archivé.*lecture seule/);
+  assert.match(html, />Synthèse</);
   assert.match(html, /Aline Martin/);
   assert.match(html, /1 \/ 2 leçons/);
-  assert.match(html, /Activité.*Bientôt/);
-  assert.match(html, /Messages.*Bientôt/);
+  assert.doesNotMatch(html, /Activité|Messages|Bientôt/);
   assert.doesNotMatch(html, /email|note|role|historique/i);
   assert.match(repository, /from\("enrollments"\)/);
   assert.match(repository, /from\("lesson_progress"\)/);

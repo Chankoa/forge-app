@@ -8,7 +8,7 @@ import { getCourseDetail, getLearningState } from "@/lib/courses/learning-reposi
 export default async function ClassroomLearnerPage({ params }: { params: Promise<{ courseSlug: string; learnerId: string }> }) {
   const { courseSlug, learnerId } = await params;
   const course = await getCourseDetail(courseSlug);
-  if (!course) return <p className="env-note">Parcours introuvable ou lecture Supabase indisponible.</p>;
+  if (!course) return <p className="env-note">Ce parcours est introuvable ou momentanément indisponible.</p>;
   const [state, relationship] = await Promise.all([getLearningState(course), getAuthoringRelationship(course.id)]);
   const capabilities = resolveCourseCapabilities({ isOwner: relationship.isOwner, isEnrolled: state.enrollment !== null, courseStatus: course.status, membershipRole: relationship.membershipRole, membershipStatus: relationship.membershipStatus });
   if (!capabilities.canViewClassroom) return <p className="env-note">Le suivi des apprenants est réservé au propriétaire du parcours.</p>;
