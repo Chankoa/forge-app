@@ -10,6 +10,7 @@ import { publicCoursePreviewSchema } from "@/lib/forge/public-contracts";
 import { normalizeAuthoringText } from "@/lib/courses/authoring-text";
 import { courseDomainUpdate, parseDomainSelection } from "@/lib/forge/domain-mapping";
 import { resolveCourseCapabilities } from "@/lib/capabilities/course-capabilities";
+import { draftCourseCreationAttributes, ownerEditorRedirect } from "@/lib/forge/creation-flow";
 
 function slugify(value: string) { return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 72) || "nouveau-parcours"; }
 async function authorClient() { const client = await createServerSupabaseClient(); if (!client) throw new Error("Supabase local n'est pas configuré."); const { data: { user } } = await client.auth.getUser(); if (!user) throw new Error("Votre session a expiré. Connectez-vous à nouveau."); return { client, user }; }
@@ -39,12 +40,12 @@ export async function createCourseAction(formData: FormData) {
   let rawProposal: unknown; try { rawProposal = JSON.parse(String(formData.get("proposal") || "")); } catch { throw new Error("La proposition Forge est invalide."); }
   const proposal = publicCoursePreviewSchema.safeParse(rawProposal);
   if (!proposal.success) throw new Error("La proposition Forge est invalide. Régénérez-la avant de créer le parcours.");
+  if (!parseDomainSelection(formData.get("domainId"))) throw new Error("Choisissez un domaine avant de créer le parcours.");
   const domainId = await validatedDomainId(client, formData.get("domainId"));
   const parsed = courseMetadataSchema.parse({ title: proposal.data.title, description: proposal.data.summary, subtitle: proposal.data.learningOutcomes.slice(0, 3).join(" · ").slice(0, 500) });
   const baseSlug = slugify(parsed.title); let slug = baseSlug;
   for (let suffix = 2; suffix < 20; suffix += 1) { const { data } = await client.from("courses").select("id").eq("slug", slug).maybeSingle(); if (!data) break; slug = `${baseSlug}-${suffix}`; }
-  const { data: course, error } = await client.from("courses").insert({ teacher_id: user.id, domain_id: domainId, slug, title: parsed.title, subtitle: parsed.subtitle || null, description: parsed.description, status: "draft", visibility: "private", availability: "preview" }).select("id,slug").single();
-  if (error?.code === "23502" && !domainId) throw new Error("La création sans domaine n'est pas encore disponible sur cette base. La mise à jour de la base doit être appliquée.");
+  const { data: course, error } = await client.from("courses").insert({ teacher_id: user.id, ...draftCourseCreationAttributes(domainId), slug, title: parsed.title, subtitle: parsed.subtitle || null, description: parsed.description }).select("id,slug").single();
   if (error || !course) throw new Error("Le parcours n'a pas pu être créé.");
   const { data: modules, error: modulesError } = await client.from("course_modules").insert(proposal.data.modules.map((module, index) => ({ course_id: course.id, slug: `${slugify(module.title)}-${index + 1}`, title: module.title, display_order: index, status: "draft" }))).select("id,display_order");
   if (modulesError || !modules?.length) throw new Error("Le parcours a été créé, mais sa structure n'a pas pu être ajoutée.");
@@ -53,7 +54,7 @@ export async function createCourseAction(formData: FormData) {
     return createdModule ? module.outcomes.map((outcome, lessonIndex) => ({ course_id: course.id, module_id: createdModule.id, slug: `${slugify(outcome)}-${lessonIndex + 1}`, title: outcome, description: module.summary, display_order: lessonIndex, status: "draft", type: "reading", objectives: [outcome] })) : [];
   });
   if (lessons.length) { const { error: lessonsError } = await client.from("lessons").insert(lessons); if (lessonsError) throw new Error("Le parcours a été créé, mais ses leçons n'ont pas pu être ajoutées."); }
-  return { ok: true as const, redirectTo: `/app/courses/${course.slug}` };
+  return { ok: true as const, redirectTo: ownerEditorRedirect(course.slug) };
 }
 
 export async function saveCourseMetadataAction(courseId: string, formData: FormData) {

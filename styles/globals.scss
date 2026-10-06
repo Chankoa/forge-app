@@ -523,6 +523,10 @@ textarea,select { font:inherit; }
 .create-intent-flow .generated-path--workspace { padding: 24px; border: 1px solid var(--shell-separator); border-radius: var(--radius-lg); }
 .generated-path--workspace .generated-path__heading-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 .generated-path--workspace .generated-path__heading-actions a { min-height: 44px; display: inline-flex; align-items: center; color: var(--violet); font: var(--font-label); }
+.generated-path--workspace .generated-path__edit-field { display: grid; gap: 6px; margin-top: 10px; color: var(--text-secondary); font: var(--font-label); }
+.generated-path--workspace .generated-path__edit-field input,.generated-path--workspace .generated-path__edit-field textarea { width: 100%; border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text-primary); background: var(--surface-control); font: inherit; }
+.generated-path--workspace .generated-path__edit-field input { min-height: 42px; padding: 8px 10px; font: var(--font-section); }
+.generated-path--workspace .generated-path__edit-field textarea { min-height: 86px; padding: 9px 10px; line-height: 1.5; resize: vertical; }
 .generated-path--workspace .generated-path__guidance { align-items: center; border-bottom: 1px solid var(--shell-separator); }
 .generated-path--workspace .generated-path__guidance .caption { width: 100%; margin: 0; }
 .generated-path__summary { display: flex; flex-wrap: wrap; gap: 0; padding: 14px 0; }
