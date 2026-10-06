@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const forgeIntents = {
   learn: ["explain", "clarify", "rephrase", "example", "quiz", "ask"],
-  edit: ["structure", "improve", "rephrase", "simplify", "summarize", "objectives", "ask"],
+  edit: ["structure", "improve", "generate_content", "rephrase", "simplify", "summarize", "objectives", "ask"],
 } as const;
 export type ForgeMode = keyof typeof forgeIntents;
 export type ForgeIntent = (typeof forgeIntents)[ForgeMode][number];
@@ -28,7 +28,7 @@ export type ForgeRailContext = { mode: ForgeMode; courseSlug: string; lessonSlug
 export type ForgeSource = { id: string; title: string; text: string };
 export type ForgeWarning = { code: "truncated" | "not_ready" | "unsupported_type" | "extraction_unavailable"; target: string };
 export type ForgeContext = {
-  course: { id: string; title: string; summary: string; domain?: string | null; level?: string | null };
+  course: { id: string; title: string; subtitle?: string | null; summary: string; domain?: string | null; level?: string | null };
   module?: { id: string; title: string };
   lesson?: { id: string; title: string; summary: string; content: string; objectives: string[] };
   outline: Array<{ title: string; lessons: string[] }>;

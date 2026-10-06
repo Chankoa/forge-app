@@ -28,11 +28,12 @@ test("owner overview sends an empty course to its existing structure editor", ()
   assert.match(html, /real-course\?mode=edit#cockpit-program-title/);
 });
 
-test("owner cockpit orders structure, publication, availability, collaborators, then Classroom", () => {
+test("owner cockpit orders Modules, Remix, publication, availability, collaborators, then Classroom", () => {
   const html = renderToStaticMarkup(createElement(OwnerCourseOverview, { course, readiness: getPublicationReadiness(course) }));
-  const sections = ["Modules", "À finaliser avant publication", "Disponibilité du parcours", "Collaborateurs", "Apprenants"];
+  const sections = ["Modules", "Créer une copie indépendante", "À finaliser avant publication", "Disponibilité du parcours", "Collaborateurs", "Apprenants"];
   const positions = sections.map((section) => html.indexOf(section));
   assert.ok(positions.every((position) => position >= 0));
   assert.deepEqual([...positions].sort((left, right) => left - right), positions);
+  assert.doesNotMatch(html, /Remixer ce parcours/);
   assert.match(html, /href="\/app\/courses\/real-course\/classroom"[^>]*>Voir le Classroom/);
 });

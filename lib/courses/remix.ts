@@ -1,9 +1,9 @@
 export type CourseRemixDestination = { id: string; slug: string };
-export type CourseRemixOffer = { isAuthenticated: boolean; isOwner: boolean; status: string | null; visibility: string | null };
+export type CourseRemixOffer = { isAuthenticated: boolean; isOwner: boolean; status: string | null; visibility: string | null; hasPublicAuthor?: boolean };
 
 type CourseRemixRpcClient = {
   rpc: (functionName: "create_course_remix", args: { source_course_id: string }) => PromiseLike<{
-    data: CourseRemixDestination | CourseRemixDestination[] | null;
+    data: { course_id: string; slug: string } | Array<{ course_id: string; slug: string }> | null;
     error: { code?: string | null; message?: string | null } | null;
   }>;
 };
@@ -25,14 +25,15 @@ export class CourseRemixError extends Error {
   }
 }
 
-function courseRemixDestination(data: CourseRemixDestination | CourseRemixDestination[] | null): CourseRemixDestination | null {
+function courseRemixDestination(data: { course_id: string; slug: string } | Array<{ course_id: string; slug: string }> | null): CourseRemixDestination | null {
   const value = Array.isArray(data) ? data[0] : data;
-  return value && typeof value.id === "string" && typeof value.slug === "string" ? value : null;
+  return value && typeof value.course_id === "string" && typeof value.slug === "string" ? { id: value.course_id, slug: value.slug } : null;
 }
 
 export async function requestCourseRemix(client: CourseRemixRpcClient, sourceCourseId: string): Promise<CourseRemixDestination> {
   const { data, error } = await client.rpc("create_course_remix", { source_course_id: sourceCourseId });
   if (error) {
+    console.error("[remix] RPC failed " + JSON.stringify({ code: error.code, message: error.message, kind: error.constructor?.name }));
     const message = remixErrorMessages[error.code ?? ""] ?? remixErrorMessages[error.message ?? ""] ?? "Impossible de créer le remix pour le moment.";
     throw new CourseRemixError(message);
   }
@@ -42,7 +43,7 @@ export async function requestCourseRemix(client: CourseRemixRpcClient, sourceCou
 }
 
 export function canOfferPublicCourseRemix(course: CourseRemixOffer): boolean {
-  return course.isAuthenticated && !course.isOwner && course.status === "published" && course.visibility === "public";
+  return course.isAuthenticated && !course.isOwner && course.status === "published" && course.visibility === "public" && course.hasPublicAuthor === true;
 }
 
 export function canOfferOwnerCourseRemix(course: CourseRemixOffer): boolean {

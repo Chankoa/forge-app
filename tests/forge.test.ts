@@ -16,7 +16,7 @@ const source: ForgeSourceRow = { id: sourceId, course_id: "course-id", title: "S
 function fixture(owner = true, enrolled = true, status = "published") {
   const calls: string[] = [];
   const reader: ForgeReader = {
-    async course() { return { id: "course-id", teacher_id: owner ? "user" : "another", title: "Course", description: "Résumé", status }; },
+    async course() { return { id: "course-id", teacher_id: owner ? "user" : "another", title: "Course", subtitle: "Résumé court actuel", description: "Résumé", status }; },
     async enrolled(_courseId, userId) { assert.equal(userId, "user"); return enrolled; },
     async lesson() { return { id: "lesson-id", course_id: "course-id", module_id: "module", title: "Lesson", description: "Summary", content: "REAL LESSON", objectives: ["Understand"] }; },
     async modules() { return [{ id: "module", title: "Module" }]; },
@@ -173,24 +173,51 @@ test("lesson patch permits title and content and preserves selected sources", as
   assert.equal(result.result.proposal.patch.content, "Contenu issu de la source");
   assert.deepEqual(result.result.sourcesUsed, [{ id: sourceId, title: "Source" }]);
 });
-test("course Improve proposes a saveable description and never targets a lesson", async () => {
+test("course Improve proposes title, short summary and description without saving", async () => {
   const { deps } = fixture(true, false);
-  editOutput(deps, { text: "Résumé amélioré", patch: { title: null, subtitle: null, description: "Description du parcours améliorée", content: null, objectives: null } });
+  editOutput(deps, { text: "Parcours amélioré", patch: { title: "Titre révisé", subtitle: "Résumé court révisé", description: "Description du parcours améliorée", content: null, objectives: null } });
   const response = await runForge({ mode: "edit", intent: "improve", courseSlug: "course" }, deps);
   assert.ok(response.ok && response.result.mode === "edit" && response.result.kind === "proposal");
+  assert.equal(response.result.proposal.patch.title, "Titre révisé");
+  assert.equal(response.result.proposal.patch.subtitle, "Résumé court révisé");
   assert.equal(response.result.proposal.patch.description, "Description du parcours améliorée");
   assert.deepEqual(response.result.proposal.target, { courseId: "course-id", lessonId: undefined });
+  assert.equal(response.result.proposal.application, "explicit_only");
 });
-test("Course Improve prompt names only Course patch fields and accepts one applicable field", async () => {
+
+test("Generate lesson content uses lesson, module, course and selected source context without persisting", async () => {
+  const { deps } = fixture();
+  let seenPrompt = "";
+  deps.provider.generate = async (messages) => {
+    seenPrompt = messages.prompt;
+    return { finishReason: "stop", output: { text: "Brouillon complet à examiner", patch: { title: null, subtitle: null, description: null, content: "# Lesson\n\nContenu initial AZUR-47", objectives: null } } };
+  };
+  const response = await runForge({ mode: "edit", intent: "generate_content", courseSlug: "course", lessonSlug: "lesson", sourceIds: [sourceId] }, deps);
+  assert.ok(response.ok && response.result.kind === "proposal");
+  assert.equal(response.result.proposal.application, "explicit_only");
+  assert.equal(response.result.proposal.patch.content, "# Lesson\n\nContenu initial AZUR-47");
+  for (const item of ["Course", "Résumé court actuel", "Module", "Lesson", "Understand", "REAL LESSON", "AZUR-47"]) assert.match(seenPrompt, new RegExp(item));
+  assert.deepEqual(response.result.sourcesUsed, [{ id: sourceId, title: "Source" }]);
+});
+
+test("Generate lesson content rejects unrelated fields and course scope", async () => {
+  const { deps } = fixture();
+  editOutput(deps, { text: "Brouillon", patch: { title: "Nouveau titre", subtitle: null, description: null, content: "Contenu", objectives: null } });
+  assert.deepEqual(await runForge({ mode: "edit", intent: "generate_content", courseSlug: "course", lessonSlug: "lesson" }, deps), { ok: false, error: "invalid_result" });
+  assert.equal(forgeRequestSchema.safeParse({ mode: "edit", intent: "generate_content", courseSlug: "course" }).success, false);
+  const messages = forgeMessages(forgeRequestSchema.parse({ mode: "edit", intent: "generate_content", courseSlug: "course", lessonSlug: "lesson" }), { course: { id: "course-id", title: "Course", summary: "Résumé" }, module: { id: "module", title: "Module" }, lesson: { id: "lesson-id", title: "Lesson", summary: "", content: "Déjà rédigé", objectives: ["Comprendre"] }, outline: [], sources: [], warnings: [] });
+  assert.match(messages.system, /version de remplacement à examiner/);
+});
+test("Course Improve prompt requires the three editable course fields", async () => {
   const { deps } = fixture(true, false);
   const message = forgeMessages(forgeRequestSchema.parse({ mode: "edit", intent: "improve", courseSlug: "course" }), { course: { id: "course-id", title: "Course", summary: "Résumé" }, outline: [], sources: [], warnings: [] });
   assert.match(message.system, /patch\.description/);
+  assert.match(message.system, /patch\.title, patch\.subtitle et patch\.description/);
   assert.match(message.system, /patch\.content et patch\.objectives doivent être null/);
   assert.doesNotMatch(message.system, /suggestedContent/);
   editOutput(deps, { text: "Nouveau sous-titre", patch: { title: null, subtitle: "Sous-titre revu", description: null, content: null, objectives: null } });
   const response = await runForge({ mode: "edit", intent: "improve", courseSlug: "course" }, deps);
-  assert.ok(response.ok && response.result.kind === "proposal");
-  assert.equal(response.result.proposal.patch.subtitle, "Sous-titre revu");
+  assert.deepEqual(response, { ok: false, error: "invalid_result" });
 });
 test("course description prompt matches the 1000-character contract across edit intents", () => {
   const course = { course: { id: "course-id", title: "Course", summary: "Résumé" }, outline: [], sources: [], warnings: [] };
@@ -261,7 +288,7 @@ test("course descriptions above 1000 characters fail instead of returning shorte
   const { deps } = fixture();
   editOutput(deps, { text: "Description proposée", patch: { title: null, subtitle: null, description: "x".repeat(1001), content: null, objectives: null } });
   assert.deepEqual(await runForge({ mode: "edit", intent: "improve", courseSlug: "course" }, deps), { ok: false, error: "invalid_result" });
-  editOutput(deps, { text: "Description proposée", patch: { title: null, subtitle: null, description: "x".repeat(1000), content: null, objectives: null } });
+  editOutput(deps, { text: "Description proposée", patch: { title: "Titre révisé", subtitle: "Résumé court", description: "x".repeat(1000), content: null, objectives: null } });
   const complete = await runForge({ mode: "edit", intent: "improve", courseSlug: "course" }, deps);
   assert.ok(complete.ok && complete.result.kind === "proposal");
   assert.equal(complete.result.proposal.patch.description, "x".repeat(1000));

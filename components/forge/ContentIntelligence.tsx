@@ -82,8 +82,8 @@ export function ContentIntelligence({ courseSlug, lessonSlug, lessonId, level, h
   function closeDialog() { setDialogOpen(false); requestAnimationFrame(() => launcherRef.current?.focus()); }
   const retry = () => { if (lastRequest) run(lastRequest.task, lastRequest); };
   return <section className="forge-content-intelligence" aria-labelledby="content-intelligence-title">
-    <h3 id="content-intelligence-title">Contenu · intelligence pédagogique</h3>
-    <p className="caption">Propositions pour cette leçon, à examiner avant application et sauvegarde.</p>
+    <h3 id="content-intelligence-title">Analyse pédagogique</h3>
+    <p className="caption">Analyse la leçon, ses objectifs et ses sources avant de proposer des améliorations.</p>
     {isLong && <p className="caption" role="status">Cette leçon est trop longue pour une réécriture complète fiable. {selectedText ? "Le passage sélectionné sera ciblé." : "Sélectionnez un passage à améliorer."}</p>}
     <div className="forge-intents">{(["improve", "clarify", "add_example", "suggest_activity", "coherence_review"] as const).map((item) =>
       <button key={item} type="button" disabled={pending || availability !== "configured" || (!hasContent && (item === "improve" || item === "clarify")) || (isLong && !selectedText && (item === "improve" || item === "clarify"))} title={!hasContent && (item === "improve" || item === "clarify") ? "Ajoutez d'abord du contenu à la leçon." : isLong && !selectedText && (item === "improve" || item === "clarify") ? "Sélectionnez un passage dans l’éditeur." : undefined} onClick={() => run(item)}>{labels[item]}</button>)}</div>

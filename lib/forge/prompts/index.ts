@@ -15,7 +15,9 @@ const instructions: Record<ForgeIntent, string> = {
   quiz: "Pose des questions de compréhension et propose des pistes de correction.",
   ask: "Réponds à la question libre avec le contexte disponible. En mode edit, une demande explicite de réécrire, corriger, améliorer ou proposer un nouveau titre, résumé ou contenu doit produire un patch applicable sur les champs autorisés. Une question explicative ou consultative reste une réponse seule avec tous les champs patch à null. Ne propose jamais de champ arbitraire.",
   structure: "Propose un plan pédagogique en Markdown dans patch.content pour une leçon. Aucune création automatique de modules.",
-  improve: "Si une leçon est présente, améliore son contenu dans patch.content. Sinon, améliore la description du parcours dans patch.description, sans toucher aux modules ni aux leçons.", simplify: "Propose une version plus accessible du contenu de la leçon dans patch.content.",
+  improve: "Si une leçon est présente, améliore son contenu dans patch.content. Sinon, propose une amélioration structurée du parcours : renseigne patch.title, patch.subtitle et patch.description. Examine leur cohérence avec l'intention et le plan. Ne touche pas aux modules ni aux leçons.",
+  generate_content: "Rédige le contenu pédagogique complet de cette leçon en Markdown dans patch.content, sans dépasser 3800 caractères. Utilise son titre, ses objectifs, son module, le contexte du parcours et les sources transmises. Si du contenu existe déjà, propose une version de remplacement à examiner ; ne présume jamais qu'elle sera appliquée. N'invente pas de citation ni de fait absent des sources. Les autres champs patch doivent être null.",
+  simplify: "Propose une version plus accessible du contenu de la leçon dans patch.content.",
   summarize: "Propose un résumé pour le champ description (maximum 1000 caractères pour une leçon).",
   objectives: "Propose entre 1 et 8 objectifs observables dans patch.objectives, de 300 caractères maximum chacun.",
 };
@@ -24,6 +26,10 @@ export function forgeMessages(request: ForgeRequest, context: ForgeContext) {
     ? "Mode learn : réponse à lire dans text. Tous les champs de patch doivent être null."
     : request.intent === "ask"
       ? `Mode edit / ask : text contient toujours la réponse. Pour une réponse seule, tous les champs patch sont null. Pour une proposition, remplis au moins un champ applicable au scope. ${context.lesson ? "Leçon : title, description, content, objectives ; subtitle doit être null." : "Parcours : title, subtitle, description ; content et objectives doivent être null."}`
+      : request.intent === "improve" && !context.lesson
+      ? "Mode edit / amélioration du parcours : explique la proposition dans text, remplis patch.title, patch.subtitle et patch.description. patch.content et patch.objectives doivent être null."
+      : request.intent === "generate_content"
+      ? "Mode edit / génération de leçon : explique la proposition dans text, remplis patch.content avec un brouillon Markdown complet ; tous les autres champs patch doivent être null."
       : request.intent === "objectives"
       ? "Mode edit : explique la proposition dans text, remplis patch.objectives ; les autres champs patch doivent être null."
       : context.lesson

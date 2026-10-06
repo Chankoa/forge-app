@@ -31,7 +31,7 @@ export async function getCourseDetail(courseSlug: string): Promise<CourseDetail 
   const outline: CourseOutline = ((moduleData ?? []) as ModuleRow[]).map((module) => ({ id: module.id, moduleTitle: module.title, lessons: lessons.filter((lesson) => lesson.module_id === module.id).map((lesson): CourseLesson => ({ id: lesson.id, slug: lesson.slug, title: lesson.title, description: lesson.description, content: lesson.content, objectives: lesson.objectives ?? [], durationMinutes: lesson.duration_minutes, contentType: lesson.type, publishingStatus: lesson.status, status: "not-started" })) }));
   const [publicAuthor, provenance] = await Promise.all([getPublicCourseAuthor(client, course), getCourseProvenance(course.id)]);
   const author = publicAuthor ?? await getCourseOwnerIdentity(client, course.id);
-  return { ...mapSummary(course), ...(author ? { author } : {}), domainId: course.domain_id, subtitle: course.subtitle, visibility: course.visibility, outline, provenance };
+  return { ...mapSummary(course), ...(author ? { author } : {}), domainId: course.domain_id, subtitle: course.subtitle, visibility: course.visibility, hasPublicAuthor: publicAuthor !== null, outline, provenance };
 }
 
 export async function getLearningState(course: CourseDetail): Promise<LearningState> {

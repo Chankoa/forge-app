@@ -6,13 +6,14 @@ import { CourseRemixError, requestCourseRemix } from "../lib/courses/remix";
 import { canOfferOwnerCourseRemix, canOfferPublicCourseRemix, courseRemixCockpitPath } from "../lib/courses/remix";
 import { CourseProvenance } from "../components/course/CourseProvenance";
 import { CourseRemixConfirmationContent } from "../components/course/CourseRemixButton";
+import { submitCourseRemixOnce } from "../lib/courses/remix-submit";
 
 test("Remix calls the RPC with only the source course id and returns its destination", async () => {
   let call: { functionName: string; args: unknown } | null = null;
   const destination = await requestCourseRemix({
     async rpc(functionName, args) {
       call = { functionName, args };
-      return { data: { id: "destination-id", slug: "source-remixe" }, error: null };
+      return { data: [{ course_id: "destination-id", slug: "source-remixe" }], error: null };
     },
   }, "source-id");
 
@@ -36,9 +37,10 @@ test("Remix maps known and unknown RPC errors without exposing database details"
 });
 
 test("Remix visibility distinguishes public readers, collaborators, and owners", () => {
-  assert.equal(canOfferPublicCourseRemix({ isAuthenticated: true, isOwner: false, status: "published", visibility: "public" }), true);
-  assert.equal(canOfferPublicCourseRemix({ isAuthenticated: true, isOwner: false, status: "draft", visibility: "private" }), false);
-  assert.equal(canOfferPublicCourseRemix({ isAuthenticated: false, isOwner: false, status: "published", visibility: "public" }), false);
+  assert.equal(canOfferPublicCourseRemix({ isAuthenticated: true, isOwner: false, status: "published", visibility: "public", hasPublicAuthor: true }), true);
+  assert.equal(canOfferPublicCourseRemix({ isAuthenticated: true, isOwner: false, status: "published", visibility: "public", hasPublicAuthor: false }), false);
+  assert.equal(canOfferPublicCourseRemix({ isAuthenticated: true, isOwner: false, status: "draft", visibility: "private", hasPublicAuthor: true }), false);
+  assert.equal(canOfferPublicCourseRemix({ isAuthenticated: false, isOwner: false, status: "published", visibility: "public", hasPublicAuthor: true }), false);
   assert.equal(canOfferOwnerCourseRemix({ isAuthenticated: true, isOwner: true, status: "draft", visibility: "private" }), true);
   assert.equal(canOfferOwnerCourseRemix({ isAuthenticated: true, isOwner: true, status: "published", visibility: "public" }), true);
   assert.equal(canOfferOwnerCourseRemix({ isAuthenticated: true, isOwner: true, status: "archived", visibility: "private" }), false);
@@ -63,4 +65,34 @@ test("Provenance preserves frozen attribution and only links a readable source",
 
 test("Remix success targets the canonical owner cockpit", () => {
   assert.equal(courseRemixCockpitPath("source-remixe"), "/app/courses/source-remixe");
+});
+
+test("successful confirmation invokes one RPC and navigates once despite a second submit", async () => {
+  const lock = { current: false };
+  let calls = 0;
+  let rpcCalls = 0;
+  const navigations: string[] = [];
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  const create = async () => {
+    calls++;
+    await gate;
+    const destination = await requestCourseRemix({ async rpc() { rpcCalls++; return { data: [{ course_id: "new-id", slug: "new-course" }], error: null }; } }, "source-id");
+    return { ok: true as const, redirectTo: courseRemixCockpitPath(destination.slug) };
+  };
+  const first = submitCourseRemixOnce(lock, create, (url) => navigations.push(url));
+  assert.equal(await submitCourseRemixOnce(lock, create, (url) => navigations.push(url)), null);
+  release();
+  assert.deepEqual(await first, { ok: true, redirectTo: "/app/courses/new-course" });
+  assert.equal(calls, 1);
+  assert.equal(rpcCalls, 1);
+  assert.deepEqual(navigations, ["/app/courses/new-course"]);
+  assert.equal(lock.current, true);
+});
+
+test("failed confirmation maps to a safe message and permits retry", async () => {
+  const lock = { current: false };
+  const result = await submitCourseRemixOnce(lock, async () => { throw new Error("database secret"); }, () => assert.fail("should not navigate"));
+  assert.deepEqual(result, { ok: false, error: "Impossible de créer le remix pour le moment." });
+  assert.equal(lock.current, false);
 });

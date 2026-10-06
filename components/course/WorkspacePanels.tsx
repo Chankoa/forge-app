@@ -2,6 +2,7 @@
 import { createContext, Fragment, useContext, useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, ListTree, Maximize2, Sparkles, X } from "lucide-react";
 import { focusForgeRail, toggleForgeRail, type ForgeRailState, type WorkspacePanel } from "@/lib/courses/workspace-layout";
+import { forgeLessonContentEvent } from "@/lib/forge/lesson-content-event";
 
 const subscribe = (callback: () => void) => { const query = window.matchMedia("(max-width: 1279px)"); query.addEventListener("change", callback); return () => query.removeEventListener("change", callback); };
 const snapshot = () => window.matchMedia("(max-width: 1279px)").matches;
@@ -17,6 +18,11 @@ export function WorkspacePanels({ structure, forge, children, initialStructureOp
   const modal = compact && mobilePanel !== null;
   const forgeFocus = forgeState === "focus";
   useEffect(() => { queueMicrotask(() => setStructureOpen(initialStructureOpen)); }, [initialStructureOpen]);
+  useEffect(() => {
+    const openForge = () => { if (compact) setMobilePanel("forge"); else setForgeState("docked"); };
+    window.addEventListener(forgeLessonContentEvent, openForge);
+    return () => window.removeEventListener(forgeLessonContentEvent, openForge);
+  }, [compact]);
   return <Context.Provider value={{ compact, mobilePanel, setMobilePanel, structureOpen, setStructureOpen, forgeState, setForgeState }}>
     <div className="workspace-panel-tools" aria-label="Panneaux du parcours">
       <button type="button" className="button button--secondary" aria-expanded={modal && mobilePanel === "structure"} onClick={() => setMobilePanel("structure")}><ListTree size={17} /> Structure</button>

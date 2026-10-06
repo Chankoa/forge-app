@@ -12,6 +12,7 @@ test("Creator and Learner share one domain-title-status header without repeated 
     assert.equal((header.match(/Création web/g) ?? []).length, 1);
     assert.equal((header.match(/Un parcours réel/g) ?? []).length, 1);
     assert.equal((header.match(/Publié/g) ?? []).length, 1);
+    assert.equal(header.includes("Remixer ce parcours"), isOwner);
     assert.ok(header.indexOf("Création web") < header.indexOf("Un parcours réel"));
     assert.equal((header.match(/J’apprends/g) ?? []).length, isOwner ? 0 : 1);
   }

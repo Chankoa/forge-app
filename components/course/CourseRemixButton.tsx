@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Copy } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { createCourseRemixAction } from "@/app/app/courses/remix-actions";
+import { submitCourseRemixOnce } from "@/lib/courses/remix-submit";
 
 export function CourseRemixConfirmationContent({ error }: { error: string | null }) {
   return <div className="course-remix-dialog__body">
@@ -15,7 +15,6 @@ export function CourseRemixConfirmationContent({ error }: { error: string | null
 }
 
 export function CourseRemixButton({ courseId, compact = false }: { courseId: string; compact?: boolean }) {
-  const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null);
   const submitted = useRef(false);
   const [open, setOpen] = useState(false);
@@ -38,16 +37,10 @@ export function CourseRemixButton({ courseId, compact = false }: { courseId: str
 
   const remix = () => {
     if (submitted.current) return;
-    submitted.current = true;
     startTransition(async () => {
       setError(null);
-      try {
-        const destination = await createCourseRemixAction(courseId);
-        router.push(destination.redirectTo);
-      } catch (exception) {
-        setError(exception instanceof Error ? exception.message : "Impossible de créer le remix pour le moment.");
-        submitted.current = false;
-      }
+      const result = await submitCourseRemixOnce(submitted, () => createCourseRemixAction(courseId), (url) => window.location.assign(url));
+      if (result && !result.ok) setError(result.error);
     });
   };
 

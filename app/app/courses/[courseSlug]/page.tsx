@@ -41,7 +41,7 @@ export default async function CoursePage({ params, searchParams }: { params: Pro
   const continueLesson = outline.flatMap((module) => module.lessons).find((lesson) => lesson.id === state.continueLessonId);
   const lessonCount = outline.reduce((total, module) => total + module.lessons.length, 0);
   const purpose = course.subtitle?.trim() || course.description?.trim();
-  const canRemixPublicCourse = canOfferPublicCourseRemix({ isAuthenticated: relationship.isAuthenticated, isOwner: relationship.isOwner, status: course.status, visibility: course.visibility });
+  const canRemixPublicCourse = canOfferPublicCourseRemix({ isAuthenticated: relationship.isAuthenticated, isOwner: relationship.isOwner, status: course.status, visibility: course.visibility, hasPublicAuthor: course.hasPublicAuthor });
   const primaryAction = state.enrollment && continueLesson
       ? <StartCourseLink href={`/app/courses/${course.slug}/lessons/${continueLesson.slug}`} label={state.enrollment.status === "completed" ? "Revoir le parcours" : state.percentage ? "Continuer" : "Commencer"} />
       : null;

@@ -56,7 +56,7 @@ export async function runForge(raw: unknown, deps: ForgeDependencies): Promise<F
         return { ok: true, result };
       }
       const hasApplicablePatch = Object.entries(patch).some(([key, value]) => value !== null && allowed.includes(key));
-      if (!hasApplicablePatch || (request.intent === "objectives" && !patch.objectives)) {
+      if (!hasApplicablePatch || (request.intent === "objectives" && !patch.objectives) || (request.intent === "generate_content" && (!isLesson || !patch.content || Object.entries(patch).some(([key, value]) => key !== "content" && value !== null))) || (request.intent === "improve" && !isLesson && (!patch.title || !patch.subtitle || !patch.description))) {
         deps.telemetry?.({ ...metrics, stage: "proposal_shape", elapsedMs: Date.now() - started, result: "invalid_result" });
         throw new ForgeError("invalid_result");
       }
