@@ -26,7 +26,8 @@ test("Workspace sections follow Continue, My Paths, Learn and Forge links only t
   const rail = renderToStaticMarkup(createElement(WorkspaceContextRail, { courses }));
   assert.match(rail, /href="\/app\/create"/);
   assert.match(rail, /\/app\/courses\/owner\/lessons\/lesson\?mode=edit/);
-  assert.match(rail, /recommandations personnalisées ne sont pas encore disponibles/);
+  assert.match(rail, /Parcours à explorer/);
+  assert.match(rail, /Explorer les parcours/);
   assert.doesNotMatch(rail, /Trouver des ressources|score de recommandation/);
 });
 

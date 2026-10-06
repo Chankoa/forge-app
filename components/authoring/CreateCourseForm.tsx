@@ -11,6 +11,7 @@ import { GeneratedPath } from "@/components/forge/GeneratedPath";
 import { deserializePublicDraft, PUBLIC_DRAFT_KEY, transitionPublicDraft, type PublicCourseFormat, type PublicCoursePreview } from "@/lib/forge/public-contracts";
 import { SubjectDiscovery } from "@/components/forge/SubjectDiscovery";
 import { canCreateCourseFromProposal, canGenerateCourseProposal, canStartCourseCreation, selectedCreationDomain, type CreationProposalState } from "@/lib/forge/creation-flow";
+import { forgeErrorMessages, forgeProposalStates } from "@/lib/forge/authoring-ux";
 
 export function CreateCourseForm({ domains }: { domains: Array<{ id: string; name: string }> }) {
   const router = useRouter();
@@ -42,19 +43,19 @@ export function CreateCourseForm({ domains }: { domains: Array<{ id: string; nam
   }, [domains]);
 
   const selectedDomain = selectedCreationDomain(domains, domainId);
-  function generate(regenerating = false) {
+  function generate() {
     if (!canGenerateCourseProposal(intent, domains, domainId)) { setError("Décrivez votre intention et choisissez un domaine avant de générer une proposition."); return; }
     const updating = Boolean(proposal);
     setError(""); setFeedback(""); setBusyAction(updating ? "update" : "generate");
     startTransition(async () => {
       try {
         const result = await generatePublicPreviewAction({ intent, audience: audience || undefined, objective: objective || undefined, format, domain: selectedDomain?.name });
-        if (!result.ok) { setError(result.error === "not_configured" ? "Forge IA est indisponible. Réessayez plus tard." : "La proposition n'a pas pu être générée. Réessayez."); return; }
+        if (!result.ok) { setError(result.error === "not_configured" ? forgeErrorMessages.not_configured : "La proposition n'a pas pu être générée. Réessayez."); return; }
         const changed = JSON.stringify(proposal) !== JSON.stringify(result.preview);
         setProposal(result.preview);
         setFormat(result.preview.format);
         setProposalState("generated");
-        if (updating) setFeedback(changed ? regenerating ? "Proposition générée à nouveau · À examiner." : "Proposition générée · À examiner." : "La proposition est déjà à jour.");
+        if (updating) setFeedback(changed ? `${forgeProposalStates.generated} · ${forgeProposalStates.review}` : "La proposition est déjà à jour.");
       } catch { setError("La proposition n'a pas pu être générée. Réessayez."); }
       finally { setBusyAction(null); }
     });
@@ -70,7 +71,7 @@ export function CreateCourseForm({ domains }: { domains: Array<{ id: string; nam
         const consumed = transitionPublicDraft(localStorage.getItem(PUBLIC_DRAFT_KEY), "CONSUMED");
         if (consumed) localStorage.setItem(PUBLIC_DRAFT_KEY, consumed);
         localStorage.removeItem(PUBLIC_DRAFT_KEY);
-        created = true; setProposalState("confirmed"); setFeedback("Création confirmée"); router.push(result.redirectTo);
+        created = true; setProposalState("confirmed"); setFeedback(forgeProposalStates.confirmed); router.push(result.redirectTo);
       } catch (reason) { setError(reason instanceof Error ? reason.message : "Le parcours n'a pas pu être créé."); }
       finally { if (!created) { creating.current = false; setBusyAction(null); } }
     });
@@ -86,7 +87,7 @@ export function CreateCourseForm({ domains }: { domains: Array<{ id: string; nam
       <div className="create-intent-panel__footer"><p>Étape 3 · Forge prépare une proposition. Aucun parcours n’est créé avant votre validation.</p><Button type="button" onClick={() => generate()} disabled={Boolean(busyAction) || !canGenerateCourseProposal(intent, domains, domainId)} aria-busy={busyAction === "generate" || busyAction === "update"}>{busyAction === "generate" || busyAction === "update" ? <LoaderCircle className="create-spinner" size={16} aria-hidden="true" /> : <Sparkles size={16} aria-hidden="true" />}{busyAction === "generate" || busyAction === "update" ? "Forge prépare une proposition…" : "Générer une proposition"}</Button></div>
       {feedback && <p className="completion-state" role="status">{feedback}</p>}{error && <p className="form-error" role="alert">{error}</p>}
     </section>
-    {proposal ? <form className="create-proposal" onSubmit={accept}><input type="hidden" name="intent" value={intent} /><input type="hidden" name="domainId" value={domainId} /><input type="hidden" name="proposal" value={JSON.stringify(proposal)} /><GeneratedPath preview={proposal} domain={selectedDomain?.name ?? ""} domainId={domainId} onDomainChange={setDomainId} onAdjust={(patch) => { setProposal((current) => current ? { ...current, ...patch } : current); setProposalState("adjusted"); setFeedback("Proposition ajustée · À examiner."); }} domains={domains} onRegenerate={() => { if (proposalState !== "adjusted" || window.confirm("Regénérer la proposition remplacera vos ajustements locaux. Continuer ?")) generate(true); }} onAccept={() => document.querySelector<HTMLButtonElement>("#accept-generated-course")?.click()} busy={Boolean(busyAction)} busyLabel={busyAction === "create" ? "Création confirmée…" : undefined} canAccept={canCreateCourseFromProposal(proposal, domains, domainId)} proposalState={proposalState} /><button id="accept-generated-course" className="sr-only" type="submit" disabled={Boolean(busyAction)}>Créer le parcours</button></form>
+    {proposal ? <form className="create-proposal" onSubmit={accept}><input type="hidden" name="intent" value={intent} /><input type="hidden" name="domainId" value={domainId} /><input type="hidden" name="proposal" value={JSON.stringify(proposal)} /><GeneratedPath preview={proposal} domain={selectedDomain?.name ?? ""} domainId={domainId} onDomainChange={setDomainId} onAdjust={(patch) => { setProposal((current) => current ? { ...current, ...patch } : current); setProposalState("adjusted"); setFeedback(`${forgeProposalStates.adjusted} · ${forgeProposalStates.review}`); }} domains={domains} onRegenerate={() => { if (proposalState !== "adjusted" || window.confirm("Regénérer la proposition remplacera vos ajustements locaux. Continuer ?")) generate(); }} onAccept={() => document.querySelector<HTMLButtonElement>("#accept-generated-course")?.click()} busy={Boolean(busyAction)} busyLabel={busyAction === "create" ? `${forgeProposalStates.confirmed}…` : undefined} canAccept={canCreateCourseFromProposal(proposal, domains, domainId)} proposalState={proposalState} /><button id="accept-generated-course" className="sr-only" type="submit" disabled={Boolean(busyAction)}>Créer le parcours</button></form>
       : <aside className="create-intent-aside" aria-label="Ce que Forge préparera"><Sparkles size={23} aria-hidden="true" /><h2>Une proposition à relire</h2><p>Forge prépare une base de parcours à partir de votre intention. Vous décidez ensuite de la créer.</p><div><Layers3 size={18} aria-hidden="true" /><span>Une structure de modules</span></div><div><BookOpen size={18} aria-hidden="true" /><span>Des objectifs qui deviendront les leçons lors de la création</span></div></aside>}
   </div>;
 }

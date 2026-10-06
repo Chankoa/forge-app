@@ -41,5 +41,5 @@ test("Card view renders the same course records and actions without table semant
   assert.doesNotMatch(html, /role="table"/);
   assert.match(html, /Un parcours créé/);
   assert.match(html, /Un parcours suivi/);
-  assert.match(html, /href="\/app\/courses\/owner"/);
+  assert.match(html, /href="\/app\/courses\/owner\?mode=edit"/);
 });

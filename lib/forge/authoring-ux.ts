@@ -9,9 +9,28 @@ export const lessonTransformActions: Array<{ intent: Extract<ForgeIntent, "struc
 ];
 
 export const forgeProposalStates = {
-  generated: "Proposition à examiner",
-  applied: "Proposition appliquée au brouillon local. Sauvegardez pour enregistrer.",
-  saved: "Modifications sauvegardées.",
+  generated: "Proposition générée",
+  review: "À examiner",
+  adjusted: "Ajustée",
+  applied: "Appliquée au brouillon local",
+  saved: "Sauvegardée",
+  confirmed: "Création confirmée",
+} as const;
+
+export const forgeErrorMessages = {
+  invalid_request: "Cette demande ne peut pas être traitée. Vérifiez le contexte puis réessayez.",
+  unauthenticated: "Votre session a expiré. Reconnectez-vous puis réessayez.",
+  forbidden: "Cette action n’est pas disponible pour ce parcours.",
+  context_unavailable: "Le contexte du parcours est indisponible. Réessayez dans un instant.",
+  source_unavailable: "Une ressource sélectionnée n’est plus disponible. Vérifiez votre sélection.",
+  not_configured: "Forge est momentanément indisponible. Réessayez plus tard.",
+  provider_auth: "Forge est momentanément indisponible. Réessayez plus tard.",
+  provider_not_found: "Forge est momentanément indisponible. Réessayez plus tard.",
+  provider_network: "Forge est momentanément inaccessible. Réessayez dans un instant.",
+  provider_error: "Forge n’a pas pu terminer cette demande. Réessayez.",
+  timeout: "Forge a mis trop de temps à répondre. Réessayez.",
+  rate_limited: "La limite de générations est atteinte. Réessayez plus tard.",
+  invalid_result: "La proposition est incomplète. Vous pouvez la régénérer.",
 } as const;
 
 export function forgeContextLabels(context: ForgeRailContext, selectedSourceCount: number, usableSourceCount: number): string[] {

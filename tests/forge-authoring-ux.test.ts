@@ -15,5 +15,5 @@ test("Forge context labels show the course, module, and safe associated-source c
 test("generated, applied, and saved states remain distinct", () => {
   assert.notEqual(forgeProposalStates.generated, forgeProposalStates.applied);
   assert.notEqual(forgeProposalStates.applied, forgeProposalStates.saved);
-  assert.match(forgeProposalStates.applied, /Sauvegardez/);
+  assert.equal(forgeProposalStates.applied, "Appliquée au brouillon local");
 });

@@ -17,6 +17,13 @@ export function courseRelations(enrolled: boolean, isOwner: boolean, membershipR
   return [enrolled ? "learn" : null, collaborator, isOwner ? "create" : null].filter((value): value is CourseRelation => value !== null);
 }
 
+const relationshipLabels: Record<CourseRelation, string> = { learn: "J’apprends", create: "Je crée", edit: "J’édite", view: "Lecteur" };
+
+export function courseRelationshipMarker(enrolled: boolean, isOwner: boolean, membershipRole: CourseMembershipRole | null = null, membershipStatus: CourseMembershipStatus | null = null): string | null {
+  const relations = courseRelations(enrolled, isOwner, membershipRole, membershipStatus);
+  return relations.length ? relations.map((relation) => relationshipLabels[relation]).join(" · ") : null;
+}
+
 export function matchesCourseRelation(filter: "all" | CourseRelation, enrolled: boolean, isOwner: boolean, membershipRole: CourseMembershipRole | null = null, membershipStatus: CourseMembershipStatus | null = null): boolean {
   if (filter === "all") return true;
   return courseRelations(enrolled, isOwner, membershipRole, membershipStatus).includes(filter);

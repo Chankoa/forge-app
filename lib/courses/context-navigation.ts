@@ -4,6 +4,8 @@ export type CourseContextLink = { label: "Vue d'ensemble" | "Gérer" | "Classroo
 
 export function courseOverviewPath(courseSlug: string) { return `/app/courses/${courseSlug}`; }
 
+export function courseEditPath(courseSlug: string) { return `${courseOverviewPath(courseSlug)}?mode=edit`; }
+
 export function courseClassroomPath(courseSlug: string) { return `${courseOverviewPath(courseSlug)}/classroom`; }
 
 export function courseClassroomLearnerPath(courseSlug: string, learnerId: string) { return `${courseClassroomPath(courseSlug)}/learners/${learnerId}`; }
@@ -20,7 +22,8 @@ export function getCourseContextLinks(courseSlug: string, capabilities: CourseCa
   const learnLesson = lessonSlug ?? learnLessonSlug;
   const learnLessonPath = learnLesson ? courseLessonPath(courseSlug, learnLesson) : courseOverviewPath(courseSlug);
   return [
-    { label: capabilities.canEdit && !lessonSlug ? "Gérer" as const : "Vue d'ensemble", href: courseOverviewPath(courseSlug) },
+    { label: "Vue d'ensemble", href: courseOverviewPath(courseSlug) },
+    ...(capabilities.canEdit && !lessonSlug ? [{ label: "Gérer" as const, href: courseEditPath(courseSlug) }] : []),
     ...(capabilities.canViewClassroom && !lessonSlug ? [{ label: "Classroom" as const, href: courseClassroomPath(courseSlug) }] : []),
     ...(capabilities.canLearn ? [{ label: "Apprendre" as const, href: learnLessonPath }] : []),
     ...(capabilities.canPreview && learnLesson ? [{ label: "Prévisualiser" as const, href: `${learnLessonPath}?mode=preview` }] : []),

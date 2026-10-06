@@ -4,7 +4,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { CourseContextNavigation } from "../components/course/CourseContextNavigation";
 import { resolveCourseCapabilities } from "../lib/capabilities/course-capabilities";
-import { courseClassroomPath, courseLessonPath, courseOverviewPath, getCourseContextLinks, publicationCorrectionPath } from "../lib/courses/context-navigation";
+import { courseClassroomPath, courseEditPath, courseLessonPath, courseOverviewPath, getCourseContextLinks, publicationCorrectionPath } from "../lib/courses/context-navigation";
 
 const courseSlug = "workflow-ia";
 const lessonSlug = "premiers-pas";
@@ -16,7 +16,7 @@ test("lesson Learn has a canonical back-to-course destination", () => { assert.e
 test("lesson Edit has a canonical back-to-course destination", () => { assert.equal(getCourseContextLinks(courseSlug, owner, lessonSlug)[0].href, `/app/courses/${courseSlug}`); });
 test("Learn and Edit keep the current lesson slug", () => { const links = getCourseContextLinks(courseSlug, dual, lessonSlug); assert.equal(links.find((link) => link.label === "Apprendre")?.href, `/app/courses/${courseSlug}/lessons/${lessonSlug}`); assert.equal(links.find((link) => link.label === "Modifier")?.href, `/app/courses/${courseSlug}/lessons/${lessonSlug}?mode=edit`); });
 test("course-level Learn opens the resumed lesson", () => { assert.equal(getCourseContextLinks(courseSlug, dual, undefined, lessonSlug).find((link) => link.label === "Apprendre")?.href, courseLessonPath(courseSlug, lessonSlug)); });
-test("owner course navigation opens the canonical Cockpit without a competing global editor", () => { const links = getCourseContextLinks(courseSlug, dual, undefined, lessonSlug); assert.equal(links.find((link) => link.label === "Gérer")?.href, courseOverviewPath(courseSlug)); assert.equal(links.some((link) => link.label === "Modifier"), false); });
+test("owner course navigation opens the canonical Cockpit while keeping the overview explicit", () => { const links = getCourseContextLinks(courseSlug, dual, undefined, lessonSlug); assert.equal(links.find((link) => link.label === "Gérer")?.href, courseEditPath(courseSlug)); assert.equal(links.find((link) => link.label === "Vue d'ensemble")?.href, courseOverviewPath(courseSlug)); assert.equal(links.some((link) => link.label === "Modifier"), false); });
 test("owner Classroom navigation uses the dedicated course-scoped route", () => {
   assert.equal(courseClassroomPath(courseSlug), `/app/courses/${courseSlug}/classroom`);
   assert.equal(getCourseContextLinks(courseSlug, owner).find((link) => link.label === "Classroom")?.href, courseClassroomPath(courseSlug));

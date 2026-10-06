@@ -7,8 +7,9 @@ import { FormatSelector } from "./FormatSelector";
 import { GeneratedPath } from "./GeneratedPath";
 import { PUBLIC_DRAFT_KEY, serializePublicDraft, type PublicCourseFormat, type PublicCoursePreview } from "@/lib/forge/public-contracts";
 import { Button } from "@/components/ui/Button";
+import { forgeErrorMessages } from "@/lib/forge/authoring-ux";
 
-const errorMessages = { invalid_request: "Décrivez votre intention en au moins 12 caractères.", not_configured: "Forge IA n'est pas configuré pour le moment.", rate_limited: "Vous avez atteint la limite de previews. Réessayez dans un moment.", timeout: "Forge a mis trop de temps à répondre. Réessayez.", provider_auth: "Forge est temporairement indisponible.", provider_not_found: "Forge est temporairement indisponible.", provider_network: "Forge est temporairement indisponible.", provider_error: "Forge n'a pas pu préparer la proposition.", invalid_result: "La proposition reçue est incomplète. Réessayez." };
+const errorMessages = { ...forgeErrorMessages, invalid_request: "Décrivez votre intention en au moins 12 caractères." };
 export function PublicIntentExperience({ domains, authenticated }: { domains: Array<{ name: string }>; authenticated: boolean }) {
   const router = useRouter(); const [intent, setIntent] = useState(""); const [format, setFormat] = useState<PublicCourseFormat>(); const [preview, setPreview] = useState<PublicCoursePreview>(); const [domain, setDomain] = useState(""); const [error, setError] = useState(""); const [feedback, setFeedback] = useState(""); const [pending, startTransition] = useTransition();
   function generate() { setError(""); setFeedback(""); startTransition(async () => { const result = await generatePublicPreviewAction({ intent, format, domain: domain || undefined }); if (!result.ok) return setError(errorMessages[result.error]); const updating = Boolean(preview); const changed = JSON.stringify(preview) !== JSON.stringify(result.preview); setPreview(result.preview); setFormat(result.preview.format); setDomain(result.preview.suggestedDomainLabel ?? ""); if (updating) setFeedback(changed ? "Proposition mise à jour." : "La proposition est déjà à jour."); }); }

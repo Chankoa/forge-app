@@ -37,7 +37,7 @@ export function CourseEditor({ course, domains, readiness, capabilities, showOve
     queueMicrotask(() => {
       setDraft((current) => ({ ...current, ...(patch.title ? { title: patch.title } : {}), ...(patch.subtitle ? { subtitle: patch.subtitle } : {}), ...(patch.description ? { description: patch.description } : {}) }));
       setTab("information");
-      setMessage(forgeProposalStates.applied);
+      setMessage(`${forgeProposalStates.applied}. Sauvegardez pour enregistrer.`);
       setMessageError(false);
       setProposal(null);
     });
@@ -46,7 +46,7 @@ export function CourseEditor({ course, domains, readiness, capabilities, showOve
   const run = (action: () => Promise<void>, success: string) => startTransition(async () => {
     try { await action(); setMessage(success); setMessageError(false); } catch (error) { setMessage(error instanceof Error ? error.message : "La sauvegarde a échoué."); setMessageError(true); }
   });
-  const tabs: Array<{ id: CockpitTab; label: string }> = [{ id: "information", label: "Informations" }, { id: "structure", label: "Structure" }, ...(capabilities.canManageSources ? [{ id: "sources" as const, label: "Sources" }] : [])];
+  const tabs: Array<{ id: CockpitTab; label: string }> = [{ id: "information", label: "Informations" }, { id: "structure", label: "Structure" }, ...(capabilities.canManageSources ? [{ id: "sources" as const, label: "Ressources" }] : [])];
 
   if (tab === "overview") return <OwnerCourseOverview course={course} readiness={readiness} archiveAction={archiveAction} restoreAction={restoreAction} />;
 

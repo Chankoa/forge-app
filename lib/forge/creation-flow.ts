@@ -1,12 +1,13 @@
 import type { PublicCoursePreview } from "./public-contracts";
+import { forgeProposalStates } from "./authoring-ux";
 
 export type CreationDomain = { id: string; name: string };
 export type CreationProposalState = "generated" | "adjusted" | "confirmed";
 
 export const creationProposalLabels: Record<CreationProposalState, string> = {
-  generated: "Proposition générée · À examiner",
-  adjusted: "Proposition ajustée · À examiner",
-  confirmed: "Création confirmée",
+  generated: `${forgeProposalStates.generated} · ${forgeProposalStates.review}`,
+  adjusted: `${forgeProposalStates.adjusted} · ${forgeProposalStates.review}`,
+  confirmed: forgeProposalStates.confirmed,
 };
 
 export function selectedCreationDomain(domains: CreationDomain[], domainId: string): CreationDomain | null {

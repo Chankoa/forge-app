@@ -1,5 +1,6 @@
 import type { CourseDetail, CourseLesson } from "./contracts";
 import type { LearningState } from "@/lib/learning/contracts";
+import { courseEditPath } from "./context-navigation";
 
 export type WorkspaceCourse = { course: CourseDetail; state: LearningState; isOwner: boolean };
 
@@ -14,7 +15,7 @@ export function workspaceCourseAction(item: WorkspaceCourse) {
     href: `/app/courses/${item.course.slug}/lessons/${lesson.slug}`,
     label: item.state.percentage >= 100 ? "Revoir" : item.state.percentage > 0 ? "Continuer" : "Commencer",
   };
-  return { href: `/app/courses/${item.course.slug}`, label: item.isOwner ? "Gérer" : "Voir le parcours" };
+  return { href: item.isOwner ? courseEditPath(item.course.slug) : `/app/courses/${item.course.slug}`, label: item.isOwner ? "Gérer" : "Voir le parcours" };
 }
 
 export function selectWorkspaceCourses(courses: WorkspaceCourse[]) {

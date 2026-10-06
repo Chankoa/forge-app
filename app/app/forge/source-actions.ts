@@ -60,7 +60,7 @@ export async function uploadForgeSourceAction(courseSlug: string, formData: Form
   if (!content) return { ok: false, error: "Le fichier ne contient aucun texte exploitable." };
   try {
     const client = await createServerSupabaseClient();
-    if (!client) return { ok: false, error: "Supabase est indisponible." };
+    if (!client) return { ok: false, error: "Le service de ressources est momentanément indisponible. Réessayez plus tard." };
     const { data: { user } } = await client.auth.getUser();
     if (!user) return { ok: false, error: "Votre session a expiré." };
     const { data: course } = await client.from("courses").select("id,teacher_id").eq("slug", courseSlug).maybeSingle();

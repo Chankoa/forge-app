@@ -7,6 +7,7 @@ import { OwnerCourseMenu } from "@/components/course/OwnerCourseMenu";
 import { PersonalCourseCard, PersonalCourseRow } from "@/components/course/CoursePresentation";
 import { courseCardAction, courseRelations, personalCardActions, type CourseCardAction, type CourseRelation } from "@/lib/courses/presentation";
 import { filterAndSortLibraryCourses, libraryCourseStatus, libraryStatusLabels, type LibraryCourse, type LibrarySort, type LibraryStatus, type LibraryView } from "@/lib/courses/library-view";
+import { courseEditPath } from "@/lib/courses/context-navigation";
 
 const filters: Array<{ id: "all" | CourseRelation; label: string }> = [{ id: "all", label: "Tous" }, { id: "learn", label: "J’apprends" }, { id: "create", label: "Je crée" }, { id: "edit", label: "J’édite" }, { id: "view", label: "Lecteur" }];
 const statuses: Array<Exclude<LibraryStatus, "all">> = ["draft", "published", "archived", "not_started", "in_progress", "completed"];
@@ -14,7 +15,7 @@ const statuses: Array<Exclude<LibraryStatus, "all">> = ["draft", "published", "a
 function LibraryItem({ course, view }: { course: LibraryCourse; view: LibraryView }) {
   const actionKind = courseCardAction({ isOwner: course.isOwner, enrolled: course.enrolled, percentage: course.percentage, hasLesson: Boolean(course.lessonSlug) });
   const learnHref = course.lessonSlug ? `/app/courses/${course.slug}/lessons/${course.lessonSlug}` : `/app/courses/${course.slug}`;
-  const manageHref = `/app/courses/${course.slug}`;
+  const manageHref = courseEditPath(course.slug);
   const renderAction = (kind: CourseCardAction, secondary = false) => kind === "manage" ? <Link className={`button course-action course-action--manage${secondary ? " button--secondary" : ""}`} href={manageHref}><Settings2 size={16} aria-hidden="true" />Gérer</Link>
     : kind === "start" ? <Link className="button course-action" href={learnHref}><PlayCircle size={16} aria-hidden="true" />Commencer</Link>
     : kind === "continue" ? <Link className="button course-action course-action--continue" href={learnHref}>Continuer<ArrowRight size={16} aria-hidden="true" /></Link>
@@ -38,7 +39,7 @@ export function CourseLibrary({ courses, initialView = "list" }: { courses: Libr
   const visible = filterAndSortLibraryCourses(courses, { relation, status, query, sort });
   const emptyCopy = relation === "learn" ? "Vous ne suivez encore aucun parcours." : relation === "create" ? "Vous n’avez encore créé aucun parcours." : relation === "edit" ? "Vous ne modifiez encore aucun parcours partagé." : relation === "view" ? "Vous n’avez encore aucun parcours partagé en lecture." : "Aucun parcours pour le moment.";
   return <section className="course-library" aria-labelledby="course-library-heading">
-    <div className="course-library__heading"><div><h2 id="course-library-heading">Votre bibliothèque</h2><p>{courses.length} parcours lié{courses.length > 1 ? "s" : ""} à votre activité.</p></div>
+    <div className="course-library__heading"><div><h2 id="course-library-heading">Vos parcours</h2><p>{courses.length} parcours lié{courses.length > 1 ? "s" : ""} à votre activité.</p></div>
       <div className="course-library__controls"><label className="course-library__search"><Search size={17} aria-hidden="true" /><span className="sr-only">Rechercher un parcours</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un parcours" /></label>
         <div className="relation-filter" role="group" aria-label="Filtrer les parcours par relation">{filters.map((item) => <button key={item.id} type="button" aria-pressed={relation === item.id} onClick={() => setRelation(item.id)}>{item.label}</button>)}</div>
         {visibleStatuses.length > 1 && <label className="course-library__select"><span className="sr-only">Filtrer par statut</span><select value={status} onChange={(event) => setStatus(event.target.value as LibraryStatus)}><option value="all">Tous les statuts</option>{visibleStatuses.map((item) => <option key={item} value={item}>{libraryStatusLabels[item]}</option>)}</select></label>}

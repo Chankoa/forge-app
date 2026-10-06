@@ -8,7 +8,7 @@ import { applyTargetedOperation } from "@/lib/forge/intelligence/content-operati
 import { fullRewriteThreshold } from "@/lib/forge/intelligence/content-policy";
 import { useForgeProposal, type TargetedContentProposal } from "./ForgeProposalContext";
 import { ForgeProposalDialog } from "./ForgeProposalDialog";
-import { forgeProposalStates } from "@/lib/forge/authoring-ux";
+import { forgeErrorMessages, forgeProposalStates } from "@/lib/forge/authoring-ux";
 
 type Proposal = Extract<ForgeResult, { kind: "proposal" }>;
 type ContentProposal = Proposal | TargetedContentProposal;
@@ -22,15 +22,7 @@ const findingLabels: Record<ContentReview["findings"][number]["type"], string> =
   excessive_complexity: "Complexité excessive", insufficient_depth: "Approfondissement souhaitable",
 };
 const importanceLabels = { info: "Information", attention: "À examiner", important: "Important" };
-const errorMessages: Record<string, string> = {
-  invalid_request: "Cette action n'est pas disponible pour la leçon.", unauthenticated: "Votre session a expiré.",
-  forbidden: "Vous ne pouvez pas modifier cette leçon.", context_unavailable: "Le contexte de la leçon est indisponible.",
-  source_unavailable: "Une source sélectionnée n'est plus disponible.", not_configured: "Forge n'est pas configuré.",
-  provider_auth: "Forge ne peut pas accéder au service IA.", provider_not_found: "Le modèle Forge est indisponible.",
-  provider_network: "Le service Forge est inaccessible.", provider_error: "Forge n'a pas pu terminer l'analyse.",
-  timeout: "Forge a dépassé le délai de réponse.", rate_limited: "La limite de générations est atteinte.",
-  invalid_result: "La proposition ou l'analyse est incomplète. Vous pouvez réessayer.", target_required: "Cette leçon est trop longue pour une réécriture complète fiable. Sélectionnez un passage à améliorer.",
-};
+const errorMessages: Record<string, string> = { ...forgeErrorMessages, target_required: "Cette leçon est trop longue pour une réécriture complète fiable. Sélectionnez un passage à améliorer." };
 
 export function ContentIntelligence({ courseSlug, lessonSlug, lessonId, level, hasContent, sourceIds, availability }: {
   courseSlug: string; lessonSlug: string; lessonId: string; level?: string | null; hasContent: boolean; sourceIds: string[]; availability: ForgeAvailability;
@@ -100,7 +92,7 @@ export function ContentIntelligence({ courseSlug, lessonSlug, lessonId, level, h
     <ForgeProposalDialog result={dialogOpen ? proposal : null} busy={pending || applying} applying={applying} error={dialogOpen ? error : null}
       onClose={closeDialog} onReject={() => { closeDialog(); setCurrentProposal(null); }}
       onApply={() => { if (!proposal || pendingRef.current || applyingRef.current) return; applyingRef.current = true; setApplying(true);
-        window.setTimeout(() => { try { if (proposal.kind === "targeted") { const current = lessonDraft(lessonId); if (!current) throw new Error("draft_missing"); const applied = applyTargetedOperation(current.content, proposal.operation); if (!applied.ok) { setError("Le contenu a changé depuis la génération. Régénérez la proposition."); return; } current.apply(applied.content); } else setProposal(proposal); setConfirmation(forgeProposalStates.applied); closeDialog(); setCurrentProposal(null); }
+        window.setTimeout(() => { try { if (proposal.kind === "targeted") { const current = lessonDraft(lessonId); if (!current) throw new Error("draft_missing"); const applied = applyTargetedOperation(current.content, proposal.operation); if (!applied.ok) { setError("Le contenu a changé depuis la génération. Régénérez la proposition."); return; } current.apply(applied.content); } else setProposal(proposal); setConfirmation(`${forgeProposalStates.applied}. Sauvegardez pour enregistrer.`); closeDialog(); setCurrentProposal(null); }
           catch { setError("La proposition n'a pas pu être appliquée. Réessayez."); }
           finally { applyingRef.current = false; setApplying(false); } }, 80); }}
       onRegenerate={retry} onAdjust={(input) => { if (lastRequest) run(lastRequest.task, { ...lastRequest, input }); }} />

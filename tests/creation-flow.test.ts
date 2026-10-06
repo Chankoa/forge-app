@@ -24,7 +24,7 @@ test("a generated proposal stays review-only until an explicit domain-backed cre
   assert.equal(canStartCourseCreation(false, proposal, domains, "domain-ai"), true);
   assert.equal(canStartCourseCreation(true, proposal, domains, "domain-ai"), false);
   assert.equal(creationProposalLabels.generated, "Proposition générée · À examiner");
-  assert.equal(creationProposalLabels.adjusted, "Proposition ajustée · À examiner");
+  assert.equal(creationProposalLabels.adjusted, "Ajustée · À examiner");
   assert.equal(creationProposalLabels.confirmed, "Création confirmée");
   assert.deepEqual(draftCourseCreationAttributes("domain-ai"), { domain_id: "domain-ai", status: "draft", visibility: "private", availability: "preview" });
   assert.equal(ownerEditorRedirect("ia-debutant"), "/app/courses/ia-debutant?mode=edit");
