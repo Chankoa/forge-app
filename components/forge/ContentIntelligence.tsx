@@ -8,6 +8,7 @@ import { applyTargetedOperation } from "@/lib/forge/intelligence/content-operati
 import { fullRewriteThreshold } from "@/lib/forge/intelligence/content-policy";
 import { useForgeProposal, type TargetedContentProposal } from "./ForgeProposalContext";
 import { ForgeProposalDialog } from "./ForgeProposalDialog";
+import { forgeProposalStates } from "@/lib/forge/authoring-ux";
 
 type Proposal = Extract<ForgeResult, { kind: "proposal" }>;
 type ContentProposal = Proposal | TargetedContentProposal;
@@ -99,7 +100,7 @@ export function ContentIntelligence({ courseSlug, lessonSlug, lessonId, level, h
     <ForgeProposalDialog result={dialogOpen ? proposal : null} busy={pending || applying} applying={applying} error={dialogOpen ? error : null}
       onClose={closeDialog} onReject={() => { closeDialog(); setCurrentProposal(null); }}
       onApply={() => { if (!proposal || pendingRef.current || applyingRef.current) return; applyingRef.current = true; setApplying(true);
-        window.setTimeout(() => { try { if (proposal.kind === "targeted") { const current = lessonDraft(lessonId); if (!current) throw new Error("draft_missing"); const applied = applyTargetedOperation(current.content, proposal.operation); if (!applied.ok) { setError("Le contenu a changé depuis la génération. Régénérez la proposition."); return; } current.apply(applied.content); } else setProposal(proposal); setConfirmation("Proposition appliquée au brouillon. Sauvegardez pour rendre la modification persistante."); closeDialog(); setCurrentProposal(null); }
+        window.setTimeout(() => { try { if (proposal.kind === "targeted") { const current = lessonDraft(lessonId); if (!current) throw new Error("draft_missing"); const applied = applyTargetedOperation(current.content, proposal.operation); if (!applied.ok) { setError("Le contenu a changé depuis la génération. Régénérez la proposition."); return; } current.apply(applied.content); } else setProposal(proposal); setConfirmation(forgeProposalStates.applied); closeDialog(); setCurrentProposal(null); }
           catch { setError("La proposition n'a pas pu être appliquée. Réessayez."); }
           finally { applyingRef.current = false; setApplying(false); } }, 80); }}
       onRegenerate={retry} onAdjust={(input) => { if (lastRequest) run(lastRequest.task, { ...lastRequest, input }); }} />

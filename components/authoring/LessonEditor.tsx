@@ -11,6 +11,7 @@ import { useForgeProposal } from "@/components/forge/ForgeProposalContext";
 import { saveLessonAction } from "@/app/app/create/actions";
 import { adjacentTab } from "@/lib/courses/workspace-layout";
 import { LessonEmptyContent } from "./LessonEmptyContent";
+import { forgeProposalStates } from "@/lib/forge/authoring-ux";
 
 type LessonTab = "info" | "content" | "resources";
 
@@ -22,9 +23,9 @@ function LessonEditorDraft({ courseId, courseSlug, lesson, moduleTitle, moduleNu
   const [message, setMessage] = useState(""); const [tab, setTab] = useState<LessonTab>("content"); const [draft, setDraft] = useState(createLessonDraft(lesson)); const [pending, startTransition] = useTransition(); const { proposal, setProposal, registerLessonDraft, setLessonSelection } = useForgeProposal(); const contentRef = useRef(draft.content);
   useEffect(() => { contentRef.current = draft.content; }, [draft.content]);
   useEffect(() => registerLessonDraft({ lessonId: lesson.id, getContent: () => contentRef.current, applyContent: (content) => { contentRef.current = content; setDraft((current) => ({ ...current, content })); } }), [lesson.id, registerLessonDraft]);
-  useEffect(() => { if (!proposal || proposal.kind === "targeted" || proposal.proposal.target.lessonId !== lesson.id) return; queueMicrotask(() => { const patch = proposal.proposal.patch; setDraft((current) => ({ ...current, ...(patch.title ? { title: patch.title } : {}), ...(patch.description ? { description: patch.description } : {}), ...(patch.content ? { content: patch.content } : {}), ...(patch.objectives ? { objectives: patch.objectives.join("\n") } : {}) })); if (patch.content) setTab("content"); else setTab("info"); setMessage("Proposition Forge appliquée au brouillon. Sauvegardez pour la rendre persistante."); setProposal(null); }); }, [lesson.id, proposal, setProposal]);
+  useEffect(() => { if (!proposal || proposal.kind === "targeted" || proposal.proposal.target.lessonId !== lesson.id) return; queueMicrotask(() => { const patch = proposal.proposal.patch; setDraft((current) => ({ ...current, ...(patch.title ? { title: patch.title } : {}), ...(patch.description ? { description: patch.description } : {}), ...(patch.content ? { content: patch.content } : {}), ...(patch.objectives ? { objectives: patch.objectives.join("\n") } : {}) })); if (patch.content) setTab("content"); else setTab("info"); setMessage(forgeProposalStates.applied); setProposal(null); }); }, [lesson.id, proposal, setProposal]);
   const updateDraft = <Key extends keyof typeof draft>(key: Key, value: typeof draft[Key]) => setDraft((current) => ({ ...current, [key]: value }));
-  const save = () => startTransition(async () => { try { await saveLessonAction(courseId, lesson.id, lessonDraftFormData(draft)); setMessage("Leçon sauvegardée."); } catch (error) { setMessage(error instanceof Error ? error.message : "La sauvegarde a échoué."); } });
+  const save = () => startTransition(async () => { try { await saveLessonAction(courseId, lesson.id, lessonDraftFormData(draft)); setMessage(forgeProposalStates.saved); } catch (error) { setMessage(error instanceof Error ? error.message : "La sauvegarde a échoué."); } });
   const tabs: LessonTab[] = canManageSources ? ["info", "content", "resources"] : ["info", "content"];
   const labels = { info: "Informations", content: "Contenu", resources: "Ressources" };
   const moveTab = (index: number, key: string) => { const next = adjacentTab(index, key, tabs.length); if (next === index) return; setTab(tabs[next]); requestAnimationFrame(() => document.getElementById(`lesson-tab-${tabs[next]}`)?.focus()); };
