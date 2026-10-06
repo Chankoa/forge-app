@@ -16,7 +16,7 @@ type ProvenanceRow = {
   remixed_at: string;
 };
 
-export async function getCourseProvenance(courseId: string): Promise<CourseProvenance | null> {
+export async function getCourseProvenance(courseId: string, options: { publicPath?: boolean } = {}): Promise<CourseProvenance | null> {
   const client = await createServerSupabaseClient();
   if (!client) return null;
   const { data, error } = await client.from("course_provenance").select("remixed_from_course_id,source_course_title,source_author_name,remixed_at").eq("course_id", courseId).maybeSingle();
@@ -26,7 +26,7 @@ export async function getCourseProvenance(courseId: string): Promise<CourseProve
   let sourceHref: string | null = null;
   if (provenance.remixed_from_course_id) {
     const { data: source } = await client.from("courses").select("slug,status,visibility").eq("id", provenance.remixed_from_course_id).maybeSingle();
-    if (source?.status === "published" && source.visibility === "public") sourceHref = `/app/courses/${source.slug}`;
+    if (source?.status === "published" && source.visibility === "public") sourceHref = `${options.publicPath ? "/courses" : "/app/courses"}/${source.slug}`;
   }
 
   return {

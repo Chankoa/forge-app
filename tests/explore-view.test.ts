@@ -32,6 +32,16 @@ test("Explorer renders discovery actions and never exposes personal management",
   assert.doesNotMatch(html, /Recommandé pour vous/);
 });
 
+test("public Explorer uses public detail paths without protected learning actions", () => {
+  const html = renderToStaticMarkup(createElement(ExploreCatalog, { courses, publicView: true }));
+  assert.match(html, /href="\/courses\/a"/);
+  assert.match(html, /href="\/login\?next=\/app\/create"/);
+  assert.doesNotMatch(html, /href="\/app\/courses\/a"/);
+  assert.doesNotMatch(html, />Continuer</);
+  assert.doesNotMatch(html, />Commencer</);
+  assert.doesNotMatch(html, />Gérer</);
+});
+
 test("Explorer displays only supported real levels and filters by loaded domains", () => {
   assert.equal(courseLevelLabel("beginner"), "Débutant");
   assert.equal(courseLevelLabel("advanced"), "Avancé");
