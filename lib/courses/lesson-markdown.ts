@@ -24,6 +24,7 @@ export function insertLessonMarkdown(content: string, start: number, end: number
       inserted = focusText.split("\n").map((line) => `- ${line.replace(/^\s*(?:[-*]|\d+\.)\s+/, "").trim()}`).join("\n");
       break;
     }
+
     case "numbers": {
       focusText = hasSelection ? value : "Premier point";
       inserted = focusText.split("\n").map((line, index) => `${index + 1}. ${line.replace(/^\s*(?:[-*]|\d+\.)\s+/, "").trim()}`).join("\n");
@@ -59,4 +60,13 @@ export function insertLessonMarkdown(content: string, start: number, end: number
 export function hasUnclosedCodeFence(content: string) {
   const fences = content.split(/\r?\n/).filter((line) => /^\s*`{3,}/.test(line));
   return fences.length % 2 !== 0;
+}
+
+export function insertMediaResource(content: string, start: number, end: number, kind: "image" | "audio", resourceId: string, text: string, caption = ""): LessonInsertion {
+  const from = Math.max(0, Math.min(start, content.length));
+  const to = Math.max(from, Math.min(end, content.length));
+  const field = kind === "image" ? `alt=${text}` : `title=${text}`;
+  const extra = caption.trim() ? `\ncaption=${caption.trim()}` : "";
+  const inserted = `:::${kind}\nresource=${resourceId}\n${field}${extra}\n:::`;
+  return { content: content.slice(0, from) + inserted + content.slice(to), selectionStart: from + inserted.length, selectionEnd: from + inserted.length };
 }

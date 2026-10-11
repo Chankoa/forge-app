@@ -17,7 +17,7 @@ function inline(value: string): ReactNode[] {
   });
 }
 
-export type LessonMediaResource = { url: string; title?: string };
+export type LessonMediaResource = { url: string | null; title?: string | null; status?: "ready" | "unavailable" };
 type LessonRenderMode = "author" | "learner";
 type LessonRenderOptions = { mode: LessonRenderMode; resources: Record<string, LessonMediaResource> };
 
@@ -42,7 +42,7 @@ function richBlock(directive: RichDirective, options: LessonRenderOptions, key: 
   if (fields.status === "placeholder") return options.mode === "author" ? <aside key={key} className="lesson-rich-placeholder" aria-label={`${directive.kind} à ajouter`}><strong>{directive.kind === "audio" ? "Audio" : directive.kind === "video" ? "Vidéo" : directive.kind === "image" ? "Image" : "Exercice"} à ajouter</strong>{fields.caption && <p>{fields.caption}</p>}</aside> : null;
   if (directive.kind === "image") {
     const resource = fields.resource ? options.resources[fields.resource] : undefined;
-    if (!resource || !isSafeLessonLink(resource.url)) return options.mode === "author" ? <aside key={key} className="lesson-rich-placeholder">Image indisponible</aside> : null;
+    if (!resource || !resource.url || !isSafeLessonLink(resource.url)) return options.mode === "author" ? <aside key={key} className="lesson-rich-placeholder">Image indisponible</aside> : null;
     // Resource URLs are resolved by the caller and may be signed storage URLs.
     // eslint-disable-next-line @next/next/no-img-element
     const image = <img src={resource.url} alt={fields.alt} />;
@@ -50,7 +50,7 @@ function richBlock(directive: RichDirective, options: LessonRenderOptions, key: 
   }
   if (directive.kind === "audio") {
     const resource = fields.resource ? options.resources[fields.resource] : undefined;
-    if (!resource || !isSafeLessonLink(resource.url)) return options.mode === "author" ? <aside key={key} className="lesson-rich-placeholder">Audio indisponible</aside> : null;
+    if (!resource || !resource.url || !isSafeLessonLink(resource.url)) return options.mode === "author" ? <aside key={key} className="lesson-rich-placeholder">Audio indisponible</aside> : null;
     return <figure key={key} className="lesson-rich-media lesson-rich-media--audio"><audio controls preload="metadata" src={resource.url} aria-label={fields.title} /><figcaption><strong>{fields.title}</strong>{metadata(fields) && <span>{metadata(fields)}</span>}{fields.caption && <span>{fields.caption}</span>}</figcaption></figure>;
   }
   if (directive.kind === "video") {
@@ -87,5 +87,5 @@ export function LessonMarkdown({ content, mode = "learner", resources = {} }: { 
 
 export function LessonContent({ lesson }: { lesson: CourseLesson }) {
   const content = lesson.content ?? lesson.description ?? "Le contenu de cette leçon n'est pas encore disponible.";
-  return <>{lesson.objectives.length > 0 && <section className="lesson-objectives"><h3>Objectifs</h3><ul>{lesson.objectives.map((objective) => <li key={objective}>{objective}</li>)}</ul></section>}<LessonMarkdown content={content} /></>;
+  return <>{lesson.objectives.length > 0 && <section className="lesson-objectives"><h3>Objectifs</h3><ul>{lesson.objectives.map((objective) => <li key={objective}>{objective}</li>)}</ul></section>}<LessonMarkdown content={content} resources={lesson.mediaResources} /></>;
 }

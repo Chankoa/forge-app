@@ -80,6 +80,7 @@ export function validateRichContent(content: string, options: { allowResourceIds
       inFence = !inFence;
       continue;
     }
+
     if (!inFence && /<\/?[a-z][^>]*>/i.test(lines[index])) return false;
     if (!lines[index].startsWith(":::")) continue;
     const directive = parseRichDirective(lines, index);
@@ -89,4 +90,15 @@ export function validateRichContent(content: string, options: { allowResourceIds
     index = directive.end;
   }
   return true;
+}
+
+export function resourceIdsInRichContent(content: string) {
+  const ids = new Set<string>();
+  const lines = content.replace(/\r\n?/g, "\n").split("\n");
+  for (let index = 0; index < lines.length;) {
+    const directive = parseRichDirective(lines, index);
+    if (directive?.fields.resource) ids.add(directive.fields.resource);
+    index = directive ? directive.end + 1 : index + 1;
+  }
+  return [...ids];
 }

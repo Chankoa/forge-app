@@ -1,6 +1,6 @@
 export type CourseMembershipRole = "viewer" | "participant" | "contributor" | "editor" | "owner";
 export type CourseMembershipStatus = "invited" | "active" | "suspended" | "revoked";
-export type CourseCapabilities = { canView: boolean; canViewPrivate: boolean; canLearn: boolean; canPreview: boolean; canEdit: boolean; canEditMetadata: boolean; canEditStructure: boolean; canEditLessons: boolean; canUseForge: boolean; canManageSources: boolean; canManageResources: boolean; canViewClassroom: boolean; canPublish: boolean; canArchive: boolean; canRestore: boolean; canManageParticipants: boolean; membershipRole: CourseMembershipRole | null; membershipStatus: CourseMembershipStatus | null; };
+export type CourseCapabilities = { canView: boolean; canViewPrivate: boolean; canLearn: boolean; canPreview: boolean; canEdit: boolean; canEditMetadata: boolean; canEditStructure: boolean; canEditLessons: boolean; canUseForge: boolean; canManageSources: boolean; canManageResources: boolean; canUploadMedia: boolean; canEditMediaMetadata: boolean; canDeleteMedia: boolean; canViewClassroom: boolean; canPublish: boolean; canArchive: boolean; canRestore: boolean; canManageParticipants: boolean; membershipRole: CourseMembershipRole | null; membershipStatus: CourseMembershipStatus | null; };
 export type CourseRelationship = { isOwner: boolean; isEnrolled: boolean; courseStatus?: string | null; membershipRole?: CourseMembershipRole | null; membershipStatus?: CourseMembershipStatus | null; canManageParticipants?: boolean; };
 export function resolveCourseCapabilities(relationship: CourseRelationship): CourseCapabilities {
 	const isOwner = relationship.isOwner;
@@ -23,6 +23,9 @@ export function resolveCourseCapabilities(relationship: CourseRelationship): Cou
 		canUseForge: canAuthor,
 		canManageSources: isOwner,
 		canManageResources: isOwner,
+		canUploadMedia: canAuthor,
+		canEditMediaMetadata: canAuthor,
+		canDeleteMedia: isOwner,
 		canViewClassroom: isOwner,
 		canPublish: isOwner && !isArchived,
 		canArchive: isOwner && !isArchived,
