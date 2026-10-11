@@ -1,10 +1,10 @@
-import { ForgeError, forgeRequestSchema, providerOutputSchema, type ForgeAvailability, type ForgeResponse, type ForgeResult } from "./contracts";
+import { ForgeError, forgeRequestSchema, providerOutputSchema, validateForgePatch, type ForgeAvailability, type ForgeResponse, type ForgeResult } from "./contracts";
 import { boundForgeContext, buildForgeContext, type ForgeReader } from "./context";
 import { forgeMessages } from "./prompts";
 
 export interface ForgeProvider {
   availability: ForgeAvailability;
-  generate(messages: { system: string; prompt: string }, scope: "course" | "lesson"): Promise<{ output: unknown; finishReason: string }>;
+  generate(messages: { system: string; prompt: string }, scope: "course" | "lesson", intent?: import("./contracts").ForgeIntent): Promise<{ output: unknown; finishReason: string }>;
 }
 export type ForgeDependencies = { userId: string; reader: ForgeReader; provider: ForgeProvider; maxInputChars: number; maxOutputTokens?: number; telemetry?(metrics: Record<string, string | number>): void; consumeRateLimit(userId: string): void };
 
@@ -23,7 +23,7 @@ export async function runForge(raw: unknown, deps: ForgeDependencies): Promise<F
     metrics = { operation: request.intent, scope: context.lesson ? "lesson" : "course", selectedSourceCount: request.sourceIds.length, sourceChars: rawContext.sources.reduce((total, source) => total + source.text.length, 0), contextChars: context.sources.reduce((total, source) => total + source.text.length, 0), inputChars: messages.system.length + messages.prompt.length, maxOutputTokens: deps.maxOutputTokens ?? 0 };
     if (messages.system.length + messages.prompt.length > deps.maxInputChars) throw new ForgeError("context_unavailable");
     deps.consumeRateLimit(deps.userId);
-    const generated = await deps.provider.generate(messages, context.lesson ? "lesson" : "course");
+    const generated = await deps.provider.generate(messages, context.lesson ? "lesson" : "course", request.intent);
     const output = providerOutputSchema.safeParse(generated.output);
     if (generated.finishReason !== "stop" || !output.success) {
       deps.telemetry?.({ ...metrics, stage: "provider_output", finishReason: generated.finishReason, outputValid: output.success ? 1 : 0, elapsedMs: Date.now() - started, result: "invalid_result" });
@@ -40,8 +40,8 @@ export async function runForge(raw: unknown, deps: ForgeDependencies): Promise<F
       result = { ...common, mode: "learn", kind: "answer" };
     } else {
       const isLesson = Boolean(context.lesson);
-      const allowed = isLesson ? ["title", "description", "content", "objectives"] : ["title", "subtitle", "description"];
-      if (Object.entries(patch).some(([key, value]) => value !== null && !allowed.includes(key))) {
+      const validation = validateForgePatch(request.intent, isLesson ? "lesson" : "course", patch);
+      if (!validation.success) {
         deps.telemetry?.({ ...metrics, stage: "proposal_scope", elapsedMs: Date.now() - started, result: "invalid_result" });
         throw new ForgeError("invalid_result");
       }
@@ -55,8 +55,7 @@ export async function runForge(raw: unknown, deps: ForgeDependencies): Promise<F
         deps.telemetry?.({ ...metrics, elapsedMs: Date.now() - started, result: "ok" });
         return { ok: true, result };
       }
-      const hasApplicablePatch = Object.entries(patch).some(([key, value]) => value !== null && allowed.includes(key));
-      if (!hasApplicablePatch || (request.intent === "objectives" && !patch.objectives) || (request.intent === "generate_content" && (!isLesson || !patch.content || Object.entries(patch).some(([key, value]) => key !== "content" && value !== null))) || (request.intent === "improve" && !isLesson && (!patch.title || !patch.subtitle || !patch.description))) {
+      if (!validation.success) {
         deps.telemetry?.({ ...metrics, stage: "proposal_shape", elapsedMs: Date.now() - started, result: "invalid_result" });
         throw new ForgeError("invalid_result");
       }

@@ -41,11 +41,69 @@ export const forgePatchSchema = z.object({
   objectives: z.array(z.string().trim().min(1).max(300)).max(8).nullable(),
 }).strict();
 export const providerOutputSchema = z.object({ text: z.string().trim().min(1).max(12000), patch: forgePatchSchema }).strict();
-// The model sees only fields applicable to its scope. The provider expands the
-// other fields to null before the shared result contract is validated.
+const providerSummary = z.string().trim().min(1).max(12000);
+const contentProviderPatchSchema = z.object({ content: z.string().trim().min(1).max(20000) }).strict();
+const objectivesProviderPatchSchema = z.object({ objectives: z.array(z.string().trim().min(1).max(300)).min(1).max(8) }).strict();
+const courseProviderPatchSchema = z.object({ title: z.string().trim().min(2).max(220), subtitle: z.string().trim().max(500), description: z.string().trim().min(1).max(4000) }).strict();
+
+// Provider schemas expose only fields that the selected action can change.
+export const lessonContentProviderOutputSchema = z.object({ summary: providerSummary, patch: contentProviderPatchSchema }).strict();
+export const lessonObjectivesProviderOutputSchema = z.object({ summary: providerSummary, patch: objectivesProviderPatchSchema }).strict();
+export const courseActionProviderOutputSchema = z.object({ summary: providerSummary, patch: courseProviderPatchSchema }).strict();
+export const courseDescriptionProviderOutputSchema = z.object({ summary: providerSummary, patch: z.object({ description: z.string().trim().min(1).max(4000) }).strict() }).strict();
+// Compatibility exports for callers that inspect the scope envelope. The live
+// provider uses the action-specific schemas above.
 export const courseProviderOutputSchema = z.object({ text: z.string().trim().min(1).max(12000), patch: forgePatchSchema.pick({ title: true, subtitle: true, description: true }) }).strict();
 export const lessonProviderOutputSchema = z.object({ text: z.string().trim().min(1).max(12000), patch: forgePatchSchema.pick({ title: true, description: true, content: true, objectives: true }) }).strict();
 export type ForgeProviderOutput = z.infer<typeof providerOutputSchema>;
+export type ForgeTransformField = "content" | "objectives" | "title" | "subtitle" | "description";
+export type ForgeTransformContract = { allowed: readonly ForgeTransformField[]; required: ForgeTransformField | null };
+export const forgeTransformContracts: Record<string, ForgeTransformContract> = {
+  generate_content: { allowed: ["content"], required: "content" },
+  structure: { allowed: ["content"], required: "content" },
+  rephrase: { allowed: ["content"], required: "content" },
+  improve: { allowed: ["content"], required: "content" },
+  simplify: { allowed: ["content"], required: "content" },
+  summarize: { allowed: ["content"], required: "content" },
+  objectives: { allowed: ["objectives"], required: "objectives" },
+};
+export function providerOutputForIntent(intent: ForgeIntent, scope: "course" | "lesson") {
+  if (scope === "course") return intent === "summarize" ? courseDescriptionProviderOutputSchema : courseActionProviderOutputSchema;
+  return intent === "objectives" ? lessonObjectivesProviderOutputSchema : lessonContentProviderOutputSchema;
+}
+function isAuthorCommentaryOnly(content: string) {
+  return /^(je propose|j['’]ai conservé|informations absentes|voici une proposition|je recommande)\b/i.test(content.trim()) &&
+    !/^#{1,6}\s|^\s*[-*]\s|^\s*\d+[.)]\s/m.test(content);
+}
+export function validateForgePatch(intent: ForgeIntent, scope: "course" | "lesson", patch: unknown) {
+  const contract = scope === "course"
+    ? intent === "improve"
+      ? { allowed: ["title", "subtitle", "description"] as const, required: "description" as const, requireAll: true }
+      : intent === "summarize"
+        ? { allowed: ["description"] as const, required: "description" as const, requireAll: false }
+      : { allowed: ["title", "subtitle", "description"] as const, required: null, requireAll: false }
+    : scope === "lesson" && intent === "objectives"
+      ? { ...forgeTransformContracts.objectives, requireAll: false }
+      : scope === "lesson" && forgeTransformContracts[intent]
+        ? { ...forgeTransformContracts[intent], requireAll: false }
+        : intent === "ask"
+          ? { allowed: ["title", "description", "content", "objectives"] as const, required: null, requireAll: false }
+          : null;
+  const parsed = forgePatchSchema.safeParse(patch);
+  if (!parsed.success || !contract) {
+    if (!parsed.success) return { success: false as const };
+    return { success: true as const, patch: parsed.data };
+  }
+  const populated = Object.entries(parsed.data).filter(([, value]) => value !== null).map(([key]) => key as ForgeTransformField);
+  if (populated.some((field) => !contract.allowed.includes(field)) || (contract.required && !populated.includes(contract.required))) return { success: false as const };
+  if ("requireAll" in contract && contract.requireAll && populated.length !== contract.allowed.length) return { success: false as const };
+  if (contract.required === null && populated.length === 0) return { success: true as const, patch: parsed.data };
+  if (contract.required === "content") {
+    if (typeof parsed.data.content !== "string" || isAuthorCommentaryOnly(parsed.data.content)) return { success: false as const };
+  }
+  if (contract.required === "objectives" && (!Array.isArray(parsed.data.objectives) || parsed.data.objectives.length === 0)) return { success: false as const };
+  return { success: true as const, patch: parsed.data };
+}
 type ResultBase = { intent: ForgeIntent; text: string; sourcesUsed: Array<Pick<ForgeSource, "id" | "title">>; metadata: { warnings: ForgeWarning[]; finishReason: "stop" } };
 type EditProposal = { target: { courseId: string; lessonId?: string }; patch: z.infer<typeof forgePatchSchema>; application: "explicit_only" };
 export type ForgeResult =
