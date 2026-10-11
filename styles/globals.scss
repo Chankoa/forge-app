@@ -1088,6 +1088,26 @@ textarea,select { font:inherit; }
 .lesson-callout strong { display: block; font: var(--font-label); }
 .lesson-callout p { margin: 6px 0 0; }
 .lesson-content pre { overflow-x: auto; white-space: pre; }
+.lesson-tab { margin: 22px 0; overflow: hidden; border: 1px solid var(--shell-separator); border-radius: var(--radius-md); background: var(--surface-soft); }
+.lesson-tab figcaption { padding: 10px 14px 0; color: var(--text-secondary); font: var(--font-caption); }
+.lesson-tab pre { margin: 0; border: 0; background: transparent; }
+.lesson-rich-media { margin: 24px 0; }
+.lesson-rich-media img { display: block; max-width: 100%; height: auto; margin: 0 auto; border-radius: var(--radius-sm); }
+.lesson-rich-media figcaption, .lesson-practice header { display: grid; gap: 4px; margin-top: 8px; color: var(--text-secondary); font: var(--font-caption); }
+.lesson-rich-media figcaption span, .lesson-practice header span { display: block; }
+.lesson-rich-media--audio audio { display: block; width: min(100%, 520px); }
+.lesson-video-frame { aspect-ratio: 16 / 9; max-width: 100%; overflow: hidden; border-radius: var(--radius-sm); background: #111827; }
+.lesson-video-frame iframe { width: 100%; height: 100%; border: 0; }
+.lesson-practice { margin: 24px 0; padding: 16px 18px; border: 1px solid var(--shell-separator); border-left: 2px solid var(--violet); border-radius: var(--radius-sm); background: var(--surface-soft); }
+.lesson-practice header { grid-template-columns: 1fr auto; align-items: baseline; margin: 0; font: var(--font-label); }
+.lesson-practice p { margin: 12px 0 0; }
+.lesson-rich-placeholder { margin: 20px 0; padding: 14px 16px; border: 1px dashed var(--shell-separator); border-radius: var(--radius-sm); color: var(--text-secondary); background: var(--surface-soft); }
+.lesson-rich-placeholder p { margin: 6px 0 0; }
+.lesson-editor__insert-menu { position: relative; }
+.lesson-editor__insert-menu summary { min-height: 36px; padding: 5px 9px; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; font: var(--font-label); }
+.lesson-editor__insert-menu summary:focus-visible, .lesson-editor__insert-menu summary:hover { border-color: var(--shell-separator); color: var(--violet); background: var(--surface-soft); }
+.lesson-editor__insert-menu > div { position: absolute; z-index: 2; top: calc(100% + 4px); left: 0; display: grid; min-width: 150px; padding: 4px; border: 1px solid var(--shell-separator); border-radius: var(--radius-sm); background: var(--surface); box-shadow: 0 8px 24px rgb(15 23 42 / 12%); }
+.lesson-editor__insert-menu button { text-align: left; }
 .forge-proposal-preview { min-width: 0; padding: 12px 0; border-block: 1px solid var(--shell-separator); }
 .forge-proposal-preview h3 { margin: 0; font: var(--font-label); }
 .intelligence-finding__detail { margin-top: 10px; }

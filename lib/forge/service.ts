@@ -40,7 +40,8 @@ export async function runForge(raw: unknown, deps: ForgeDependencies): Promise<F
       result = { ...common, mode: "learn", kind: "answer" };
     } else {
       const isLesson = Boolean(context.lesson);
-      const validation = validateForgePatch(request.intent, isLesson ? "lesson" : "course", patch);
+      const trustedUrls = [request.input ?? "", ...context.sources.map((source) => source.text)].flatMap((value) => value.match(/https:\/\/[^\s)]+/g) ?? []);
+      const validation = validateForgePatch(request.intent, isLesson ? "lesson" : "course", patch, { allowResourceIds: context.sources.map((source) => source.id), trustedUrls });
       if (!validation.success) {
         deps.telemetry?.({ ...metrics, stage: "proposal_scope", elapsedMs: Date.now() - started, result: "invalid_result" });
         throw new ForgeError("invalid_result");

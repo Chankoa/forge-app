@@ -1,4 +1,4 @@
-export type LessonInsertAction = "paragraph" | "heading2" | "heading3" | "bullets" | "numbers" | "callout" | "quote" | "code" | "divider" | "link";
+export type LessonInsertAction = "paragraph" | "heading2" | "heading3" | "bullets" | "numbers" | "callout" | "quote" | "code" | "divider" | "link" | "image" | "audio" | "video" | "tab" | "practice";
 
 export type LessonInsertion = { content: string; selectionStart: number; selectionEnd: number };
 
@@ -34,6 +34,11 @@ export function insertLessonMarkdown(content: string, start: number, end: number
     case "code": { focusText = hasSelection ? selected.replace(/^\n+|\n+$/g, "") : "Votre code ici"; const fence = fenceFor(focusText); inserted = `${fence}\n${focusText}\n${fence}`; break; }
     case "divider": focusText = ""; inserted = "---"; break;
     case "link": focusText = hasSelection ? value.replace(/\n/g, " ") : "Texte du lien"; inserted = `[${focusText}](https://exemple.fr)`; break;
+    case "image": focusText = "Description de l’image"; inserted = `:::image\nstatus=placeholder\nalt=${focusText}\ncaption=Ajouter une image\n:::`; break;
+    case "audio": focusText = "Exemple audio"; inserted = `:::audio\nstatus=placeholder\ntitle=${focusText}\ncaption=Ajouter un extrait audio\n:::`; break;
+    case "video": focusText = "Démonstration vidéo"; inserted = `:::video\nstatus=placeholder\ntitle=${focusText}\ncaption=Ajouter une vidéo\n:::`; break;
+    case "tab": focusText = "e|----------------|\nB|----------------|\nG|----------------|\nD|----------------|\nA|----------------|\nE|----------------|"; inserted = `\`\`\`tab\n${focusText}\n\`\`\``; break;
+    case "practice": focusText = "Décrivez l’exercice"; inserted = `:::practice\ntitle=Exercice pratique\n:::\n${focusText}\n:::`; break;
   }
   const before = content.slice(0, from);
   const after = content.slice(to);

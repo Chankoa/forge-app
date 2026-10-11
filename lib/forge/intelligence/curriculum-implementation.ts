@@ -13,7 +13,11 @@ export const pedagogicalConsequences: Record<Finding["type"], string> = {
 };
 
 export function curriculumImplementationAction(finding: Finding, lessons: Map<string, { slug: string }>, courseSlug: string) {
-  if (finding.type !== "objective_gap") return null;
   const target = finding.lessonIds.map((id) => lessons.get(id)).find(Boolean);
+  const suggestion = finding.suggestion.toLowerCase();
+  if (target && /audio|extrait sonore/.test(suggestion)) return { label: "Ajouter un emplacement audio", href: `/app/courses/${courseSlug}/lessons/${target.slug}?mode=edit&insert=audio` };
+  if (target && /tablature|transcription/.test(suggestion)) return { label: "Ajouter une tablature", href: `/app/courses/${courseSlug}/lessons/${target.slug}?mode=edit&insert=tab` };
+  if (target && /tempo|exercice|activité pratique/.test(suggestion)) return { label: "Ajouter un exercice", href: `/app/courses/${courseSlug}/lessons/${target.slug}?mode=edit&insert=practice` };
+  if (finding.type !== "objective_gap") return null;
   return target ? { label: "Modifier l’objectif", href: `/app/courses/${courseSlug}/lessons/${target.slug}?mode=edit&focus=objectives` } : null;
 }

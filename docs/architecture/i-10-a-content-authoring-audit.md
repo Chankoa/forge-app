@@ -24,6 +24,9 @@
 
 ## Limites connues
 
-- Le parseur est volontairement un sous-ensemble de Markdown, sans images ni tables. L'insertion d'images attend le travail média prévu ultérieurement.
+- Le stockage reste volontairement Markdown. Les directives contrôlées `image`, `audio`, `video` et `practice` sont reconnues par le rendu partagé ; une clôture de code `tab` rend une tablature monospace et défilable.
+- Les médias binaires ne sont pas encore un type de ressource du produit : `course_sources` et son bucket privé servent aux sources texte/Markdown/web de Forge. I.10.B ne les élargit pas et rend donc les blocs média non résolus comme placeholders auteur, sans lecteur cassé côté apprenant.
+- Les vidéos sont limitées aux URLs HTTPS YouTube/Vimeo validées. Les URLs doivent venir d'un contexte de confiance pour une proposition Forge ; aucun iframe ou HTML arbitraire n'est accepté.
+- L'insertion d'images, d'audio et de vidéo crée uniquement une directive placeholder. Une future extension média devra ajouter la résolution sécurisée de ressources et les politiques d'accès avant d'activer l'upload.
 - Les propositions de structure ne contiennent pas de nouveau titre ou objectif validé prêt à appliquer. Renommage, fusion et création de leçon restent des recommandations jusqu'à l'existence d'un contrat de proposition et d'un brouillon structurel adapté.
 - L'édition assistée par barre d'outils conserve une surface de texte Markdown ; elle ne fournit pas de blocs manipulables ou de mise en forme WYSIWYG.

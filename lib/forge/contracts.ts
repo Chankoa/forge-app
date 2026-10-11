@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { validateRichContent } from "@/lib/courses/lesson-rich-content";
 
 export const forgeIntents = {
   learn: ["explain", "clarify", "rephrase", "example", "quiz", "ask"],
@@ -75,7 +76,7 @@ function isAuthorCommentaryOnly(content: string) {
   return /^(je propose|j['’]ai conservé|informations absentes|voici une proposition|je recommande)\b/i.test(content.trim()) &&
     !/^#{1,6}\s|^\s*[-*]\s|^\s*\d+[.)]\s/m.test(content);
 }
-export function validateForgePatch(intent: ForgeIntent, scope: "course" | "lesson", patch: unknown) {
+export function validateForgePatch(intent: ForgeIntent, scope: "course" | "lesson", patch: unknown, richContent?: { allowResourceIds?: readonly string[]; trustedUrls?: readonly string[] }) {
   const contract = scope === "course"
     ? intent === "improve"
       ? { allowed: ["title", "subtitle", "description"] as const, required: "description" as const, requireAll: true }
@@ -100,7 +101,9 @@ export function validateForgePatch(intent: ForgeIntent, scope: "course" | "lesso
   if (contract.required === null && populated.length === 0) return { success: true as const, patch: parsed.data };
   if (contract.required === "content") {
     if (typeof parsed.data.content !== "string" || isAuthorCommentaryOnly(parsed.data.content)) return { success: false as const };
+    if (!validateRichContent(parsed.data.content, richContent)) return { success: false as const };
   }
+  if (contract.required !== "content" && typeof parsed.data.content === "string" && (!validateRichContent(parsed.data.content, richContent) || isAuthorCommentaryOnly(parsed.data.content))) return { success: false as const };
   if (contract.required === "objectives" && (!Array.isArray(parsed.data.objectives) || parsed.data.objectives.length === 0)) return { success: false as const };
   return { success: true as const, patch: parsed.data };
 }

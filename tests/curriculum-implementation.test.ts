@@ -17,3 +17,13 @@ test("unsupported structural edits remain recommendations", () => {
   assert.equal(curriculumImplementationAction({ ...finding, type: "consolidation_opportunity" }, new Map([["lesson-1", { slug: "ma-lecon" }]]), "mon-parcours"), null);
   assert.equal(curriculumImplementationAction(finding, new Map(), "mon-parcours"), null);
 });
+
+test("media structure suggestions expose controlled local-draft insertion actions", () => {
+  const base = { ...finding, type: "gap" as const };
+  assert.deepEqual(curriculumImplementationAction({ ...base, suggestion: "Ajouter un emplacement audio pour illustrer le rythme." }, new Map([["lesson-1", { slug: "ma-lecon" }]]), "mon-parcours"), {
+    label: "Ajouter un emplacement audio", href: "/app/courses/mon-parcours/lessons/ma-lecon?mode=edit&insert=audio",
+  });
+  assert.deepEqual(curriculumImplementationAction({ ...base, suggestion: "Ajouter une tablature du riff décrit." }, new Map([["lesson-1", { slug: "ma-lecon" }]]), "mon-parcours"), {
+    label: "Ajouter une tablature", href: "/app/courses/mon-parcours/lessons/ma-lecon?mode=edit&insert=tab",
+  });
+});
