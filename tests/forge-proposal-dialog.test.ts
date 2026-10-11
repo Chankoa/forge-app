@@ -33,6 +33,17 @@ test("failed regeneration keeps the previous proposal visible and explains retry
   assert.match(html, /Régénérer/);
 });
 
+test("lesson content proposal uses the shared safe renderer for review", () => {
+  const html = renderToStaticMarkup(createElement(ForgeProposalDialog, {
+    result: { ...proposal, proposal: { ...proposal.proposal, patch: { ...proposal.proposal.patch, content: "## Une section\n\n> [!NOTE]\n> À retenir\n\n<script>unsafe</script>" } } },
+    busy: false, applying: false, error: null, onClose() {}, onApply() {}, onReject() {}, onRegenerate() {}, onAdjust() {},
+  }));
+  assert.match(html, /Aperçu du contenu proposé/);
+  assert.match(html, /<h2>Une section<\/h2>/);
+  assert.match(html, /class="lesson-callout"/);
+  assert.doesNotMatch(html, /<script>/);
+});
+
 test("incomplete regeneration preserves the previous result; complete regeneration replaces it", () => {
   const incomplete = { ok: false as const, error: "invalid_result" as const };
   assert.equal(forgeResultAfterResponse(proposal, incomplete), proposal);

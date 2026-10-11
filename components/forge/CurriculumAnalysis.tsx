@@ -5,6 +5,7 @@ import { useRef, useState, useTransition } from "react";
 import { analyzeCurriculumAction } from "@/app/app/forge/intelligence-actions";
 import type { CourseDetail } from "@/lib/courses/contracts";
 import { curriculumStateAfterResponse, type CurriculumViewState } from "@/lib/forge/intelligence/view-state";
+import { curriculumImplementationAction, pedagogicalConsequences } from "@/lib/forge/intelligence/curriculum-implementation";
 
 const types = { redundancy: "Redondance", gap: "Prérequis ou notion manquante", sequence_issue: "Ordre pédagogique", imbalance: "Équilibre", objective_gap: "Objectif peu couvert", scope_issue: "Périmètre", consolidation_opportunity: "Regroupement possible" };
 const severity = { info: "À examiner", attention: "Attention", important: "Prioritaire" };
@@ -43,7 +44,9 @@ export function CurriculumAnalysis({ course }: { course: CourseDetail }) {
       {result.findings.length === 0 && <p>Aucun point particulier à signaler dans cette analyse.</p>}
       {result.findings.map((finding, index) => <article key={index} className="intelligence-finding">
         <p className="eyebrow">{types[finding.type]} · {severity[finding.severity]}</p>
-        <p>{finding.reason}</p><p><strong>Suggestion :</strong> {finding.suggestion}</p>
+        <div className="intelligence-finding__detail"><strong>Constat</strong><p>{finding.reason}</p></div>
+        <div className="intelligence-finding__detail"><strong>Pourquoi c’est important</strong><p>{pedagogicalConsequences[finding.type]}</p></div>
+        <div className="intelligence-finding__detail"><strong>Mise en œuvre suggérée</strong><p>{finding.suggestion}</p>{(() => { const action = curriculumImplementationAction(finding, lessons, course.slug); return action ? <Link className="button button--secondary" href={action.href}>{action.label}</Link> : <p className="caption">Recommandation à examiner ; aucune modification automatique disponible.</p>; })()}</div>
         <div className="intelligence-references">
           {[...new Set(finding.moduleIds)].map((id) => <a key={id} href={`#module-${id}`}>Voir le module « {modules.get(id)?.moduleTitle} »</a>)}
           {[...new Set(finding.lessonIds)].map((id) => { const lesson = lessons.get(id); return lesson ? <Link key={id} href={`/app/courses/${course.slug}/lessons/${lesson.slug}?mode=edit`}>Voir la leçon « {lesson.title} »</Link> : null; })}

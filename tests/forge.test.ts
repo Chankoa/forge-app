@@ -207,6 +207,19 @@ test("Generate lesson content rejects unrelated fields and course scope", async 
   assert.equal(forgeRequestSchema.safeParse({ mode: "edit", intent: "generate_content", courseSlug: "course" }).success, false);
   const messages = forgeMessages(forgeRequestSchema.parse({ mode: "edit", intent: "generate_content", courseSlug: "course", lessonSlug: "lesson" }), { course: { id: "course-id", title: "Course", summary: "Résumé" }, module: { id: "module", title: "Module" }, lesson: { id: "lesson-id", title: "Lesson", summary: "", content: "Déjà rédigé", objectives: ["Comprendre"] }, outline: [], sources: [], warnings: [] });
   assert.match(messages.system, /version de remplacement à examiner/);
+  assert.match(messages.system, /sections ##/);
+  assert.match(messages.system, /objectifs sont un champ séparé/);
+  assert.match(messages.system, /blocs de code fermés/);
+  assert.match(messages.system, /listes numérotées avec « 1\. »/);
+  assert.match(messages.system, /aucune note à l’auteur/);
+});
+test("Lesson transforms request content-only proposals with preserved structure", () => {
+  const context = { course: { id: "course-id", title: "Course", summary: "Résumé" }, module: { id: "module", title: "Module" }, lesson: { id: "lesson-id", title: "Lesson", summary: "", content: "## Section\n\nTexte", objectives: ["Comprendre"] }, outline: [], sources: [], warnings: [] };
+  for (const intent of ["structure", "rephrase", "simplify"] as const) {
+    const messages = forgeMessages(forgeRequestSchema.parse({ mode: "edit", intent, courseSlug: "course", lessonSlug: "lesson" }), context);
+    assert.match(messages.system, /patch\.content/);
+    assert.match(messages.system, /autres champs patch doivent être null/);
+  }
 });
 test("Course Improve prompt requires the three editable course fields", async () => {
   const { deps } = fixture(true, false);

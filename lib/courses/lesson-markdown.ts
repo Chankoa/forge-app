@@ -1,0 +1,57 @@
+export type LessonInsertAction = "paragraph" | "heading2" | "heading3" | "bullets" | "numbers" | "callout" | "quote" | "code" | "divider" | "link";
+
+export type LessonInsertion = { content: string; selectionStart: number; selectionEnd: number };
+
+function fenceFor(value: string) {
+  const runs = value.match(/`+/g) ?? [];
+  return "`".repeat(Math.max(3, ...runs.map((run) => run.length + 1)));
+}
+
+export function insertLessonMarkdown(content: string, start: number, end: number, action: LessonInsertAction): LessonInsertion {
+  const from = Math.max(0, Math.min(start, content.length));
+  const to = Math.max(from, Math.min(end, content.length));
+  const selected = content.slice(from, to);
+  const hasSelection = Boolean(selected.trim());
+  const value = selected.trim();
+  let inserted: string;
+  let focusText: string;
+  switch (action) {
+    case "paragraph": focusText = hasSelection ? value : "Nouveau paragraphe"; inserted = focusText; break;
+    case "heading2": focusText = hasSelection ? value : "Titre de section"; inserted = `## ${focusText}`; break;
+    case "heading3": focusText = hasSelection ? value : "Sous-section"; inserted = `### ${focusText}`; break;
+    case "bullets": {
+      focusText = hasSelection ? value : "Premier point";
+      inserted = focusText.split("\n").map((line) => `- ${line.replace(/^\s*(?:[-*]|\d+\.)\s+/, "").trim()}`).join("\n");
+      break;
+    }
+    case "numbers": {
+      focusText = hasSelection ? value : "Premier point";
+      inserted = focusText.split("\n").map((line, index) => `${index + 1}. ${line.replace(/^\s*(?:[-*]|\d+\.)\s+/, "").trim()}`).join("\n");
+      break;
+    }
+    case "callout": focusText = hasSelection ? value : "Point à retenir"; inserted = `> [!NOTE]\n> ${focusText.replace(/\n/g, "\n> ")}`; break;
+    case "quote": focusText = hasSelection ? value : "Citation"; inserted = `> ${focusText.replace(/\n/g, "\n> ")}`; break;
+    case "code": { focusText = hasSelection ? selected.replace(/^\n+|\n+$/g, "") : "Votre code ici"; const fence = fenceFor(focusText); inserted = `${fence}\n${focusText}\n${fence}`; break; }
+    case "divider": focusText = ""; inserted = "---"; break;
+    case "link": focusText = hasSelection ? value.replace(/\n/g, " ") : "Texte du lien"; inserted = `[${focusText}](https://exemple.fr)`; break;
+  }
+  const before = content.slice(0, from);
+  const after = content.slice(to);
+  if (action === "link") return { content: before + inserted + after, selectionStart: from + 1, selectionEnd: from + 1 + focusText.length };
+  if (action === "divider" && hasSelection) {
+    const prefix = before && !before.endsWith("\n\n") ? before.endsWith("\n") ? "\n" : "\n\n" : "";
+    const nextContent = before + prefix + "---\n\n" + selected + after;
+    const cursor = before.length + prefix.length + 5;
+    return { content: nextContent, selectionStart: cursor, selectionEnd: cursor };
+  }
+  const prefix = before && !before.endsWith("\n\n") ? before.endsWith("\n") ? "\n" : "\n\n" : "";
+  const suffix = after && !after.startsWith("\n\n") ? after.startsWith("\n") ? "\n" : "\n\n" : "";
+  const position = before.length + prefix.length;
+  const textOffset = focusText ? inserted.indexOf(focusText) : inserted.length;
+  return { content: before + prefix + inserted + suffix + after, selectionStart: position + textOffset, selectionEnd: position + textOffset + focusText.length };
+}
+
+export function hasUnclosedCodeFence(content: string) {
+  const fences = content.split(/\r?\n/).filter((line) => /^\s*`{3,}/.test(line));
+  return fences.length % 2 !== 0;
+}

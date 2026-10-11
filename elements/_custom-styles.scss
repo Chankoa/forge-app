@@ -48,3 +48,22 @@
 	min-width: 0;
 	display: grid;
 }
+
+/* Bug color boutons */
+.mode-switch a {
+	border: 1px solid var(--border);
+	border-radius: var(--radius-sm);
+	/* color: var(--background); */ /* Annuler */
+	font: var(--font-label);
+	padding: 6px 10px;
+}
+
+.explore-feature__actions > a {
+	min-height: 44px;
+	/* color: var(--violet); */ /* Annuler */
+	font: var(--font-label);
+	justify-content: space-between;
+	align-items: center;
+	gap: 5px;
+	display: inline-flex;
+}
