@@ -10,7 +10,7 @@ test("lesson Markdown renders headings, fenced code, and safe links without Mark
   const html = renderToStaticMarkup(createElement(LessonContent, { lesson: { ...lesson, content: "## Étape\n\n[Documentation](https://example.com/docs)\n\n```ts\nconst ready = true;\n```" } }));
   assert.match(html, /<h2>Étape<\/h2>/);
   assert.match(html, /href="https:\/\/example\.com\/docs"/);
-  assert.match(html, /<pre><code>const ready = true;<\/code><\/pre>/);
+  assert.match(html, /class="lesson-code"[^>]*>.*<pre><code>const ready = true;<\/code><\/pre>/);
   assert.doesNotMatch(html, /\[Documentation\]\(/);
 });
 
@@ -38,9 +38,14 @@ test("shared author and learner renderer distinguishes supported editorial struc
   assert.match(html, /<ol><li>premier<\/li><li>second<\/li><\/ol>/);
   assert.match(html, /class="lesson-callout"/);
   assert.match(html, /<blockquote>/);
-  assert.match(html, /<pre><code>const a = 1;<\/code><\/pre>/);
+  assert.match(html, /class="lesson-code"[^>]*>.*<pre><code>const a = 1;<\/code><\/pre>/);
   assert.match(html, /<code>terme<\/code>/);
   assert.match(html, /href="https:\/\/example.com"/);
   assert.match(html, /<hr\/>/);
   assert.doesNotMatch(html, /<script/);
+});
+
+test("learner renderer preserves nested list semantics", () => {
+  const html = renderToStaticMarkup(createElement(LessonMarkdown, { content: "- Parent\n  - Child\n    1. Detail" }));
+  assert.match(html, /<ul><li>Parent<ul><li>Child<ol><li>Detail<\/li><\/ol><\/li><\/ul><\/li><\/ul>/);
 });

@@ -37,6 +37,24 @@ function embedUrl(value: string) {
   return host === "vimeo.com" && /^\d+$/.test(url.pathname.slice(1)) ? `https://player.vimeo.com/video/${url.pathname.slice(1)}` : null;
 }
 
+type ListEntry = { indent: number; ordered: boolean; text: string };
+
+function renderList(entries: ListEntry[], start: number, indent: number, ordered: boolean, key: string): [ReactNode, number] {
+  const items: ReactNode[] = [];
+  let index = start;
+  while (index < entries.length && entries[index].indent === indent && entries[index].ordered === ordered) {
+    const entry = entries[index];
+    index += 1;
+    let child: ReactNode = null;
+    if (index < entries.length && entries[index].indent > indent) {
+      [child, index] = renderList(entries, index, entries[index].indent, entries[index].ordered, `${key}-${items.length}`);
+    }
+    items.push(<li key={`${key}-${items.length}`}>{inline(entry.text)}{child}</li>);
+  }
+  const Tag = ordered ? "ol" : "ul";
+  return [<Tag key={key}>{items}</Tag>, index];
+}
+
 function richBlock(directive: RichDirective, options: LessonRenderOptions, key: number): ReactNode {
   const { fields } = directive;
   if (fields.status === "placeholder") return options.mode === "author" ? <aside key={key} className="lesson-rich-placeholder" aria-label={`${directive.kind} à ajouter`}><strong>{directive.kind === "audio" ? "Audio" : directive.kind === "video" ? "Vidéo" : directive.kind === "image" ? "Image" : "Exercice"} à ajouter</strong>{fields.caption && <p>{fields.caption}</p>}</aside> : null;
@@ -68,14 +86,14 @@ function blocks(content: string, options: LessonRenderOptions) {
     const line = lines[index];
     if (!line.trim()) { index += 1; continue; }
     const fence = /^(`{3,})([a-zA-Z0-9_-]*)\s*$/.exec(line);
-    if (fence) { const code: string[] = []; index += 1; while (index < lines.length && !new RegExp(`^${fence[1]}\\s*$`).test(lines[index])) code.push(lines[index++]); if (index < lines.length) index += 1; result.push(fence[2].toLowerCase() === "tab" ? <figure key={result.length} className="lesson-tab"><figcaption>Tablature</figcaption><pre><code>{code.join("\n")}</code></pre></figure> : <pre key={result.length}><code>{code.join("\n")}</code></pre>); continue; }
+    if (fence) { const code: string[] = []; index += 1; while (index < lines.length && !new RegExp(`^${fence[1]}\\s*$`).test(lines[index])) code.push(lines[index++]); if (index < lines.length) index += 1; const language = fence[2].toLowerCase(); result.push(language === "tab" ? <figure key={result.length} className="lesson-tab"><figcaption>Tablature</figcaption><pre><code>{code.join("\n")}</code></pre></figure> : <figure key={result.length} className="lesson-code" data-language={language || undefined}>{language && <figcaption>{language}</figcaption>}<pre><code>{code.join("\n")}</code></pre></figure>); continue; }
     if (line.startsWith(":::")) { const directive = parseRichDirective(lines, index); if (directive) { result.push(richBlock(directive, options, result.length)); index = directive.end + 1; continue; } }
     if (/^---+\s*$/.test(line)) { result.push(<hr key={result.length} />); index += 1; continue; }
     const heading = /^(#{1,4})\s+(.+)$/.exec(line);
     if (heading) { const Tag = (`h${Math.max(2, heading[1].length)}`) as "h2" | "h3" | "h4"; result.push(<Tag key={result.length}>{inline(heading[2])}</Tag>); index += 1; continue; }
     if (line.startsWith("> ")) { const quote: string[] = []; while (index < lines.length && lines[index].startsWith("> ")) quote.push(lines[index++].slice(2)); const callout = /^\[!(NOTE|TIP|IMPORTANT)\]\s*$/i.exec(quote[0] ?? ""); result.push(callout ? <aside key={result.length} className="lesson-callout" aria-label="À retenir"><strong>À retenir</strong>{quote.slice(1).map((item, itemIndex) => <p key={itemIndex}>{inline(item)}</p>)}</aside> : <blockquote key={result.length}>{quote.map((item, itemIndex) => <p key={itemIndex}>{inline(item)}</p>)}</blockquote>); continue; }
     const list = /^(?:- |\* |\d+\. )/.test(line);
-    if (list) { const ordered = /^\d+\. /.test(line); const items: string[] = []; while (index < lines.length && (ordered ? /^\d+\. /.test(lines[index]) : /^(?:- |\* )/.test(lines[index]))) items.push(lines[index++].replace(ordered ? /^\d+\. / : /^(?:- |\* )/, "")); const Tag = ordered ? "ol" : "ul"; result.push(<Tag key={result.length}>{items.map((item, itemIndex) => <li key={itemIndex}>{inline(item)}</li>)}</Tag>); continue; }
+    if (list) { const entries: ListEntry[] = []; while (index < lines.length && /^\s*(?:[-*]|\d+\.)\s+/.test(lines[index])) { const match = /^(\s*)([-*]|\d+\.)\s+(.+)$/.exec(lines[index]); if (!match) break; entries.push({ indent: match[1].length, ordered: /^\d/.test(match[2]), text: match[3] }); index += 1; } const [listNode] = renderList(entries, 0, entries[0].indent, entries[0].ordered, `list-${result.length}`); result.push(listNode); continue; }
     const paragraph: string[] = []; while (index < lines.length && lines[index].trim() && !/^`{3,}/.test(lines[index]) && !/^(#{1,4})\s+|^> |^(?:- |\* |\d+\. )|^---+\s*$/.test(lines[index])) paragraph.push(lines[index++]); result.push(<p key={result.length}>{paragraph.map((item, itemIndex) => <span key={itemIndex}>{inline(item)}{itemIndex < paragraph.length - 1 && <br />}</span>)}</p>);
   }
   return result;
