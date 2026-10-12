@@ -4,7 +4,7 @@ export type LibraryCourse = {
   id: string; slug: string; title: string; description: string | null; domain: string | null;
   status: string | null; moduleCount: number; lessonCount: number; durationMinutes: number | null;
   lessonSlug: string | null; enrolled: boolean; isOwner: boolean; percentage: number; completedCount: number;
-  collaborationRole?: "editor" | "viewer" | null; author?: { displayName: string; initials: string };
+  collaborationRole?: "editor" | "viewer" | null; author?: { displayName: string; initials: string; avatarUrl?: string | null }; cover?: { url: string; altText: string | null } | null;
 };
 export type LibraryView = "list" | "cards";
 export type LibrarySort = "title_asc" | "title_desc" | "progress_desc";

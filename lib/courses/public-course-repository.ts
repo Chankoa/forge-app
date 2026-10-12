@@ -2,6 +2,8 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getPublicCourseAuthor } from "@/lib/profiles/public-author-repository";
 import { getCourseProvenance, type CourseProvenance } from "./provenance-repository";
 import type { PublicAuthorIdentity } from "@/lib/profiles/author-identity";
+import { resolveCourseCovers } from "./cover-repository";
+import type { CoverPresentation } from "./cover-contracts";
 import { mapPublicCourseDetail, type PublicCourseRow } from "./public-course-view";
 
 export type PublicCourseDetail = {
@@ -15,6 +17,7 @@ export type PublicCourseDetail = {
   level: string | null;
   author?: PublicAuthorIdentity;
   provenance: CourseProvenance | null;
+  cover?: CoverPresentation | null;
 };
 
 export async function getPublicCourseDetail(courseSlug: string): Promise<PublicCourseDetail | null> {
@@ -29,9 +32,10 @@ export async function getPublicCourseDetail(courseSlug: string): Promise<PublicC
     .maybeSingle();
   if (error || !data) return null;
   const course = data as PublicCourseRow;
-  const [author, provenance] = await Promise.all([
+  const [author, provenance, covers] = await Promise.all([
     getPublicCourseAuthor(client, course),
     getCourseProvenance(course.id, { publicPath: true }),
+    resolveCourseCovers(client, [course.id]),
   ]);
-  return { ...mapPublicCourseDetail(course), author: author ?? { displayName: "Propriétaire non renseigné", initials: "?" }, provenance };
+  return { ...mapPublicCourseDetail(course), cover: covers[course.id] ?? null, author: author ?? { displayName: "Propriétaire non renseigné", initials: "?", avatarUrl: null }, provenance };
 }

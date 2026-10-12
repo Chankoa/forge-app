@@ -48,7 +48,7 @@ export function CourseEditor({ course, domains, readiness, capabilities, showOve
   });
   const tabs: Array<{ id: CockpitTab; label: string }> = [{ id: "information", label: "Informations" }, { id: "structure", label: "Structure" }, ...(capabilities.canManageSources ? [{ id: "sources" as const, label: "Ressources" }] : [])];
 
-  if (tab === "overview") return <OwnerCourseOverview course={course} readiness={readiness} archiveAction={archiveAction} restoreAction={restoreAction} />;
+  if (tab === "overview") return <OwnerCourseOverview course={course} readiness={readiness} archiveAction={archiveAction} restoreAction={restoreAction} canManageCover={capabilities.canViewClassroom} />;
 
   return <div className="editor-stack course-cockpit">
     <div className="cockpit-heading"><div><p className="eyebrow">Cockpit du parcours</p><h2>Piloter le parcours</h2><p className="caption">Structure, informations et sources du parcours. Les propositions Forge modifient le brouillon local ; seule la sauvegarde enregistre les informations.</p></div><span className={`cockpit-status cockpit-status--${course.status === "published" ? "published" : course.status === "archived" ? "archived" : "draft"}`}>{course.status === "published" ? "Publié" : course.status === "archived" ? "Archivé" : "Brouillon"}</span></div>

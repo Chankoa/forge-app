@@ -1,6 +1,6 @@
-import { UserRound } from "lucide-react";
 import { courseOwnerLabel, type PublicAuthorIdentity } from "@/lib/profiles/author-identity";
+import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
 
 export function AuthorAttribution({ author }: { author?: PublicAuthorIdentity }) {
-  return <p className="course-author"><span className="course-author__initials" aria-hidden="true">{author?.initials ?? "?"}</span><UserRound size={14} aria-hidden="true" /><span>{courseOwnerLabel(author?.displayName)}</span></p>;
+  return <p className="course-author"><ProfileAvatar name={author?.displayName} url={author?.avatarUrl} size="sm" /><span>{courseOwnerLabel(author?.displayName)}</span></p>;
 }

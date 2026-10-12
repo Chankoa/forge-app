@@ -17,5 +17,5 @@ export async function listCourseCollaborationRequests(courseId: string): Promise
   if (!client) return { requests: [], available: false };
   const { data, error } = await client.rpc("list_course_collaboration_requests", { target_course_id: courseId });
   if (error) return { requests: [], available: false };
-  return { requests: ((data ?? []) as Array<{ request_id: string; requester_id: string; name: string | null; message: string | null; created_at: string }>).flatMap((row) => { const request = collaborationRequestFromRow(row); return request ? [request] : []; }), available: true };
+  return { requests: ((data ?? []) as Array<{ request_id: string; requester_id: string; name: string | null; avatar_url: string | null; message: string | null; created_at: string }>).flatMap((row) => { const request = collaborationRequestFromRow(row); return request ? [request] : []; }), available: true };
 }

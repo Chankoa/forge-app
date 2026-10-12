@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { collaboratorIdentity, collaboratorRoleSchema, type CollaboratorCandidate, type CollaboratorRole } from "@/lib/courses/collaborators";
+import { safeAvatarUrl } from "@/lib/profiles/avatar-url";
 
 const courseIdSchema = z.string().uuid();
 const userIdSchema = z.string().uuid();
@@ -36,7 +37,7 @@ export async function searchCourseCollaboratorCandidatesAction(courseIdValue: st
   const { client } = await requireActiveCourseOwner(courseId);
   const { data, error } = await client.rpc("search_course_collaborator_candidates", { target_course_id: courseId, search_term: search });
   if (error) throw new Error("La recherche de membres est indisponible.");
-  return ((data ?? []) as Array<{ user_id: string; name: string | null }>).flatMap((row) => typeof row.user_id === "string" ? [collaboratorIdentity(row.user_id, row.name)] : []);
+  return ((data ?? []) as Array<{ user_id: string; name: string | null; avatar_url: string | null }>).flatMap((row) => typeof row.user_id === "string" ? [{ ...collaboratorIdentity(row.user_id, row.name), avatarUrl: safeAvatarUrl(row.avatar_url) }] : []);
 }
 
 export async function addCourseCollaboratorAction(courseIdValue: string, userIdValue: string, roleValue: CollaboratorRole) {

@@ -6,8 +6,8 @@ export const collaboratorStatusSchema = z.enum(["active", "invited", "suspended"
 
 export type CollaboratorRole = z.infer<typeof collaboratorRoleSchema>;
 export type CollaboratorStatus = z.infer<typeof collaboratorStatusSchema>;
-export type CourseCollaborator = { userId: string; displayName: string; initials: string; role: CollaboratorRole; status: CollaboratorStatus };
-export type CollaboratorCandidate = { userId: string; displayName: string; initials: string };
+export type CourseCollaborator = { userId: string; displayName: string; initials: string; avatarUrl: string | null; role: CollaboratorRole; status: CollaboratorStatus };
+export type CollaboratorCandidate = { userId: string; displayName: string; initials: string; avatarUrl?: string | null };
 
 export function collaboratorIdentity(userId: string, name: string | null): CollaboratorCandidate {
   const displayName = name?.trim() || "Membre Forge";

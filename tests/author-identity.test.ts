@@ -4,8 +4,8 @@ import { authorIdentityFromPublicRow, authorInitials, isPublicCourse, publicAuth
 
 test("public author identity maps only the deployed RPC fields", () => {
   const identity = authorIdentityFromPublicRow({ profile_id: "author-id", name: "Amina Diallo" });
-  assert.deepEqual(identity, { profileId: "author-id", displayName: "Amina Diallo", initials: "AD" });
-  assert.deepEqual(publicAuthorIdentity({ profile_id: "author-id", name: "Amina Diallo" }), { displayName: "Amina Diallo", initials: "AD" });
+  assert.deepEqual(identity, { profileId: "author-id", displayName: "Amina Diallo", initials: "AD", avatarUrl: null });
+  assert.deepEqual(publicAuthorIdentity({ profile_id: "author-id", name: "Amina Diallo" }), { displayName: "Amina Diallo", initials: "AD", avatarUrl: null });
   assert.equal("email" in identity, false); assert.equal("role" in identity, false); assert.equal("status" in identity, false); assert.equal("last_active_at" in identity, false);
 });
 
@@ -27,6 +27,6 @@ test("only published public courses can request public author attribution", () =
 });
 
 test("RPC projection ignores missing and malformed rows", () => {
-  assert.deepEqual(publicAuthorIdentityFromRpcData([{ profile_id: "author-id", name: "Amina Diallo" }]), { displayName: "Amina Diallo", initials: "AD" });
+  assert.deepEqual(publicAuthorIdentityFromRpcData([{ profile_id: "author-id", name: "Amina Diallo" }]), { displayName: "Amina Diallo", initials: "AD", avatarUrl: null });
   assert.equal(publicAuthorIdentityFromRpcData([]), null); assert.equal(publicAuthorIdentityFromRpcData([{ profile_id: "author-id", name: 3 }]), null);
 });

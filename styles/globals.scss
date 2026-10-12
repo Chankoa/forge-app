@@ -1231,3 +1231,65 @@ textarea,select { font:inherit; }
 .personal-course-row, .personal-course-card, .explore-feature, .explore-recent__row, .global-classroom__course, .collaborator-manager__list li { transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease; }
 .personal-course-row:hover, .explore-recent__row:hover, .global-classroom__course:hover, .collaborator-manager__list li:hover { background: var(--surface-soft); }
 .personal-course-card:hover, .explore-feature:hover { border-color: color-mix(in srgb, var(--violet) 30%, var(--border)); box-shadow: 0 8px 18px rgb(43 35 91 / .08); }
+
+/* I.11.B — cover images, profile identity, settings shell */
+.course-cover--image { background: var(--surface-muted, var(--violet-soft)); }
+.course-cover--image .course-cover__image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.course-cover--image::after { display: none; }
+.course-cover-manager__body { display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.course-cover-manager__preview { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--radius-md); border: 1px solid var(--border); }
+.course-cover-manager__preview > .course-cover { width: 100%; height: 100%; min-height: 100%; border-radius: inherit; }
+.course-cover-manager__preview--empty { display: grid; place-items: center; padding: 12px; text-align: center; color: var(--text-muted); font: var(--font-caption); background: var(--violet-soft); }
+.course-cover-manager__actions { display: grid; gap: 10px; }
+.course-cover-manager__actions > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.public-course__hero { position: relative; }
+.public-course__cover { margin: 20px 0 0; max-width: 800px; aspect-ratio: 21 / 9; overflow: hidden; border-radius: var(--radius-md); border: 1px solid var(--border); }
+.public-course__cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.public-course__cover .course-cover { width: 100%; height: 100%; min-height: 100%; border-radius: 0; }
+.profile-avatar { overflow: hidden; }
+.profile-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.profile-avatar--lg { width: 84px; height: 84px; font-size: 24px; }
+.profile-avatar--sm { width: 32px; height: 32px; font-size: 11px; }
+.course-author { display: flex; align-items: center; gap: 8px; }
+.course-context__owner-action { display: flex; align-items: center; gap: 8px; }
+.collaborator-manager__list > li > .profile-avatar, .collaboration-requests-owner li > .profile-avatar { grid-column: 1; }
+.profile-hero { display: flex; align-items: center; gap: 20px; padding: 24px; border: 1px solid var(--border); border-radius: var(--radius-md); background: linear-gradient(115deg, var(--surface), var(--surface-ai)); }
+.profile-hero__identity { flex: 1 1 auto; min-width: 0; }
+.profile-hero__identity h1 { margin: 0; font: var(--font-page); overflow-wrap: anywhere; }
+.profile-hero__headline { margin: 6px 0 0; color: var(--text-muted); }
+.profile-hero__location { display: flex; align-items: center; gap: 6px; margin: 6px 0 0; color: var(--text-muted); font: var(--font-caption); }
+.profile-hero__settings { display: inline-flex; align-items: center; gap: 6px; color: var(--violet); font: var(--font-label); }
+.profile-tabs { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 0 4px; font: var(--font-label); }
+.profile-tabs a { color: var(--text-muted); padding: 6px 0; }
+.profile-tabs a:hover, .profile-tabs a:focus-visible { color: var(--violet); }
+.profile-page__stack { display: grid; gap: 16px; align-content: start; }
+.profile-page__identity { display: grid; gap: 18px; align-content: start; }
+.profile-avatar-form { display: flex; align-items: center; gap: 16px; }
+.profile-avatar-form__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.profile-domains { display: grid; gap: 12px; }
+.profile-domains__list { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.profile-domains__list button { padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--text); font: var(--font-caption); cursor: pointer; }
+.profile-domains__list button[aria-pressed="true"] { border-color: var(--violet); background: var(--violet-soft); color: var(--violet); }
+.settings-page { display: grid; gap: 18px; }
+.settings-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 20px; align-items: start; }
+.settings-nav ul { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.settings-nav a, .settings-nav__soon { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 9px 12px; border-radius: var(--radius-sm, 8px); color: var(--text); }
+.settings-nav a[aria-current="page"] { background: var(--violet-soft); color: var(--violet); font-weight: 600; }
+.settings-nav__soon { color: var(--text-muted); cursor: default; }
+.settings-nav__soon small { font: var(--font-caption); }
+.settings-panel { display: grid; gap: 14px; }
+.theme-preference { margin: 0; padding: 0; border: 0; }
+.theme-preference legend { margin-bottom: 8px; font: var(--font-label); }
+.theme-preference__options { display: flex; flex-wrap: wrap; gap: 8px; }
+.theme-preference__option input { position: absolute; opacity: 0; }
+.theme-preference__option span { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border: 1px solid var(--border); border-radius: var(--radius-md); cursor: pointer; }
+.theme-preference__option input:checked + span { border-color: var(--violet); background: var(--violet-soft); color: var(--violet); }
+.theme-preference__option input:focus-visible + span { outline: 2px solid var(--violet); outline-offset: 2px; }
+@media (max-width: 700px) {
+  .course-cover-manager__body, .settings-layout { grid-template-columns: minmax(0, 1fr); }
+  .profile-hero { flex-wrap: wrap; padding: 18px; }
+  .profile-avatar-form { align-items: flex-start; }
+  .settings-nav ul { grid-auto-flow: column; grid-auto-columns: max-content; overflow-x: auto; }
+}
+.profile-page__stack > .surface { display: grid; gap: 12px; padding: 20px; }
+.profile-page__stack h2, .profile-page__identity h2, .settings-panel h2 { margin: 0; font: var(--font-section); }

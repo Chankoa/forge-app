@@ -7,10 +7,11 @@ import { CourseMetrics } from "./CourseMetrics";
 import { CourseLifecycleControls } from "./CourseLifecycleControls";
 import { courseClassroomPath } from "@/lib/courses/context-navigation";
 import { CourseProvenance } from "./CourseProvenance";
+import { CourseCoverManager } from "./CourseCoverManager";
 
 type CourseLifecycleAction = (courseId: string, courseSlug: string) => Promise<void>;
 
-export function OwnerCourseOverview({ course, readiness, archiveAction, restoreAction }: { course: CourseDetail; readiness: PublicationReadiness; archiveAction?: CourseLifecycleAction; restoreAction?: CourseLifecycleAction }) {
+export function OwnerCourseOverview({ course, readiness, archiveAction, restoreAction, canManageCover = false }: { course: CourseDetail; readiness: PublicationReadiness; archiveAction?: CourseLifecycleAction; restoreAction?: CourseLifecycleAction; canManageCover?: boolean }) {
   const lessons = course.outline.flatMap((module) => module.lessons);
   const duration = knownCourseDuration(course);
   const firstIncompleteLesson = lessons.find((lesson) => !lesson.content?.trim());
@@ -21,7 +22,7 @@ export function OwnerCourseOverview({ course, readiness, archiveAction, restoreA
   return <div className="owner-overview">
     <CourseMetrics modules={course.outline.length} lessons={lessons.length} durationMinutes={duration} publication={course.status === "published" ? "Publié" : readiness.ready ? "Prêt à publier" : "À compléter"} />
     <CourseProvenance provenance={course.provenance} />
-
+    {canManageCover && <CourseCoverManager courseId={course.id} cover={course.cover} domain={course.domain} />}
     <section className="owner-overview__section" aria-labelledby="overview-modules-title">
       <div className="owner-overview__section-heading"><div><p className="eyebrow">Structure du parcours</p><h2 id="overview-modules-title">Modules</h2></div><Link className="owner-overview__section-link" href={structureHref}>Gérer la structure <ArrowRight size={16} /></Link></div>
       <div className="owner-overview__modules">{course.outline.map((module, index) => {
@@ -38,7 +39,7 @@ export function OwnerCourseOverview({ course, readiness, archiveAction, restoreA
 
     {(course.status === "draft" || course.status === "published") && <section className="owner-overview__section owner-overview__remix" aria-labelledby="overview-remix-title">
       <div className="owner-overview__section-heading"><div><p className="eyebrow">Remix</p><h2 id="overview-remix-title">Créer une copie indépendante</h2></div></div>
-      <p>Le remix repart en brouillon privé. Les relations, sources et données d’apprentissage ne sont pas reprises.</p>
+      <p>Le remix repart en brouillon privé. Les relations, sources, données d’apprentissage et l’image de couverture ne sont pas reprises.</p>
     </section>}
 
     <section className="owner-overview__section owner-overview__readiness" aria-labelledby="overview-readiness-title">

@@ -1,6 +1,8 @@
-export type AuthorIdentity = { profileId: string; displayName: string; initials: string };
-export type PublicAuthorIdentity = Omit<AuthorIdentity, "profileId">;
-export type PublicCourseAuthorRow = { profile_id: string; name: string | null };
+import { safeAvatarUrl } from "./avatar-url";
+
+export type AuthorIdentity = { profileId: string; displayName: string; initials: string; avatarUrl: string | null };
+export type PublicAuthorIdentity = Omit<AuthorIdentity, "profileId" | "avatarUrl"> & { avatarUrl?: string | null };
+export type PublicCourseAuthorRow = { profile_id: string; name: string | null; avatar_url?: string | null };
 
 const fallbackName = "Propriétaire non renseigné";
 
@@ -16,12 +18,12 @@ export function authorInitials(name: string | null | undefined): string {
 
 export function authorIdentityFromPublicRow(row: PublicCourseAuthorRow): AuthorIdentity {
   const displayName = row.name?.trim() || fallbackName;
-  return { profileId: row.profile_id, displayName, initials: authorInitials(displayName) };
+  return { profileId: row.profile_id, displayName, initials: authorInitials(displayName), avatarUrl: safeAvatarUrl(row.avatar_url) };
 }
 
 export function publicAuthorIdentity(row: PublicCourseAuthorRow): PublicAuthorIdentity {
-  const { displayName, initials } = authorIdentityFromPublicRow(row);
-  return { displayName, initials };
+  const { displayName, initials, avatarUrl } = authorIdentityFromPublicRow(row);
+  return { displayName, initials, avatarUrl };
 }
 
 export function isPublicCourse(course: { status: string | null; visibility: string | null }): boolean {
@@ -31,5 +33,6 @@ export function isPublicCourse(course: { status: string | null; visibility: stri
 export function publicAuthorIdentityFromRpcData(data: unknown): PublicAuthorIdentity | null {
   const row = Array.isArray(data) ? data[0] : null;
   if (!row || typeof row !== "object" || !("profile_id" in row) || typeof row.profile_id !== "string" || !("name" in row) || (typeof row.name !== "string" && row.name !== null)) return null;
-  return publicAuthorIdentity({ profile_id: row.profile_id, name: row.name });
+  if ("avatar_url" in row && typeof row.avatar_url !== "string" && row.avatar_url !== null) return null;
+  return publicAuthorIdentity({ profile_id: row.profile_id, name: row.name, avatar_url: "avatar_url" in row ? row.avatar_url : null });
 }

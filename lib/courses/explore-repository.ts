@@ -2,6 +2,7 @@ import type { CourseSummary } from "./contracts";
 import { domainNameFromRelation } from "./presentation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getPublicCourseAuthor } from "@/lib/profiles/public-author-repository";
+import { resolveCourseCovers } from "./cover-repository";
 type ExploreCourseRow = Pick<CourseSummary, "id" | "slug" | "title" | "status" | "description" | "level"> & { duration_minutes: number | null; domains: { name: string } | { name: string }[] | null };
 
 export function mapExploreCourse(row: ExploreCourseRow): CourseSummary {
@@ -25,11 +26,13 @@ export async function listDiscoverableCourses(): Promise<{ courses: Array<Course
 	const courses = await Promise.all((data ?? []).map(async (row) => {
 		const course = mapExploreCourse(row as ExploreCourseRow);
 		const author = await getPublicCourseAuthor(client, { id: course.id, status: course.status, visibility: "public" });
-		return { ...course, author: author ?? { displayName: "Propriétaire non renseigné", initials: "?" } };
+		return { ...course, author: author ?? { displayName: "Propriétaire non renseigné", initials: "?", avatarUrl: null } };
 	}));
+	const covers = await resolveCourseCovers(client, courses.map((course) => course.id));
+	const withCovers = courses.map((course) => ({ ...course, cover: covers[course.id] ?? null }));
 	const { data: { user } } = await client.auth.getUser();
-	if (!user || courses.length === 0) return { courses: courses.map((course) => ({ ...course, enrolled: false })), envRequired: false, unavailable: false };
-	const { data: enrollments } = await client.from("enrollments").select("course_id").eq("user_id", user.id).in("course_id", courses.map((course) => course.id));
+	if (!user || withCovers.length === 0) return { courses: withCovers.map((course) => ({ ...course, enrolled: false })), envRequired: false, unavailable: false };
+	const { data: enrollments } = await client.from("enrollments").select("course_id").eq("user_id", user.id).in("course_id", withCovers.map((course) => course.id));
 	const enrolledIds = new Set((enrollments ?? []).map((enrollment: { course_id: string }) => enrollment.course_id));
-	return { courses: courses.map((course) => ({ ...course, enrolled: enrolledIds.has(course.id) })), envRequired: false, unavailable: false };
+	return { courses: withCovers.map((course) => ({ ...course, enrolled: enrolledIds.has(course.id) })), envRequired: false, unavailable: false };
 }

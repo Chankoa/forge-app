@@ -1,10 +1,13 @@
 import "server-only";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getCourseOwnerIdentity, getPublicCourseAuthor } from "@/lib/profiles/public-author-repository";
+import type { PublicAuthorIdentity } from "@/lib/profiles/author-identity";
 
 export type CourseProvenance = {
   sourceCourseTitle: string;
   sourceAuthorName: string | null;
+  sourceAuthor?: PublicAuthorIdentity | null;
   remixedAt: string;
   sourceHref: string | null;
 };
@@ -24,14 +27,21 @@ export async function getCourseProvenance(courseId: string, options: { publicPat
   if (error || !provenance) return null;
 
   let sourceHref: string | null = null;
+  let sourceAuthor: PublicAuthorIdentity | null = null;
   if (provenance.remixed_from_course_id) {
     const { data: source } = await client.from("courses").select("slug,status,visibility").eq("id", provenance.remixed_from_course_id).maybeSingle();
-    if (source?.status === "published" && source.visibility === "public") sourceHref = `${options.publicPath ? "/courses" : "/app/courses"}/${source.slug}`;
+    if (source?.status === "published" && source.visibility === "public") {
+      sourceHref = `${options.publicPath ? "/courses" : "/app/courses"}/${source.slug}`;
+      sourceAuthor = await getPublicCourseAuthor(client, { id: provenance.remixed_from_course_id, status: source.status, visibility: source.visibility });
+    } else {
+      sourceAuthor = await getCourseOwnerIdentity(client, provenance.remixed_from_course_id);
+    }
   }
 
   return {
     sourceCourseTitle: provenance.source_course_title,
     sourceAuthorName: provenance.source_author_name,
+    sourceAuthor,
     remixedAt: provenance.remixed_at,
     sourceHref,
   };

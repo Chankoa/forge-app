@@ -1,8 +1,9 @@
 import type { PublicAuthorIdentity } from "@/lib/profiles/author-identity";
 import type { CourseProvenance } from "./provenance-repository";
 import type { MediaPresentation } from "./media-contracts";
+import type { CoverPresentation } from "./cover-contracts";
 
-export type CourseSummary = { id: string; slug: string; title: string; description: string | null; domain: string | null; status: string | null; author?: PublicAuthorIdentity; owner?: { id: string | null; displayName: string }; collaborationRequestsEnabled?: boolean; lessonCount?: number; durationMinutes?: number | null; level?: string | null; };
+export type CourseSummary = { id: string; slug: string; title: string; description: string | null; domain: string | null; status: string | null; author?: PublicAuthorIdentity; owner?: { id: string | null; displayName: string }; collaborationRequestsEnabled?: boolean; lessonCount?: number; durationMinutes?: number | null; level?: string | null; cover?: CoverPresentation | null; };
 export type CourseLesson = { id: string; slug: string; title: string; description: string | null; content: string | null; objectives: string[]; durationMinutes: number | null; contentType: string; publishingStatus: string; status: "not-started" | "in-progress" | "completed"; mediaResources?: Record<string, MediaPresentation>; };
 export type CourseOutline = { id: string; moduleTitle: string; lessons: CourseLesson[] }[];
 export type CourseDetail = CourseSummary & { domainId: string | null; subtitle: string | null; visibility: string | null; hasPublicAuthor?: boolean; outline: CourseOutline; provenance?: CourseProvenance | null; };

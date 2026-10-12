@@ -1,9 +1,10 @@
 import "server-only";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { safeAvatarUrl } from "@/lib/profiles/avatar-url";
 import { collaboratorIdentity, collaboratorRoleSchema, collaboratorStatusSchema, type CourseCollaborator } from "./collaborators";
 
-type CollaboratorRow = { user_id: string; name: string | null; role: string; status: string };
+type CollaboratorRow = { user_id: string; name: string | null; avatar_url: string | null; role: string; status: string };
 
 export async function listCourseCollaborators(courseId: string): Promise<{ collaborators: CourseCollaborator[]; available: boolean }> {
   const client = await createServerSupabaseClient();
@@ -14,7 +15,7 @@ export async function listCourseCollaborators(courseId: string): Promise<{ colla
     const role = collaboratorRoleSchema.safeParse(row.role);
     const status = collaboratorStatusSchema.safeParse(row.status);
     if (!role.success || !status.success || typeof row.user_id !== "string") return [];
-    return [{ ...collaboratorIdentity(row.user_id, row.name), role: role.data, status: status.data }];
+    return [{ ...collaboratorIdentity(row.user_id, row.name), avatarUrl: safeAvatarUrl(row.avatar_url), role: role.data, status: status.data }];
   });
   return { collaborators, available: true };
 }
