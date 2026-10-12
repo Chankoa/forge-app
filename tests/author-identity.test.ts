@@ -11,7 +11,7 @@ test("public author identity maps only the deployed RPC fields", () => {
 
 test("author identity never falls back to email or UUID", () => {
   const identity = authorIdentityFromPublicRow({ profile_id: "b5bca34d-5b85-42c9-8c17-768d0d5dc4b2", name: "  " });
-  assert.equal(identity.displayName, "Auteur Forge"); assert.equal(identity.initials, "AF");
+  assert.equal(identity.displayName, "Propriétaire non renseigné"); assert.equal(identity.initials, "PN");
   assert.equal(identity.displayName.includes("@"), false); assert.equal(identity.displayName.includes(identity.profileId), false);
 });
 

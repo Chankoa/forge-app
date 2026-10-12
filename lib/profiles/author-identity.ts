@@ -2,7 +2,12 @@ export type AuthorIdentity = { profileId: string; displayName: string; initials:
 export type PublicAuthorIdentity = Omit<AuthorIdentity, "profileId">;
 export type PublicCourseAuthorRow = { profile_id: string; name: string | null };
 
-const fallbackName = "Auteur Forge";
+const fallbackName = "Propriétaire non renseigné";
+
+export function courseOwnerLabel(name: string | null | undefined): string {
+  const displayName = name?.trim();
+  return !displayName || displayName === fallbackName ? fallbackName : `Parcours de ${displayName}`;
+}
 
 export function authorInitials(name: string | null | undefined): string {
   const words = name?.trim().split(/\s+/).filter(Boolean) ?? [];

@@ -10,7 +10,7 @@ import { getCourseProvenance } from "./provenance-repository";
 import { resourceIdsInRichContent } from "./lesson-rich-content";
 import { resolveCourseMediaResources } from "./media-repository";
 
-type CourseRow = { id: string; slug: string; title: string; subtitle: string | null; description: string | null; domain_id: string | null; status: string | null; visibility: string | null; collaboration_requests_enabled: boolean; duration_minutes: number | null; domains: { name: string } | { name: string }[] | null };
+type CourseRow = { id: string; teacher_id: string | null; slug: string; title: string; subtitle: string | null; description: string | null; domain_id: string | null; status: string | null; visibility: string | null; collaboration_requests_enabled: boolean; duration_minutes: number | null; domains: { name: string } | { name: string }[] | null };
 type ModuleRow = { id: string; title: string; display_order: number };
 type LessonRow = { id: string; module_id: string; slug: string; title: string; description: string | null; content: string | null; objectives: string[] | null; duration_minutes: number | null; type: string; status: string; display_order: number };
 type EnrollmentRow = { id: string; course_id: string; status: EnrollmentState["status"]; current_lesson_id: string | null };
@@ -21,7 +21,7 @@ function mapSummary(row: CourseRow): CourseSummary { return { id: row.id, slug: 
 export async function getCourseDetail(courseSlug: string): Promise<CourseDetail | null> {
   const client = await createServerSupabaseClient();
   if (!client) return null;
-  const { data: courseData, error: courseError } = await client.from("courses").select("id,slug,title,subtitle,description,domain_id,status,visibility,collaboration_requests_enabled,duration_minutes,domains(name)").eq("slug", courseSlug).maybeSingle();
+  const { data: courseData, error: courseError } = await client.from("courses").select("id,teacher_id,slug,title,subtitle,description,domain_id,status,visibility,collaboration_requests_enabled,duration_minutes,domains(name)").eq("slug", courseSlug).maybeSingle();
   if (courseError || !courseData) return null;
   const course = courseData as CourseRow;
   const [{ data: moduleData, error: moduleError }, { data: lessonData, error: lessonError }] = await Promise.all([
@@ -35,7 +35,7 @@ export async function getCourseDetail(courseSlug: string): Promise<CourseDetail 
   const outline: CourseOutline = ((moduleData ?? []) as ModuleRow[]).map((module) => ({ id: module.id, moduleTitle: module.title, lessons: lessons.filter((lesson) => lesson.module_id === module.id).map((lesson): CourseLesson => ({ id: lesson.id, slug: lesson.slug, title: lesson.title, description: lesson.description, content: lesson.content, objectives: lesson.objectives ?? [], durationMinutes: lesson.duration_minutes, contentType: lesson.type, publishingStatus: lesson.status, status: "not-started", mediaResources })) }));
   const [publicAuthor, provenance] = await Promise.all([getPublicCourseAuthor(client, course), getCourseProvenance(course.id)]);
   const author = publicAuthor ?? await getCourseOwnerIdentity(client, course.id);
-  return { ...mapSummary(course), ...(author ? { author } : {}), domainId: course.domain_id, subtitle: course.subtitle, visibility: course.visibility, hasPublicAuthor: publicAuthor !== null, outline, provenance };
+  return { ...mapSummary(course), ...(author ? { author } : {}), owner: { id: course.teacher_id, displayName: author?.displayName ?? "Propriétaire non renseigné" }, domainId: course.domain_id, subtitle: course.subtitle, visibility: course.visibility, hasPublicAuthor: publicAuthor !== null, outline, provenance };
 }
 
 export async function getLearningState(course: CourseDetail): Promise<LearningState> {
@@ -43,10 +43,10 @@ export async function getLearningState(course: CourseDetail): Promise<LearningSt
   if (!client) return { enrollment: null, progress: [], completedLessonIds: new Set(), percentage: 0, continueLessonId: null };
   const { data: { user } } = await client.auth.getUser();
   if (!user) return { enrollment: null, progress: [], completedLessonIds: new Set(), percentage: 0, continueLessonId: null };
-  const { data: enrollmentData } = await client.from("enrollments").select("id,course_id,status,current_lesson_id").eq("course_id", course.id).maybeSingle();
+  const { data: enrollmentData } = await client.from("enrollments").select("id,course_id,status,current_lesson_id").eq("course_id", course.id).eq("user_id", user.id).maybeSingle();
   const enrollment = enrollmentData as EnrollmentRow | null;
   if (!enrollment) return { enrollment: null, progress: [], completedLessonIds: new Set(), percentage: 0, continueLessonId: null };
-  const { data: progressData } = await client.from("lesson_progress").select("lesson_id,completed,updated_at").eq("course_id", course.id);
+  const { data: progressData } = await client.from("lesson_progress").select("lesson_id,completed,updated_at").eq("course_id", course.id).eq("user_id", user.id);
   const progress = (progressData ?? []) as ProgressRow[];
   const completedLessonIds = new Set(progress.filter((item) => item.completed).map((item) => item.lesson_id));
   return { enrollment: { id: enrollment.id, courseId: enrollment.course_id, status: enrollment.status, currentLessonId: enrollment.current_lesson_id }, progress: progress.map((item) => ({ lessonId: item.lesson_id, completed: item.completed, updatedAt: item.updated_at })), completedLessonIds, percentage: progressPercentage(course.outline.flatMap((module) => module.lessons).length, completedLessonIds), continueLessonId: resolveContinueLessonId(course.outline, progress.map((item) => ({ lessonId: item.lesson_id, completed: item.completed, updatedAt: item.updated_at })), enrollment.current_lesson_id) };
@@ -55,7 +55,9 @@ export async function getLearningState(course: CourseDetail): Promise<LearningSt
 export async function listMyLearningCourses(): Promise<Array<{ course: CourseDetail; state: LearningState }>> {
   const client = await createServerSupabaseClient();
   if (!client) return [];
-  const { data: enrollments } = await client.from("enrollments").select("course_id").order("last_accessed_at", { ascending: false, nullsFirst: false });
+  const { data: { user } } = await client.auth.getUser();
+  if (!user) return [];
+  const { data: enrollments } = await client.from("enrollments").select("course_id").eq("user_id", user.id).order("last_accessed_at", { ascending: false, nullsFirst: false });
   const courseIds = Array.from(new Set((enrollments ?? []).map((item: { course_id: string }) => item.course_id)));
   const details = await Promise.all(courseIds.map(async (courseId) => { const { data } = await client.from("courses").select("slug").eq("id", courseId).maybeSingle(); return data?.slug ? getCourseDetail(data.slug) : null; }));
   return (await Promise.all(details.filter((detail): detail is CourseDetail => Boolean(detail)).map(async (course) => ({ course, state: await getLearningState(course) }))));
@@ -67,9 +69,9 @@ export async function listMyCourses(): Promise<Array<{ course: CourseDetail; sta
   const { data: { user } } = await client.auth.getUser();
   if (!user) return [];
   const [{ data: enrollments }, { data: authored }, { data: memberships }] = await Promise.all([
-    client.from("enrollments").select("course_id"),
+    client.from("enrollments").select("course_id").eq("user_id", user.id),
     client.from("courses").select("id,slug").eq("teacher_id", user.id),
-    client.from("course_memberships").select("course_id,role,status").eq("status", "active").in("role", ["editor", "viewer"]),
+    client.from("course_memberships").select("course_id,role,status").eq("user_id", user.id).eq("status", "active").in("role", ["editor", "viewer"]),
   ]);
   const authoredById = new Map((authored ?? []).map((course: { id: string; slug: string }) => [course.id, course.slug]));
   const collaborationByCourseId = new Map((memberships ?? []).map((membership: { course_id: string; role: "editor" | "viewer" }) => [membership.course_id, membership.role]));

@@ -33,5 +33,5 @@ export async function getPublicCourseDetail(courseSlug: string): Promise<PublicC
     getPublicCourseAuthor(client, course),
     getCourseProvenance(course.id, { publicPath: true }),
   ]);
-  return { ...mapPublicCourseDetail(course), ...(author ? { author } : {}), provenance };
+  return { ...mapPublicCourseDetail(course), author: author ?? { displayName: "Propriétaire non renseigné", initials: "?" }, provenance };
 }

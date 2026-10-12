@@ -1224,6 +1224,8 @@ textarea,select { font:inherit; }
 
 /* I.7: quiet continuity across personal work surfaces. */
 .course-context__relationship { margin: 10px 0 0; color: var(--violet); font: var(--font-label); }
+.course-context__owner-action { margin: 8px 0 0; color: var(--text-secondary); font: var(--font-caption); overflow-wrap: anywhere; }
+.course-author, .personal-course-attribution { overflow-wrap: anywhere; }
 .workspace-hero { box-shadow: 0 14px 36px rgb(43 35 91 / .08); }
 .profile-page > .library-header { padding: 22px 24px; border: 1px solid var(--border); border-radius: var(--radius-md); background: linear-gradient(115deg, var(--surface) 0%, var(--surface-soft) 100%); box-shadow: 0 10px 24px rgb(43 35 91 / .06); }
 .personal-course-row, .personal-course-card, .explore-feature, .explore-recent__row, .global-classroom__course, .collaborator-manager__list li { transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease; }

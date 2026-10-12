@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { CourseIdentityHeader } from "../components/course/CourseIdentityHeader";
 import { PersonalCourseCard } from "../components/course/CoursePresentation";
 import { resolveCourseCapabilities } from "../lib/capabilities/course-capabilities";
-import { courseRelations } from "../lib/courses/presentation";
+import { courseRelations, courseRelationshipMarker } from "../lib/courses/presentation";
 import { profileCourseSections } from "../lib/profiles/profile-projections";
 import type { LibraryCourse } from "../lib/courses/library-view";
 
@@ -16,14 +16,15 @@ test("owner remains the canonical Je crée relationship", () => {
   const capabilities = resolveCourseCapabilities({ isOwner: true, isEnrolled: false, courseStatus: "draft" });
   const html = renderToStaticMarkup(createElement(CourseIdentityHeader, { course, capabilities, overview: true }));
   assert.match(html, /Je crée/);
-  assert.doesNotMatch(html, /J’édite|Lecteur|Par Chandra Proton/);
+  assert.match(html, /Parcours de Chandra Proton/);
+  assert.doesNotMatch(html, /J’édite|Lecteur|Vous modifiez/);
 });
 
 test("active editor is labelled J’édite with owner attribution and never Je crée", () => {
   const capabilities = resolveCourseCapabilities({ isOwner: false, isEnrolled: false, courseStatus: "draft", membershipRole: "editor", membershipStatus: "active" });
   const html = renderToStaticMarkup(createElement(CourseIdentityHeader, { course, capabilities, overview: false }));
   assert.match(html, /J’édite/);
-  assert.match(html, /Par Chandra Proton/);
+  assert.match(html, /Vous modifiez le parcours de Chandra Proton/);
   assert.doesNotMatch(html, /Je crée/);
 });
 
@@ -31,7 +32,7 @@ test("active viewer is labelled Lecteur with owner attribution and never Je cré
   const capabilities = resolveCourseCapabilities({ isOwner: false, isEnrolled: false, courseStatus: "archived", membershipRole: "viewer", membershipStatus: "active" });
   const html = renderToStaticMarkup(createElement(CourseIdentityHeader, { course: { ...course, status: "archived" }, capabilities, overview: false }));
   assert.match(html, /Lecteur/);
-  assert.match(html, /Par Chandra Proton/);
+  assert.match(html, /Vous consultez le parcours de Chandra Proton/);
   assert.match(html, /Archivé/);
   assert.doesNotMatch(html, /Je crée/);
 });
@@ -40,12 +41,44 @@ test("learner and multi-relation labels remain distinct and non-contradictory", 
   assert.deepEqual(courseRelations(true, false), ["learn"]);
   assert.deepEqual(courseRelations(true, false, "editor", "active"), ["learn", "edit"]);
   assert.deepEqual(courseRelations(true, true, "owner", "active"), ["learn", "create"]);
+  assert.equal(courseRelationshipMarker(true, false, "editor", "active"), "J’apprends · J’édite");
+  assert.equal(courseRelationshipMarker(true, false, "viewer", "active"), "J’apprends · Lecteur");
+  for (const status of ["invited", "suspended", "revoked"] as const) {
+    assert.deepEqual(courseRelations(false, false, "editor", status), []);
+    assert.deepEqual(courseRelations(true, false, "viewer", status), ["learn"]);
+  }
+});
+
+test("owner attribution survives archived and redundant membership states", () => {
+  const capabilities = resolveCourseCapabilities({ isOwner: true, isEnrolled: false, courseStatus: "archived", membershipRole: "viewer", membershipStatus: "active" });
+  const html = renderToStaticMarkup(createElement(CourseIdentityHeader, { course: { ...course, status: "archived" }, capabilities, overview: false }));
+  assert.match(html, /Parcours de Chandra Proton/);
+  assert.match(html, /Je crée/);
+  assert.doesNotMatch(html, /Vous consultez|Lecteur/);
+});
+
+test("mixed learner collaborator headers retain both relationships and the other owner", () => {
+  for (const role of ["editor", "viewer"] as const) {
+    const capabilities = resolveCourseCapabilities({ isOwner: false, isEnrolled: true, courseStatus: "published", membershipRole: role, membershipStatus: "active" });
+    const html = renderToStaticMarkup(createElement(CourseIdentityHeader, { course, capabilities, overview: false }));
+    assert.match(html, /Chandra Proton/);
+    assert.match(html, role === "editor" ? /J’apprends · J’édite/ : /J’apprends · Lecteur/);
+  }
+});
+
+test("missing owner profile uses a safe label in course and list headers", () => {
+  const capabilities = resolveCourseCapabilities({ isOwner: false, isEnrolled: true });
+  const header = renderToStaticMarkup(createElement(CourseIdentityHeader, { course: { ...course, author: undefined }, capabilities, overview: false }));
+  const card = renderToStaticMarkup(createElement(PersonalCourseCard, { course: { ...baseCard, author: undefined }, relations: ["learn"], action: createElement("a", { href: "/app/courses/shared-course" }, "Voir") }));
+  assert.match(header, /Propriétaire non renseigné/);
+  assert.match(card, /Propriétaire non renseigné/);
+  assert.doesNotMatch(header + card, /[0-9a-f]{8}-[0-9a-f-]{27,}/i);
 });
 
 test("Mes parcours collaboration card shows the role and owner attribution", () => {
   const html = renderToStaticMarkup(createElement(PersonalCourseCard, { course: { ...baseCard, collaborationRole: "editor" }, relations: ["edit"], action: createElement("a", { href: "/app/courses/shared-course" }, "Voir") }));
   assert.match(html, /J’édite/);
-  assert.match(html, /Par Chandra Proton/);
+  assert.match(html, /Parcours de Chandra Proton/);
   assert.doesNotMatch(html, /Je crée/);
 });
 

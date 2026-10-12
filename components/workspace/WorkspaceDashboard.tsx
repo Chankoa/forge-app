@@ -5,6 +5,7 @@ import { DomainMetadata } from "@/components/course/DomainMetadata";
 import { courseRelations } from "@/lib/courses/presentation";
 import { selectWorkspaceCourses, workspaceCourseAction, workspaceLesson, type WorkspaceCourse } from "@/lib/courses/workspace-view";
 import type { WorkspaceCollaborationAwareness } from "@/lib/courses/collaboration-awareness-repository";
+import { courseOwnerLabel } from "@/lib/profiles/author-identity";
 
 function WorkspaceProgress({ item }: { item: WorkspaceCourse }) {
   if (!item.state.enrollment) return null;
@@ -14,7 +15,7 @@ function WorkspaceProgress({ item }: { item: WorkspaceCourse }) {
 
 function WorkspacePath({ item }: { item: WorkspaceCourse }) {
   const action = workspaceCourseAction(item);
-  return <article className="workspace-dashboard__path"><CourseCover domain={item.course.domain} compact /><div className="workspace-dashboard__path-identity"><DomainMetadata domain={item.course.domain} /><h3>{item.course.title}</h3>{item.course.description && <p>{item.course.description}</p>}</div><div className="workspace-dashboard__path-meta"><RelationPills relations={courseRelations(Boolean(item.state.enrollment), item.isOwner)} />{item.isOwner && <PublicationStatus status={item.course.status} />}{item.state.enrollment && <WorkspaceProgress item={item} />}</div><Link href={action.href}>{action.label}<ArrowRight size={15} aria-hidden="true" /></Link></article>;
+  return <article className="workspace-dashboard__path"><CourseCover domain={item.course.domain} compact /><div className="workspace-dashboard__path-identity"><DomainMetadata domain={item.course.domain} /><h3>{item.course.title}</h3><p className="personal-course-attribution">{courseOwnerLabel(item.course.owner?.displayName)}</p>{item.course.description && <p>{item.course.description}</p>}</div><div className="workspace-dashboard__path-meta"><RelationPills relations={courseRelations(Boolean(item.state.enrollment), item.isOwner, item.collaborationRole ?? null, item.collaborationRole ? "active" : null)} />{item.isOwner && <PublicationStatus status={item.course.status} />}{item.state.enrollment && <WorkspaceProgress item={item} />}</div><Link href={action.href}>{action.label}<ArrowRight size={15} aria-hidden="true" /></Link></article>;
 }
 
 export function WorkspaceSections({ courses }: { courses: WorkspaceCourse[] }) {
@@ -24,7 +25,7 @@ export function WorkspaceSections({ courses }: { courses: WorkspaceCourse[] }) {
   const continueAction = continuing && workspaceCourseAction(continuing);
   return <div className="workspace-dashboard__sections">
     <section className="workspace-journey__section" aria-labelledby="workspace-continue-title"><div className="workspace-journey__section-heading"><div><p className="eyebrow">Votre activité</p><h2 id="workspace-continue-title">Continuer</h2></div></div>
-      {continuing && continueAction ? <article className="workspace-dashboard__continue"><CourseCover domain={continuing.course.domain} compact /><div className="workspace-dashboard__continue-body"><DomainMetadata domain={continuing.course.domain} /><h3>{continuing.course.title}</h3>{currentLesson && <p>{currentModule?.moduleTitle ? `${currentModule.moduleTitle} · ` : ""}{currentLesson.title}{currentLesson.durationMinutes != null ? ` · ${currentLesson.durationMinutes} min` : ""}</p>}<WorkspaceProgress item={continuing} /></div><Link className="button button--primary" href={continueAction.href}>{continueAction.label}<ArrowRight size={16} aria-hidden="true" /></Link></article>
+      {continuing && continueAction ? <article className="workspace-dashboard__continue"><CourseCover domain={continuing.course.domain} compact /><div className="workspace-dashboard__continue-body"><DomainMetadata domain={continuing.course.domain} /><h3>{continuing.course.title}</h3><p className="personal-course-attribution">{courseOwnerLabel(continuing.course.owner?.displayName)}</p>{currentLesson && <p>{currentModule?.moduleTitle ? `${currentModule.moduleTitle} · ` : ""}{currentLesson.title}{currentLesson.durationMinutes != null ? ` · ${currentLesson.durationMinutes} min` : ""}</p>}<WorkspaceProgress item={continuing} /></div><Link className="button button--primary" href={continueAction.href}>{continueAction.label}<ArrowRight size={16} aria-hidden="true" /></Link></article>
         : <div className="workspace-journey__empty"><p>Aucun parcours à reprendre pour le moment.</p><Link href="/app/create">Créer un parcours <ArrowRight size={16} aria-hidden="true" /></Link></div>}
     </section>
     <section className="workspace-journey__section" aria-labelledby="workspace-paths-title"><div className="workspace-journey__section-heading"><div><p className="eyebrow">Vos parcours</p><h2 id="workspace-paths-title">Mes parcours</h2></div><Link href="/app/courses">Tous mes parcours <ArrowRight size={16} aria-hidden="true" /></Link></div>

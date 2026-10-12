@@ -2,7 +2,7 @@ import type { CourseDetail, CourseLesson } from "./contracts";
 import type { LearningState } from "@/lib/learning/contracts";
 import { courseEditPath } from "./context-navigation";
 
-export type WorkspaceCourse = { course: CourseDetail; state: LearningState; isOwner: boolean };
+export type WorkspaceCourse = { course: CourseDetail; state: LearningState; isOwner: boolean; collaborationRole?: "editor" | "viewer" | null };
 
 export function workspaceLesson(item: WorkspaceCourse): CourseLesson | undefined {
   const lessons = item.course.outline.flatMap((module) => module.lessons);

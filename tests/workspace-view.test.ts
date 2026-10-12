@@ -31,6 +31,17 @@ test("Workspace sections follow Continue, My Paths, Learn and Forge links only t
   assert.doesNotMatch(rail, /Trouver des ressources|score de recommandation/);
 });
 
+test("Workspace course rows keep owner identity and mixed learner-editor relationship", () => {
+  const shared = item("shared", false, true, 0);
+  shared.collaborationRole = "editor";
+  shared.course.owner = { id: "other-owner", displayName: "Chandra Proton" };
+  const html = renderToStaticMarkup(createElement(WorkspaceSections, { courses: [shared] }));
+  assert.match(html, /Parcours de Chandra Proton/);
+  assert.match(html, /J’apprends/);
+  assert.match(html, /J’édite/);
+  assert.doesNotMatch(html, /Je crée/);
+});
+
 test("Workspace collaboration awareness shows owned pending requests with the course manager deep link", () => {
   const courses = [item("owned", true, false, 0)];
   const rail = renderToStaticMarkup(createElement(WorkspaceContextRail, { courses, collaboration: { ownerRequests: [{ requestId: "request-1", courseId: "owned", courseTitle: "Parcours owned", requesterName: "Chandra Neutral", createdAt: "2026-10-01T10:00:00.000Z" }, { requestId: "request-other", courseId: "not-listed", courseTitle: "Parcours hors scope", requesterName: "Autre", createdAt: "2026-10-01T10:00:00.000Z" }], acceptedRequests: [] } }));
