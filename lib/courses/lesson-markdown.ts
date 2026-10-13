@@ -68,5 +68,10 @@ export function insertMediaResource(content: string, start: number, end: number,
   const field = kind === "image" ? `alt=${text}` : `title=${text}`;
   const extra = caption.trim() ? `\ncaption=${caption.trim()}` : "";
   const inserted = `:::${kind}\nresource=${resourceId}\n${field}${extra}\n:::`;
-  return { content: content.slice(0, from) + inserted + content.slice(to), selectionStart: from + inserted.length, selectionEnd: from + inserted.length };
+  const before = content.slice(0, from);
+  const after = content.slice(to);
+  const prefix = before && !before.endsWith("\n\n") ? before.endsWith("\n") ? "\n" : "\n\n" : "";
+  const suffix = after && !after.startsWith("\n\n") ? after.startsWith("\n") ? "\n" : "\n\n" : "";
+  const cursor = from + prefix.length + inserted.length;
+  return { content: before + prefix + inserted + suffix + after, selectionStart: cursor, selectionEnd: cursor };
 }

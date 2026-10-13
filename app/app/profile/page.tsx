@@ -17,7 +17,7 @@ export default async function ProfilePage() {
   const selectedDomains = domainOptions.filter((option) => profile.domainIds.includes(option.id));
   return <div className="profile-page">
     <header className="profile-hero">
-      <ProfileAvatar name={name} url={profile.avatarUrl} size="lg" />
+      <ProfileAvatar name={name} url={profile.avatarUrl} size="profile" />
       <div className="profile-hero__identity"><p className="eyebrow">Votre identité Forge</p><h1>{name}</h1>{profile.headline && <p className="profile-hero__headline">{profile.headline}</p>}{profile.location && <p className="profile-hero__location"><MapPin size={15} aria-hidden="true" />{profile.location}</p>}</div>
       <Link className="profile-hero__settings" href="/app/settings"><Settings size={16} aria-hidden="true" />Paramètres</Link>
     </header>

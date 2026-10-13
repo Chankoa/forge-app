@@ -24,6 +24,10 @@ export function sanitizeMediaFilename(value: string) {
   return base || "media";
 }
 
+export function courseMediaStoragePath(courseId: string, resourceId: string, filename: string) {
+  return `${courseId}/${resourceId}/${sanitizeMediaFilename(filename)}`;
+}
+
 export function validateMediaUpload(kind: MediaKind, mimeType: string, size: number) {
   if (kind === "video") return { ok: false as const, error: "Les vidéos téléversées ne sont pas encore prises en charge." };
   if (!mediaMimeTypes[kind].includes(mimeType as never)) return { ok: false as const, error: "Ce format média n’est pas pris en charge." };

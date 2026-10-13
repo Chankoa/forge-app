@@ -11,7 +11,7 @@ import { normalizeAuthoringText } from "@/lib/courses/authoring-text";
 import { courseDomainUpdate, parseDomainSelection } from "@/lib/forge/domain-mapping";
 import { resolveCourseCapabilities } from "@/lib/capabilities/course-capabilities";
 import { draftCourseCreationAttributes, ownerEditorRedirect } from "@/lib/forge/creation-flow";
-import { sanitizeMediaFilename, validateMediaUpload, type MediaKind } from "@/lib/courses/media-contracts";
+import { courseMediaStoragePath, validateMediaUpload, type MediaKind } from "@/lib/courses/media-contracts";
 
 function slugify(value: string) { return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 72) || "nouveau-parcours"; }
 async function authorClient() { const client = await createServerSupabaseClient(); if (!client) throw new Error("Supabase local n'est pas configuré."); const { data: { user } } = await client.auth.getUser(); if (!user) throw new Error("Votre session a expiré. Connectez-vous à nouveau."); return { client, user }; }
@@ -106,7 +106,7 @@ export async function uploadCourseMediaAction(courseId: string, formData: FormDa
   if (kind === "image" && !altText) throw new Error("Un texte alternatif est requis pour une image.");
   if (kind === "audio" && !title) throw new Error("Un titre est requis pour un audio.");
   const resourceId = crypto.randomUUID();
-  const storagePath = `course-media/${courseId}/${resourceId}/${sanitizeMediaFilename(file.name)}`;
+  const storagePath = courseMediaStoragePath(courseId, resourceId, file.name);
   const { error: uploadError } = await client.storage.from("course-media").upload(storagePath, file, { contentType: file.type, upsert: false });
   if (uploadError) throw new Error("Le téléversement du média a échoué.");
   const { data, error } = await client.from("course_media_resources").insert({
@@ -115,13 +115,12 @@ export async function uploadCourseMediaAction(courseId: string, formData: FormDa
     caption: String(formData.get("caption") || "").trim() || null, status: "ready",
   }).select("id,kind,title,alt_text,caption,status,storage_path").single();
   if (error || !data) {
-    await client.storage.from("course-media").remove([storagePath]);
+    const { error: cleanupError } = await client.storage.from("course-media").remove([storagePath]);
+    if (cleanupError) console.error("[forge] media upload rollback failed", { courseId, resourceId, operation: "metadata_insert" });
     throw new Error("Le média n'a pas pu être enregistré.");
   }
-  const signed = await client.storage.from("course-media").createSignedUrl(storagePath, 300);
-  if (signed.error) throw new Error("Le média a été enregistré mais ne peut pas être affiché pour le moment.");
   revalidatePath("/app/courses/[courseSlug]", "page");
-  return { id: data.id, kind: data.kind, url: signed.data.signedUrl, title: data.title, altText: data.alt_text, caption: data.caption, status: data.status };
+  return { id: data.id, kind: data.kind, title: data.title, altText: data.alt_text, caption: data.caption, status: data.status };
 }
 
 async function reorderAdjacent(courseId: string, table: "course_modules" | "lessons", itemId: string, direction: MoveDirection, moduleId?: string) {

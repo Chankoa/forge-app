@@ -38,7 +38,7 @@ test("cover: no cover and invalid legacy URL use the DS fallback", () => {
 test("cover: validates the existing bucket size and accepted image formats", () => {
   assert.equal(courseCoverBucket, "course-covers");
   assert.equal(validateCourseCoverUpload("image/jpeg", 1024).ok, true);
-  assert.equal(validateCourseCoverUpload("image/gif", 1024).ok, true);
+  assert.equal(validateCourseCoverUpload("image/gif", 1024).ok, false);
   assert.equal(validateCourseCoverUpload("image/svg+xml", 1024).ok, false);
   assert.equal(validateCourseCoverUpload("image/png", courseCoverMaxBytes + 1).ok, false);
 });

@@ -30,10 +30,7 @@ language plpgsql
 immutable
 as $$
 begin
-  if split_part(object_name, '/', 1) <> 'course-media' then
-    return null;
-  end if;
-  return split_part(object_name, '/', 2)::uuid;
+  return split_part(object_name, '/', 1)::uuid;
 exception when invalid_text_representation then
   return null;
 end;

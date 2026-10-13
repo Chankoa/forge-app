@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mediaResourceSchema, sanitizeMediaFilename, validateMediaUpload } from "../lib/courses/media-contracts";
+import { courseMediaStoragePath, mediaResourceSchema, sanitizeMediaFilename, validateMediaUpload } from "../lib/courses/media-contracts";
 import { insertMediaResource } from "../lib/courses/lesson-markdown";
 import { resourceIdsInRichContent } from "../lib/courses/lesson-rich-content";
 
@@ -17,7 +17,7 @@ test("media resource contract matches the live storage identity and states", () 
     courseId: "22222222-2222-4222-8222-222222222222",
     createdBy: "33333333-3333-4333-8333-333333333333",
     storageBucket: "course-media",
-    storagePath: "course-media/22222222-2222-4222-8222-222222222222/11111111-1111-4111-8111-111111111111/photo.png",
+    storagePath: "22222222-2222-4222-8222-222222222222/11111111-1111-4111-8111-111111111111/photo.png",
     kind: "image",
     mimeType: "image/png",
     fileSize: 100,
@@ -35,12 +35,16 @@ test("media resource contract matches the live storage identity and states", () 
 
 test("media filenames are reduced to safe path segments", () => {
   assert.equal(sanitizeMediaFilename("../photo final.png"), "photo-final.png");
+  assert.equal(courseMediaStoragePath("course-id", "resource-id", "../photo final.png"), "course-id/resource-id/photo-final.png");
 });
 
 test("resource directives can be inserted into local draft content", () => {
   const result = insertMediaResource("Avant", 5, 5, "image", "11111111-1111-4111-8111-111111111111", "Photo", "Légende");
   assert.match(result.content, /resource=11111111-1111-4111-8111-111111111111/);
   assert.equal(result.content.startsWith("Avant"), true);
+  const insertedAtStart = insertMediaResource("# Lesson", 0, 0, "audio", "22222222-2222-4222-8222-222222222222", "Audio");
+  assert.match(insertedAtStart.content, /^:::audio\nresource=22222222-2222-4222-8222-222222222222\ntitle=Audio\n:::\n\n# Lesson$/);
+  assert.deepEqual(resourceIdsInRichContent(insertedAtStart.content), ["22222222-2222-4222-8222-222222222222"]);
 });
 
 test("resource references are extracted without exposing storage paths", () => {

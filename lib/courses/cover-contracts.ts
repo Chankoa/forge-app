@@ -7,14 +7,14 @@ export type CourseCoverFields = {
   cover_file_size: number | null;
 };
 
-const coverMimeTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
+const coverMimeTypes = ["image/jpeg", "image/png", "image/webp"] as const;
 export const courseCoverMaxBytes = 5 * 1024 * 1024;
 export const courseCoverBucket = "course-covers";
-export const coverGuidance = "Format horizontal recommandé (JPEG, PNG, WebP ou GIF, 5 Mo maximum).";
+export const coverGuidance = "Format horizontal recommandé (JPEG, PNG ou WebP, 5 Mo maximum).";
 
 export function validateCourseCoverUpload(mimeType: string, size: number) {
   if (!coverMimeTypes.includes(mimeType as (typeof coverMimeTypes)[number])) {
-    return { ok: false as const, error: "Utilisez une image JPEG, PNG, WebP ou GIF." };
+    return { ok: false as const, error: "Utilisez une image JPEG, PNG ou WebP." };
   }
   if (!Number.isInteger(size) || size <= 0 || size > courseCoverMaxBytes) {
     return { ok: false as const, error: "La couverture doit peser 5 Mo au maximum." };

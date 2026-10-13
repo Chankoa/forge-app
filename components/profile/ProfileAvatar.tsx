@@ -1,6 +1,6 @@
 import { authorInitials } from "@/lib/profiles/author-identity";
 
-type ProfileAvatarProps = { name: string | null | undefined; url?: string | null; size?: "sm" | "md" | "lg" };
+type ProfileAvatarProps = { name: string | null | undefined; url?: string | null; size?: "xs" | "sm" | "md" | "profile" };
 
 // Initials fallback is always rendered when there is no image; the name stays the authoritative identity.
 export function ProfileAvatar({ name, url, size = "md" }: ProfileAvatarProps) {

@@ -4,6 +4,8 @@ import { useRef, useState, useTransition } from "react";
 import { ImagePlus, Save, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ProfileAvatar } from "./ProfileAvatar";
+import { uploadOperationError } from "@/lib/uploads/upload-feedback";
+import { validateAvatarUpload } from "@/lib/profiles/profile-contracts";
 
 type Feedback = { message: string; error: boolean };
 const failure = (cause: unknown, fallback: string): Feedback => ({ message: cause instanceof Error ? cause.message : fallback, error: true });
@@ -62,32 +64,39 @@ export function ProfileDomainsForm({ options, selected, onSave }: { options: Arr
 
 export function ProfileAvatarForm({ name, avatarUrl, onUpload, onRemove }: { name: string; avatarUrl: string | null; onUpload: (formData: FormData) => Promise<{ avatarUrl: string; cleanupWarning?: string | null }>; onRemove: () => Promise<{ cleanupWarning?: string | null }> }) {
   const input = useRef<HTMLInputElement>(null);
+  const uploading = useRef(false);
   const [pending, startTransition] = useTransition();
   const [url, setUrl] = useState(avatarUrl);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const upload = (file: File | undefined) => {
     if (!file) return;
+    if (uploading.current) return;
+    const validation = validateAvatarUpload(file.type, file.size);
+    if (!validation.ok) { setFeedback({ message: validation.error, error: true }); return; }
+    uploading.current = true;
+    setFeedback(null);
     const data = new FormData();
     data.set("avatar", file);
     startTransition(async () => {
       try { const result = await onUpload(data); setUrl(result.avatarUrl); setFeedback({ message: result.cleanupWarning ?? "Photo de profil mise à jour.", error: false }); }
-      catch (cause) { setFeedback(failure(cause, "Le téléversement a échoué.")); }
+      catch { setFeedback({ message: uploadOperationError("avatar"), error: true }); }
+      finally { uploading.current = false; if (input.current) input.current.value = ""; }
     });
-    if (input.current) input.current.value = "";
   };
   const remove = () => startTransition(async () => {
     try { const result = await onRemove(); setUrl(null); setFeedback({ message: result.cleanupWarning ?? "Photo supprimée.", error: false }); }
     catch (cause) { setFeedback(failure(cause, "La photo n'a pas pu être supprimée.")); }
   });
   return <div className="profile-avatar-form">
-    <ProfileAvatar name={name} url={url} size="lg" />
+    <ProfileAvatar name={name} url={url} size="md" />
     <div>
       <p className="caption">JPEG, PNG ou WebP, 2 Mo maximum.</p>
       <input ref={input} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" aria-label="Choisir une photo de profil" tabIndex={-1} disabled={pending} onChange={(event) => upload(event.target.files?.[0])} />
       <div className="profile-avatar-form__actions">
-        <Button type="button" variant="secondary" disabled={pending} onClick={() => input.current?.click()}><ImagePlus size={16} aria-hidden="true" />Changer la photo</Button>
+        <Button type="button" variant="secondary" disabled={pending} onClick={() => input.current?.click()}><ImagePlus size={16} aria-hidden="true" />{pending ? "Traitement…" : "Changer la photo"}</Button>
         {url && <Button type="button" variant="ghost" disabled={pending} onClick={remove}><Trash2 size={16} aria-hidden="true" />Supprimer la photo</Button>}
       </div>
+      {pending && <p className="caption" role="status">Traitement en cours…</p>}
       <FeedbackLine feedback={feedback} />
     </div>
   </div>;
