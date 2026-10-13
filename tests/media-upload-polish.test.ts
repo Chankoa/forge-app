@@ -115,9 +115,9 @@ test("upload controls prevent repeated submits while an upload is pending", () =
 test("avatar and cover dimensions use the approved variants", () => {
   const styles = readFileSync("styles/globals.scss", "utf8");
   for (const [variant, pixels] of [["xs", 32], ["sm", 40], ["md", 48], ["profile", 88]] as const) {
-    assert.match(styles, new RegExp(`\\.profile-avatar--${variant} \\{ width: ${pixels}px; height: ${pixels}px; \\}`));
+    assert.match(styles, new RegExp(`\\.profile-avatar--${variant}\\s*\\{\\s*width: ${pixels}px;\\s*height: ${pixels}px;\\s*\\}`));
   }
-  assert.match(styles, /\.profile-avatar--profile \{ width: 72px; height: 72px; \}/);
-  assert.match(styles, /\.public-course__cover \{ max-width: 720px; aspect-ratio: 16 \/ 9; \}/);
-  assert.match(styles, /\.course-cover-manager__body \{ grid-template-columns: minmax\(0, 280px\)/);
+  assert.match(styles, /\.profile-avatar--profile\s*\{\s*width: 72px;\s*height: 72px;\s*\}/);
+  assert.match(styles, /\.public-course__cover\s*\{\s*max-width: 720px;\s*aspect-ratio: 16 \/ 9;/);
+  assert.match(styles, /\.course-cover-manager__body\s*\{[^}]*grid-template-columns: minmax\(0, 280px\)/);
 });

@@ -1,12 +1,73 @@
+/* Light theme */
 :root, [data-theme="light"] {
-  --background: #fbfafc; --surface: #ffffff; --surface-soft: #f1f5f9; --surface-ai: #f8f6ff; --surface-control: #ffffff;
-  --text-primary: #0f172a; --text-secondary: #475569; --text-muted: #64748b; --border: #e2e8f0;
-  --violet: #7c3aed; --violet-soft: #ede9fe; --pink: #ec4899; --success: #15803d;
-  --shell-rail: #171b28; --shell-rail-text: #cbd5e1; --shell-rail-selected: #302844; --shell-separator: #e2e8f0; --shell-overlay: rgb(15 17 23 / .48);
+  /* Background and surfaces */
+  --background: #fbfafc;
+  --surface: #ffffff;
+  --surface-soft: #f1f5f9;
+
+  /* Forge panel */
+  --surface-ai: #f8f6ff;
+
+  /* Controls */
+  --surface-control: #ffffff;
+
+  /* Text */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+
+  /* Borders */
+  --border: #e2e8f0;
+
+  /* Brand */
+  --violet: #7c3aed;
+  --violet-soft: #ede9fe;
+  --pink: #ec4899;
+
+  /* States */
+  --success: #15803d;
+
+  /* Shell */
+  --shell-rail: #171b28;
+  --shell-rail-text: #cbd5e1;
+  --shell-rail-selected: #302844;
+  --shell-separator: #e2e8f0;
+  --shell-overlay: rgb(15 17 23 / .48);
 }
+
+/* Dark theme */
 [data-theme="dark"] {
-  --background: #0f1117; --surface: #161a23; --surface-soft: #1d212b; --surface-ai: #17152b; --surface-control: #121722;
-  --text-primary: #f1f5f9; --text-secondary: #cbd5e1; --text-muted: #9aa5b7; --border: #2a3142;
-  --violet: #8b5cf6; --violet-soft: #2e2360; --pink: #ec4899; --success: #4ade80;
-  --shell-rail: #10131d; --shell-rail-text: #cbd5e1; --shell-rail-selected: #2e2360; --shell-separator: #2a3142; --shell-overlay: rgb(0 0 0 / .68);
+  /* Background and surfaces */
+  --background: #0f1117;
+  --surface: #161a23;
+  --surface-soft: #1d212b;
+
+  /* Forge panel */
+  --surface-ai: #17152b;
+
+  /* Controls */
+  --surface-control: #121722;
+
+  /* Text */
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #9aa5b7;
+
+  /* Borders */
+  --border: #2a3142;
+
+  /* Brand */
+  --violet: #8b5cf6;
+  --violet-soft: #2e2360;
+  --pink: #ec4899;
+
+  /* States */
+  --success: #4ade80;
+
+  /* Shell */
+  --shell-rail: #10131d;
+  --shell-rail-text: #cbd5e1;
+  --shell-rail-selected: #2e2360;
+  --shell-separator: #2a3142;
+  --shell-overlay: rgb(0 0 0 / .68);
 }
