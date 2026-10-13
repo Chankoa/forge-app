@@ -47,13 +47,12 @@ function PersonalCourseStatus({ course }: { course: LibraryCourse }) {
   const status = libraryCourseStatus(course);
   return <div className="personal-course-status">{status && <span className={`course-status course-status--${status}`}>{libraryStatusLabels[status]}</span>}{course.enrolled && <ProgressIndicator value={course.percentage} completedCount={course.completedCount} />}</div>;
 }
-export function PersonalCourseRow({ course, relations, action, secondaryAction, menu }: PersonalCourseProps) {
+export function PersonalCourseRow({ course, relations, action, menu }: PersonalCourseProps) {
   return <article className="personal-course-row" role="row">
     <div className="personal-course-row__course" role="cell"><CourseCover image={course.cover} domain={course.domain} compact /><div className="personal-course-row__identity"><DomainMetadata domain={course.domain} /><h3>{course.title}</h3><p className="personal-course-attribution">{courseOwnerLabel(course.author?.displayName)}</p>{course.description && <p>{course.description}</p>}</div></div>
-    <div className="personal-course-row__relationship" role="cell"><RelationPills relations={relations} /></div>
-    <div className="personal-course-row__state" role="cell"><PersonalCourseStatus course={course} /></div>
+    <div className="personal-course-row__details" role="cell"><div className="personal-course-row__relationship"><RelationPills relations={relations} /></div><div className="personal-course-row__state"><PersonalCourseStatus course={course} /></div></div>
     <div className="personal-course-row__modules" role="cell"><strong>{course.moduleCount} module{course.moduleCount === 1 ? "" : "s"}</strong><span>{course.lessonCount} leçon{course.lessonCount === 1 ? "" : "s"}</span></div>
-    <div className="personal-course-row__actions" role="cell"><div>{action}{secondaryAction}</div>{menu}</div>
+    <div className="personal-course-row__actions" role="cell"><div>{action}</div>{menu}</div>
   </article>;
 }
 export function PersonalCourseCard({ course, relations, action, secondaryAction, menu }: PersonalCourseProps) {

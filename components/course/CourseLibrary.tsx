@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ArrowRight, Eye, LayoutGrid, List, PlayCircle, RotateCcw, Search, Settings2 } from "lucide-react";
-import { OwnerCourseMenu } from "@/components/course/OwnerCourseMenu";
+import { CourseOverflowMenu, OwnerCourseMenu } from "@/components/course/OwnerCourseMenu";
 import { PersonalCourseCard, PersonalCourseRow } from "@/components/course/CoursePresentation";
 import { courseCardAction, courseRelations, personalCardActions, type CourseCardAction, type CourseRelation } from "@/lib/courses/presentation";
 import { filterAndSortLibraryCourses, libraryCourseStatus, libraryStatusLabels, type LibraryCourse, type LibrarySort, type LibraryStatus, type LibraryView } from "@/lib/courses/library-view";
@@ -16,17 +16,30 @@ function LibraryItem({ course, view }: { course: LibraryCourse; view: LibraryVie
   const actionKind = courseCardAction({ isOwner: course.isOwner, enrolled: course.enrolled, percentage: course.percentage, hasLesson: Boolean(course.lessonSlug) });
   const learnHref = course.lessonSlug ? `/app/courses/${course.slug}/lessons/${course.lessonSlug}` : `/app/courses/${course.slug}`;
   const manageHref = courseEditPath(course.slug);
-  const renderAction = (kind: CourseCardAction, secondary = false) => kind === "manage" ? <Link className={`button course-action course-action--manage${secondary ? " button--secondary" : ""}`} href={manageHref}><Settings2 size={16} aria-hidden="true" />Gérer</Link>
+  const renderAction = (kind: CourseCardAction, secondary = false, label?: string) => kind === "manage" ? <Link className={`button course-action course-action--manage${secondary ? " button--secondary" : ""}`} href={manageHref}><Settings2 size={16} aria-hidden="true" />{label ?? "Gérer"}</Link>
     : kind === "start" ? <Link className="button course-action" href={learnHref}><PlayCircle size={16} aria-hidden="true" />Commencer</Link>
     : kind === "continue" ? <Link className="button course-action course-action--continue" href={learnHref}>Continuer<ArrowRight size={16} aria-hidden="true" /></Link>
     : kind === "review" ? <Link className="button button--secondary course-action" href={learnHref}><RotateCcw size={16} aria-hidden="true" />Revoir</Link>
     : <Link className="button button--secondary course-action" href={learnHref}><Eye size={16} aria-hidden="true" />Voir le parcours</Link>;
   const cardActions = personalCardActions({ isOwner: course.isOwner, enrolled: course.enrolled, percentage: course.percentage, hasLesson: Boolean(course.lessonSlug) });
-  const action = renderAction(view === "cards" ? cardActions.primary : actionKind);
-  const props = { course, relations: courseRelations(course.enrolled, course.isOwner, course.collaborationRole ?? null, course.collaborationRole ? "active" : null), action,
-    secondaryAction: view === "cards" ? cardActions.secondary ? renderAction(cardActions.secondary, true) : null : course.isOwner && course.enrolled ? <Link className="personal-course-row__learn-action" href={learnHref}>Apprendre <ArrowRight size={14} aria-hidden="true" /></Link> : null,
-    menu: course.isOwner ? <OwnerCourseMenu title={course.title} manageHref={manageHref} /> : null };
-  return view === "list" ? <PersonalCourseRow {...props} /> : <PersonalCourseCard {...props} menu={null} />;
+  const relations = courseRelations(course.enrolled, course.isOwner, course.collaborationRole ?? null, course.collaborationRole ? "active" : null);
+  if (view === "list") {
+    const isEditor = !course.isOwner && course.collaborationRole === "editor";
+    const primaryKind = course.isOwner || isEditor ? "manage" : actionKind;
+    return <PersonalCourseRow
+      course={course}
+      relations={relations}
+      action={renderAction(primaryKind, false, isEditor ? "Modifier" : undefined)}
+      menu={<CourseOverflowMenu title={course.title} previewHref={`/app/courses/${course.slug}`} />}
+    />;
+  }
+  return <PersonalCourseCard
+    course={course}
+    relations={relations}
+    action={renderAction(cardActions.primary)}
+    secondaryAction={cardActions.secondary ? renderAction(cardActions.secondary, true) : null}
+    menu={course.isOwner ? <OwnerCourseMenu title={course.title} manageHref={manageHref} /> : null}
+  />;
 }
 
 export function CourseLibrary({ courses, initialView = "list" }: { courses: LibraryCourse[]; initialView?: LibraryView }) {
@@ -48,7 +61,7 @@ export function CourseLibrary({ courses, initialView = "list" }: { courses: Libr
       </div>
     </div>
     <p className="course-library__count" role="status">{visible.length} parcours affiché{visible.length > 1 ? "s" : ""}</p>
-    {visible.length ? view === "list" ? <div className="personal-course-list" role="table" aria-label="Mes parcours"><div className="personal-course-list__head" role="row"><span role="columnheader">Parcours</span><span role="columnheader">Rôle</span><span role="columnheader">Statut</span><span role="columnheader">Modules</span><span role="columnheader">Actions</span></div>{visible.map((course) => <LibraryItem key={course.id} course={course} view={view} />)}</div>
+    {visible.length ? view === "list" ? <div className="personal-course-list" role="table" aria-label="Mes parcours"><div className="personal-course-list__head" role="row"><span role="columnheader">Parcours</span><span role="columnheader">Relation et progression</span><span role="columnheader">Contenu</span><span role="columnheader">Actions</span></div>{visible.map((course) => <LibraryItem key={course.id} course={course} view={view} />)}</div>
       : <div className="personal-course-cards">{visible.map((course) => <LibraryItem key={course.id} course={course} view={view} />)}</div>
       : <div className="course-library__empty"><p>{query.trim() || status !== "all" ? "Aucun parcours ne correspond à ces critères." : emptyCopy}</p>{!query.trim() && status === "all" && <Link href={relation === "create" ? "/app/create" : "/app/explore"}>{relation === "create" ? "Créer" : "Explorer"}</Link>}</div>}
   </section>;

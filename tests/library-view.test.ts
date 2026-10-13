@@ -23,15 +23,28 @@ test("an archived course stays visible and filterable for its owner", () => {
   assert.match(html, /Archivé/);
 });
 
-test("My Paths starts in accessible List view with real columns and a Card toggle", () => {
+test("My Paths starts in accessible List view with editorial columns and a Card toggle", () => {
   const html = renderToStaticMarkup(createElement(CourseLibrary, { courses: [owner, learner] }));
   assert.match(html, /role="table"/);
-  assert.match(html, /role="columnheader">Modules/);
+  assert.match(html, /role="columnheader">Relation et progression/);
+  assert.match(html, /role="columnheader">Contenu/);
   assert.match(html, /aria-label="Vue liste" aria-pressed="true"/);
   assert.match(html, /aria-label="Vue cartes" aria-pressed="false"/);
   assert.match(html, /Brouillon/);
   assert.match(html, /En cours/);
+  assert.match(html, /aria-label="Autres actions pour Design"/);
+  assert.match(html, /role="columnheader">Actions/);
   assert.doesNotMatch(html, /Dernière activité/);
+});
+
+test("list rows keep one primary action and a secondary preview menu", () => {
+  const html = renderToStaticMarkup(createElement(CourseLibrary, { courses: [owner] }));
+  const row = html.match(/<article class="personal-course-row"[\s\S]*?<\/article>/)?.[0] ?? "";
+  assert.match(row, /class="button course-action course-action--manage"/);
+  assert.match(row, />Gérer<\/a>/);
+  assert.equal((row.match(/class="button course-action/g) ?? []).length, 1);
+  assert.match(row, /aria-label="Autres actions pour Design"/);
+  assert.doesNotMatch(row, /Apprendre/);
 });
 
 test("Card view renders the same course records and actions without table semantics", () => {

@@ -7,10 +7,11 @@ import { CircleUserRound, Compass, GraduationCap, Home, Library, LogOut, PanelLe
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { IconButton } from "@/components/ui/IconButton";
 import { createBrowserClient } from "@/lib/supabase/browser";
+import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
 
 const links = [["/app", "Accueil", Home], ["/app/courses", "Mes parcours", Library], ["/app/explore", "Explorer", Compass], ["/app/create", "Créer", PenLine], ["/app/classroom", "Classroom", GraduationCap], ["/app/profile", "Profil", CircleUserRound]] as const;
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ children, profileName, profileAvatarUrl }: { children: ReactNode; profileName?: string | null; profileAvatarUrl?: string | null }) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
@@ -31,7 +32,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <IconButton label={collapsed ? "Déployer la navigation" : "Réduire la navigation"} aria-expanded={!collapsed} onClick={() => setCollapsed((value) => !value)}>{collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}</IconButton>
         <div className="mobile-header-actions"><ThemeToggle /><IconButton label="Se déconnecter" onClick={signOut}><LogOut size={18} /></IconButton></div>
       </div>
-      <nav className="nav" aria-label="Navigation principale">{links.map(([href, label, Icon]) => <Link key={href} href={href} title={collapsed ? label : undefined} aria-label={label} aria-current={activeHref === href ? "page" : undefined}><Icon size={19} strokeWidth={1.8} /><span>{label}</span></Link>)}</nav>
+      <nav className="nav" aria-label="Navigation principale">{links.map(([href, label, Icon]) => <Link key={href} href={href} title={collapsed ? label : undefined} aria-label={label} aria-current={activeHref === href ? "page" : undefined}>{href === "/app/profile" && profileAvatarUrl ? <ProfileAvatar name={profileName} url={profileAvatarUrl} size="xs" /> : <Icon size={19} strokeWidth={1.8} />}<span>{label}</span></Link>)}</nav>
       <button className="sidebar-signout" type="button" aria-label="Se déconnecter" title={collapsed ? "Se déconnecter" : undefined} onClick={signOut}><LogOut size={19} strokeWidth={1.8} /><span>Déconnexion</span></button>
     </aside>
     <div className="app-main">

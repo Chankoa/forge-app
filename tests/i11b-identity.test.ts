@@ -167,3 +167,12 @@ test("profile and settings provide navigation in both directions", () => {
   assert.match(preferences, /settings-back-link" href="\/app\/profile"/);
   assert.equal(resolveTheme("light", true), "light");
 });
+
+test("main profile navigation uses the authenticated safe avatar with an icon fallback", () => {
+  const layout = readFileSync("app/app/layout.tsx", "utf8");
+  const shell = readFileSync("components/shell/AppShell.tsx", "utf8");
+  assert.match(layout, /getSelfProfileForUser\(client, user\.id\)/);
+  assert.match(shell, /profileAvatarUrl \? <ProfileAvatar/);
+  assert.match(shell, /: <Icon size=\{19\} strokeWidth=\{1\.8\} \/>/);
+  assert.match(shell, /aria-label=\{label\}/);
+});

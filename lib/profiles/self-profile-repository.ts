@@ -4,17 +4,23 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { SelfProfile } from "./profile-contracts";
 import { safeAvatarUrl } from "./avatar-url";
 
+type ServerClient = NonNullable<Awaited<ReturnType<typeof createServerSupabaseClient>>>;
+
 export async function getSelfProfile(): Promise<SelfProfile | null> {
   const client = await createServerSupabaseClient();
   if (!client) return null;
   const { data: { user } } = await client.auth.getUser();
   if (!user) return null;
-  const { data, error } = await client.from("profiles").select("id,name").eq("id", user.id).maybeSingle();
+  return getSelfProfileForUser(client, user.id);
+}
+
+export async function getSelfProfileForUser(client: ServerClient, userId: string): Promise<SelfProfile | null> {
+  const { data, error } = await client.from("profiles").select("id,name").eq("id", userId).maybeSingle();
   if (error || !data) return null;
   // Identity extras are read separately so the profile stays usable until the I.11.B migration is applied.
   const [{ data: extras }, { data: domains }] = await Promise.all([
-    client.from("profiles").select("headline,location,bio,avatar_url").eq("id", user.id).maybeSingle(),
-    client.from("profile_domains").select("domain_id").eq("profile_id", user.id),
+    client.from("profiles").select("headline,location,bio,avatar_url").eq("id", userId).maybeSingle(),
+    client.from("profile_domains").select("domain_id").eq("profile_id", userId),
   ]);
   return {
     id: data.id,
