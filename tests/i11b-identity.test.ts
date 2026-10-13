@@ -150,11 +150,20 @@ test("profile: bio, headline, location, domains and mutation ownership", () => {
   assert.doesNotMatch(actions, /formData\.get\("(user|profile)_?[iI]d"\)/);
 });
 
-test("settings: only preferences is active and theme preference parses", () => {
+test("settings: account and preferences are active and theme preference parses", () => {
   assert.deepEqual(settingsSections.map((section) => section.label), ["Compte", "Préférences", "Notifications", "Forge AI", "Confidentialité", "Facturation"]);
-  assert.deepEqual(settingsSections.filter((section) => section.href).map((section) => section.id), ["preferences"]);
+  assert.deepEqual(settingsSections.filter((section) => section.href).map((section) => section.id), ["account", "preferences"]);
   assert.equal(parseThemePreference("dark"), "dark");
   assert.equal(parseThemePreference(null), "system");
   assert.equal(resolveTheme("system", true), "dark");
+});
+
+test("profile and settings provide navigation in both directions", () => {
+  const profile = readFileSync("app/app/profile/page.tsx", "utf8");
+  const accountSettings = readFileSync("app/app/settings/account/page.tsx", "utf8");
+  const preferences = readFileSync("app/app/settings/page.tsx", "utf8");
+  assert.match(profile, /href="\/app\/settings"/);
+  assert.match(accountSettings, /settings-back-link" href="\/app\/profile"/);
+  assert.match(preferences, /settings-back-link" href="\/app\/profile"/);
   assert.equal(resolveTheme("light", true), "light");
 });

@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { ThemePreferenceForm } from "@/components/settings/ThemePreferenceForm";
 import { Surface } from "@/components/ui/Surface";
 import { settingsSections } from "@/lib/settings/settings-contracts";
 
 export default function SettingsPage() {
   return <div className="settings-page">
+    <Link className="settings-back-link" href="/app/profile"><ArrowLeft size={16} aria-hidden="true" />Retour au profil</Link>
     <header className="library-header"><div><p className="eyebrow">Paramètres</p><h1>Préférences</h1><p>Réglages privés de l’application. Votre identité publique se gère dans <Link href="/app/profile">votre profil</Link>.</p></div></header>
     <div className="settings-layout">
       <nav className="settings-nav" aria-label="Sections des paramètres"><ul>{settingsSections.map((section) => <li key={section.id}>{section.href

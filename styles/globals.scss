@@ -10306,6 +10306,30 @@ textarea,select {
   gap: 18px;
 }
 
+.settings-back-link {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font: var(--font-caption);
+  text-decoration: none;
+  transition: color 160ms ease;
+}
+
+.settings-back-link:hover,
+.settings-back-link:focus-visible {
+  color: var(--violet);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.settings-back-link:focus-visible {
+  outline: 2px solid var(--violet);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
 .settings-layout {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
@@ -10349,6 +10373,112 @@ textarea,select {
 .settings-panel {
   display: grid;
   gap: 14px;
+}
+
+.account-security {
+  display: grid;
+  gap: 0;
+}
+
+.account-security__section {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(260px, 1fr);
+  gap: 24px;
+  padding: 20px 0;
+  border-top: 1px solid var(--border);
+}
+
+.account-security__section:first-child {
+  padding-top: 4px;
+  border-top: 0;
+}
+
+.account-security__section h3 {
+  margin: 0 0 6px;
+  font: var(--font-label);
+}
+
+.account-security__section p {
+  margin: 0 0 8px;
+  color: var(--text-muted);
+}
+
+.account-security__section .caption {
+  font: var(--font-caption);
+}
+
+.account-security__form,
+.account-security__delete {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.account-security__form label,
+.account-security__delete label {
+  font: var(--font-label);
+}
+
+.account-security__form input,
+.account-security__delete input {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.account-security__form input:focus-visible,
+.account-security__delete input:focus-visible {
+  outline: 2px solid var(--violet);
+  outline-offset: 2px;
+}
+
+.account-security__form input:disabled,
+.account-security__delete input:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.account-security__form .button,
+.account-security__delete .button {
+  justify-self: start;
+}
+
+.account-security__success {
+  color: var(--success, #24845a) !important;
+}
+
+.account-security__section--danger {
+  border-top-color: var(--border);
+}
+
+.account-security__blocker {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--surface-muted, var(--surface));
+}
+
+.account-security__blocker a {
+  color: var(--violet);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.account-security__delete .button--danger {
+  border-color: var(--danger, #b42318);
+  background: var(--danger, #b42318);
+  color: #fff;
+}
+
+.account-security__delete .button--danger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .theme-preference {
@@ -10398,6 +10528,10 @@ textarea,select {
 @media (max-width: 700px) {
   .course-cover-manager__body, .settings-layout {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .account-security__section {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
   }
   .profile-hero {
     flex-wrap: wrap;
