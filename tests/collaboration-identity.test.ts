@@ -16,7 +16,7 @@ test("owner remains the canonical Je crée relationship", () => {
   const capabilities = resolveCourseCapabilities({ isOwner: true, isEnrolled: false, courseStatus: "draft" });
   const html = renderToStaticMarkup(createElement(CourseIdentityHeader, { course, capabilities, overview: true }));
   assert.match(html, /Je crée/);
-  assert.match(html, /Parcours de Chandra Proton/);
+  assert.match(html, /<span>Chandra Proton<\/span>/);
   assert.doesNotMatch(html, /J’édite|Lecteur|Vous modifiez/);
 });
 
@@ -52,7 +52,7 @@ test("learner and multi-relation labels remain distinct and non-contradictory", 
 test("owner attribution survives archived and redundant membership states", () => {
   const capabilities = resolveCourseCapabilities({ isOwner: true, isEnrolled: false, courseStatus: "archived", membershipRole: "viewer", membershipStatus: "active" });
   const html = renderToStaticMarkup(createElement(CourseIdentityHeader, { course: { ...course, status: "archived" }, capabilities, overview: false }));
-  assert.match(html, /Parcours de Chandra Proton/);
+  assert.match(html, /<span>Chandra Proton<\/span>/);
   assert.match(html, /Je crée/);
   assert.doesNotMatch(html, /Vous consultez|Lecteur/);
 });
@@ -71,14 +71,14 @@ test("missing owner profile uses a safe label in course and list headers", () =>
   const header = renderToStaticMarkup(createElement(CourseIdentityHeader, { course: { ...course, author: undefined }, capabilities, overview: false }));
   const card = renderToStaticMarkup(createElement(PersonalCourseCard, { course: { ...baseCard, author: undefined }, relations: ["learn"], action: createElement("a", { href: "/app/courses/shared-course" }, "Voir") }));
   assert.match(header, /Propriétaire non renseigné/);
-  assert.match(card, /Propriétaire non renseigné/);
+  assert.doesNotMatch(card, /Propriétaire non renseigné/);
   assert.doesNotMatch(header + card, /[0-9a-f]{8}-[0-9a-f-]{27,}/i);
 });
 
 test("Mes parcours collaboration card shows the role and owner attribution", () => {
   const html = renderToStaticMarkup(createElement(PersonalCourseCard, { course: { ...baseCard, collaborationRole: "editor" }, relations: ["edit"], action: createElement("a", { href: "/app/courses/shared-course" }, "Voir") }));
   assert.match(html, /J’édite/);
-  assert.match(html, /Parcours de Chandra Proton/);
+  assert.match(html, /<span>Chandra Proton<\/span>/);
   assert.doesNotMatch(html, /Je crée/);
 });
 

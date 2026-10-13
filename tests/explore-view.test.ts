@@ -35,7 +35,7 @@ test("Explorer renders discovery actions and never exposes personal management",
 test("public Explorer uses public detail paths without protected learning actions", () => {
   const html = renderToStaticMarkup(createElement(ExploreCatalog, { courses, publicView: true }));
   assert.match(html, /href="\/courses\/a"/);
-  assert.match(html, /href="\/login\?next=\/app\/create"/);
+  assert.match(html, /aria-label="Filtrer par domaine"/);
   assert.doesNotMatch(html, /href="\/app\/courses\/a"/);
   assert.doesNotMatch(html, />Continuer</);
   assert.doesNotMatch(html, />Commencer</);
@@ -73,10 +73,10 @@ test("personal card keeps role and status above title, with real metadata and on
   assert.doesNotMatch(html, /owner-course-menu/);
 });
 
-test("learner card places progress after facts and keeps both actions in its footer", () => {
+test("learner card places progress after facts and keeps one primary action in its footer", () => {
   const course: LibraryCourse = { id: "both", slug: "both", title: "Design", description: "Parcours suivi", domain: "Design", status: "published", moduleCount: 2, lessonCount: 5, durationMinutes: 90, lessonSlug: "start", enrolled: true, isOwner: true, percentage: 40, completedCount: 2 };
-  const html = renderToStaticMarkup(createElement(PersonalCourseCard, { course, relations: ["learn", "create"], action: createElement("a", { href: "/learn" }, "Continuer"), secondaryAction: createElement("a", { href: "/manage" }, "Gérer") }));
+  const html = renderToStaticMarkup(createElement(PersonalCourseCard, { course, relations: ["learn", "create"], action: createElement("a", { href: "/learn" }, "Continuer") }));
   assert.ok(html.indexOf("2 modules") < html.indexOf("Progression : 40 %"));
   assert.ok(html.indexOf("Progression : 40 %") < html.indexOf('class="personal-course-card__actions"'));
-  assert.match(html, /<div class="personal-course-card__actions"><div><a href="\/learn">Continuer<\/a><a href="\/manage">Gérer<\/a><\/div><\/div>/);
+  assert.match(html, /<div class="personal-course-card__actions"><div><a href="\/learn">Continuer<\/a><\/div><\/div>/);
 });

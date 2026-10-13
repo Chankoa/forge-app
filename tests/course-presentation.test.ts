@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { canShowOwnerDelete, clampProgress, courseCardAction, courseRelations, domainLabel, domainNameFromRelation, hasCourseCover, matchesCourseRelation, personalCardActions } from "../lib/courses/presentation";
+import { canShowOwnerDelete, clampProgress, courseCardAction, courseRelations, domainLabel, domainNameFromRelation, hasCourseCover, libraryPrimaryAction, matchesCourseRelation, personalCardActions, showLibraryCreator } from "../lib/courses/presentation";
 
 test("domain label uses the real domain or honest fallback", () => {
   assert.equal(domainLabel("Cuisine"), "Cuisine");
@@ -48,4 +48,17 @@ test("dual-role cards prioritize real learning and keep management secondary", (
   assert.deepEqual(personalCardActions({ isOwner: true, enrolled: true, percentage: 45, hasLesson: true }), { primary: "continue", secondary: "manage" });
   assert.deepEqual(personalCardActions({ isOwner: true, enrolled: true, percentage: 0, hasLesson: true }), { primary: "start", secondary: "manage" });
   assert.deepEqual(personalCardActions({ isOwner: true, enrolled: false, percentage: 0, hasLesson: true }), { primary: "manage", secondary: null });
+});
+
+test("library uses one immediate action and reserves management for the menu", () => {
+  assert.equal(libraryPrimaryAction({ isOwner: true, enrolled: false, percentage: 0, hasLesson: true }), "manage");
+  assert.equal(libraryPrimaryAction({ isOwner: true, enrolled: true, percentage: 42, hasLesson: true }), "continue");
+  assert.equal(libraryPrimaryAction({ isOwner: false, collaborationRole: "editor", enrolled: false, percentage: 0, hasLesson: true }), "manage");
+  assert.equal(libraryPrimaryAction({ isOwner: false, collaborationRole: "viewer", enrolled: false, percentage: 0, hasLesson: true }), "view");
+});
+
+test("creator identity is contextual in the personal library", () => {
+  assert.equal(showLibraryCreator({ isOwner: true, author: { displayName: "Amina" } }), false);
+  assert.equal(showLibraryCreator({ isOwner: false, collaborationRole: "editor", author: { displayName: "Amina" } }), true);
+  assert.equal(showLibraryCreator({ isOwner: false, collaborationRole: null, author: { displayName: "Amina" } }), false);
 });

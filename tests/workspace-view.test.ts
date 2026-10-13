@@ -36,7 +36,7 @@ test("Workspace course rows keep owner identity and mixed learner-editor relatio
   shared.collaborationRole = "editor";
   shared.course.owner = { id: "other-owner", displayName: "Chandra Proton" };
   const html = renderToStaticMarkup(createElement(WorkspaceSections, { courses: [shared] }));
-  assert.match(html, /Parcours de Chandra Proton/);
+  assert.match(html, /Chandra Proton/);
   assert.match(html, /J’apprends/);
   assert.match(html, /J’édite/);
   assert.doesNotMatch(html, /Je crée/);

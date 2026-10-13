@@ -57,3 +57,13 @@ export function personalCardActions(course: { isOwner: boolean; enrolled: boolea
   if (course.isOwner && course.enrolled && course.hasLesson) return { primary: courseCardAction({ ...course, isOwner: false }), secondary: "manage" };
   return { primary: courseCardAction(course), secondary: null };
 }
+
+export function libraryPrimaryAction(course: { isOwner: boolean; collaborationRole?: "editor" | "viewer" | null; enrolled: boolean; percentage: number; hasLesson: boolean }): CourseCardAction {
+  if (course.enrolled && course.hasLesson) return courseCardAction({ ...course, isOwner: false });
+  if (course.isOwner || course.collaborationRole === "editor") return "manage";
+  return "view";
+}
+
+export function showLibraryCreator(course: { isOwner: boolean; collaborationRole?: "editor" | "viewer" | null; author?: unknown }): boolean {
+  return Boolean(course.author && !course.isOwner && course.collaborationRole);
+}

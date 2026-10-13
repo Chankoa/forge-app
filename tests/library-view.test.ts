@@ -26,12 +26,13 @@ test("an archived course stays visible and filterable for its owner", () => {
 test("My Paths starts in accessible List view with editorial columns and a Card toggle", () => {
   const html = renderToStaticMarkup(createElement(CourseLibrary, { courses: [owner, learner] }));
   assert.match(html, /role="table"/);
-  assert.match(html, /role="columnheader">Relation et progression/);
+  assert.match(html, /role="columnheader">Relation/);
+  assert.match(html, /role="columnheader">Progression/);
   assert.match(html, /role="columnheader">Contenu/);
   assert.match(html, /aria-label="Vue liste" aria-pressed="true"/);
-  assert.match(html, /aria-label="Vue cartes" aria-pressed="false"/);
+  assert.match(html, /aria-label="Vue grille" aria-pressed="false"/);
   assert.match(html, /Brouillon/);
-  assert.match(html, /En cours/);
+  assert.match(html, /Publié/);
   assert.match(html, /aria-label="Autres actions pour Design"/);
   assert.match(html, /role="columnheader">Actions/);
   assert.doesNotMatch(html, /Dernière activité/);
@@ -49,7 +50,7 @@ test("list rows keep one primary action and a secondary preview menu", () => {
 
 test("Card view renders the same course records and actions without table semantics", () => {
   const html = renderToStaticMarkup(createElement(CourseLibrary, { courses: [owner, learner], initialView: "cards" }));
-  assert.match(html, /aria-label="Vue cartes" aria-pressed="true"/);
+  assert.match(html, /aria-label="Vue grille" aria-pressed="true"/);
   assert.match(html, /class="personal-course-cards"/);
   assert.doesNotMatch(html, /role="table"/);
   assert.match(html, /Un parcours créé/);

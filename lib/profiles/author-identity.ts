@@ -8,7 +8,7 @@ const fallbackName = "Propriétaire non renseigné";
 
 export function courseOwnerLabel(name: string | null | undefined): string {
   const displayName = name?.trim();
-  return !displayName || displayName === fallbackName ? fallbackName : `Parcours de ${displayName}`;
+  return displayName || fallbackName;
 }
 
 export function authorInitials(name: string | null | undefined): string {

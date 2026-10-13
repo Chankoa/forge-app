@@ -11139,3 +11139,425 @@ textarea,select {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* UJ04 — page header and tabs */
+.course-library__heading {
+  display: block;
+  margin-bottom: 16px;
+}
+
+.course-library__search {
+  width: min(100%, 420px);
+}
+
+.course-library__tabs {
+  display: flex;
+  gap: 26px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+}
+
+.course-library__tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  min-height: 42px;
+  padding: 0 2px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font: var(--font-label);
+  cursor: pointer;
+}
+
+.course-library__tabs button[aria-pressed="true"] {
+  border-bottom-color: var(--violet);
+  color: var(--violet);
+}
+
+.course-library__tabs button span {
+  color: var(--text-muted);
+  font: var(--font-caption);
+}
+
+.course-library__tabs button:focus-visible {
+  outline: 2px solid var(--violet);
+  outline-offset: -3px;
+}
+
+.course-library__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.course-library__count {
+  margin: 0;
+}
+
+.course-library__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: auto;
+}
+
+/* UJ04 — view switch */
+.course-library__view {
+  flex: 0 0 auto;
+}
+
+/* UJ04 — list rows */
+.personal-course-list__head,
+.personal-course-row {
+  grid-template-columns: minmax(230px, 3fr) minmax(90px, 0.8fr) minmax(78px, 0.7fr) minmax(120px, 1fr) minmax(100px, 0.9fr) minmax(135px, 1fr);
+  gap: 12px;
+}
+
+.personal-course-row__course {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.personal-course-row__identity > p:not(.domain-metadata):not(.course-author) {
+  -webkit-line-clamp: 2;
+}
+
+.personal-course-row__identity .course-author {
+  margin-top: 5px;
+}
+
+.personal-course-row__relationship,
+.personal-course-row__state,
+.personal-course-row__progress,
+.personal-course-row__modules {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+/* UJ04 — grid cards */
+.personal-course-cards {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.personal-course-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.personal-course-card__badges {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.personal-course-card__heading {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.personal-course-card__description {
+  -webkit-line-clamp: 3;
+}
+
+.personal-course-card__actions {
+  margin-top: auto;
+}
+
+.personal-course-card__actions > div:first-child {
+  display: block;
+}
+
+/* UJ04 — relation and status */
+.personal-course-row .relation-pills,
+.personal-course-card .relation-pills {
+  flex-wrap: wrap;
+}
+
+/* UJ04 — course metadata */
+.personal-course-row__modules .course-facts,
+.personal-course-card .course-facts {
+  display: grid;
+  gap: 3px;
+  border: 0;
+}
+
+.personal-course-row__modules .course-facts span,
+.personal-course-card .course-facts span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* UJ04 — progress */
+.personal-course-row__progress .course-progress-indicator {
+  width: 100%;
+}
+
+/* UJ04 — actions */
+.personal-course-row__actions,
+.personal-course-card__actions,
+.explore-feature__actions,
+.explore-recent__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.course-row-menu .owner-course-menu__popover {
+  right: 0;
+  left: auto;
+  z-index: 20;
+}
+
+/* UJ12 — featured cards */
+.explore-journey__columns {
+  display: block;
+}
+
+.explore-feature-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.explore-feature {
+  display: flex;
+  flex-direction: column;
+}
+
+.explore-feature > .course-cover {
+  aspect-ratio: 16 / 9;
+}
+
+.explore-feature__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.explore-feature__body > p:not(.domain-metadata):not(.course-author) {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.explore-feature__meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.explore-feature__meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.explore-feature__actions {
+  margin-top: auto;
+}
+
+/* UJ12 — published course rows */
+.explore-recent__row {
+  grid-template-columns: 88px minmax(0, 1fr) auto auto;
+}
+
+.explore-recent__identity > p:not(.domain-metadata):not(.course-author) {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* Shared course surface hover */
+.personal-course-row,
+.personal-course-card,
+.explore-feature,
+.explore-recent__row {
+  background: var(--surface, #fff);
+  box-shadow: none;
+}
+
+.personal-course-row:hover,
+.personal-course-card:hover,
+.explore-feature:hover,
+.explore-recent__row:hover {
+  border-color: color-mix(in srgb, var(--text-muted) 28%, var(--border));
+  background: color-mix(in srgb, var(--surface) 93%, var(--text-muted));
+  box-shadow: none;
+  transform: none;
+}
+
+/* Shared creator attribution */
+.personal-course-row .course-author,
+.personal-course-card .course-author,
+.explore-feature .course-author,
+.explore-recent__row .course-author {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.personal-course-row .course-author .profile-avatar,
+.personal-course-card .course-author .profile-avatar {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+}
+
+/* Square covers in UJ04 and UJ12 compact rows */
+.personal-course-row .course-cover--compact,
+.personal-course-card .course-cover--compact,
+.explore-recent__row .course-cover--compact {
+  width: 96px;
+  min-width: 96px;
+  height: 96px;
+  min-height: 96px;
+  flex-basis: 96px;
+  aspect-ratio: 1 / 1;
+}
+
+.explore-recent__row .course-cover--compact {
+  width: 88px;
+  min-width: 88px;
+  height: 88px;
+  min-height: 88px;
+  flex-basis: 88px;
+}
+
+.personal-course-row .course-cover__image,
+.personal-course-card .course-cover__image,
+.explore-recent__row .course-cover__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (max-width: 1250px) {
+  .personal-course-cards,
+  .explore-feature-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .personal-course-list__head {
+    display: none;
+  }
+
+  .personal-course-row {
+    grid-template-columns: minmax(0, 2fr) minmax(90px, 1fr) minmax(75px, 0.7fr) minmax(120px, 1fr);
+  }
+
+  .personal-course-row__course {
+    grid-column: 1;
+  }
+
+  .personal-course-row__relationship {
+    grid-column: 2;
+  }
+
+  .personal-course-row__state {
+    grid-column: 3;
+  }
+
+  .personal-course-row__progress {
+    grid-column: 4;
+  }
+
+  .personal-course-row__modules {
+    grid-column: 1 / 3;
+  }
+
+  .personal-course-row__actions {
+    grid-column: 3 / 5;
+  }
+}
+
+@media (max-width: 900px) {
+  .personal-course-cards,
+  .explore-feature-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .course-library__toolbar {
+    flex-wrap: wrap;
+  }
+
+  .personal-course-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .personal-course-row__course {
+    grid-column: 1 / -1;
+    grid-template-columns: 88px minmax(0, 1fr);
+  }
+
+  .personal-course-row__identity > p:not(.domain-metadata):not(.personal-course-attribution):not(.course-author) {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+  }
+
+  .personal-course-row .course-cover--compact {
+    width: 88px;
+    min-width: 88px;
+    height: 88px;
+    min-height: 88px;
+    flex-basis: 88px;
+  }
+
+  .personal-course-row__relationship,
+  .personal-course-row__state,
+  .personal-course-row__progress,
+  .personal-course-row__modules,
+  .personal-course-row__actions {
+    grid-column: auto;
+  }
+
+  .personal-course-row__progress,
+  .personal-course-row__modules,
+  .personal-course-row__actions {
+    grid-column: 1 / -1;
+  }
+
+  .personal-course-row__state {
+    justify-self: end;
+  }
+
+  .personal-course-row__modules .course-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .personal-course-row__actions {
+    justify-content: flex-end;
+  }
+
+  .personal-course-cards,
+  .explore-feature-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .explore-recent__row {
+    grid-template-columns: 88px minmax(0, 1fr);
+  }
+
+  .explore-recent__actions,
+  .explore-recent__row .explore-feature__meta {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
