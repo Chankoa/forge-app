@@ -12,6 +12,8 @@ import { saveLessonAction, uploadCourseMediaAction } from "@/app/app/create/acti
 import { adjacentTab } from "@/lib/courses/workspace-layout";
 import { LessonEmptyContent } from "./LessonEmptyContent";
 import { forgeProposalStates } from "@/lib/forge/authoring-ux";
+import { applyLessonProposalToDraft } from "@/lib/forge/lesson-proposal-application";
+import { forgeLessonSavedEvent } from "@/lib/forge/lesson-content-event";
 import { LessonMarkdown } from "@/components/learning/LessonContent";
 import { hasUnclosedCodeFence, insertLessonMarkdown, insertMediaResource, type LessonInsertAction } from "@/lib/courses/lesson-markdown";
 import { validateMediaUpload, type MediaPresentation } from "@/lib/courses/media-contracts";
@@ -34,18 +36,40 @@ export function LessonEditor({ courseId, courseSlug, lesson, moduleTitle, module
 }
 
 function LessonEditorDraft({ courseId, courseSlug, lesson, moduleTitle, moduleNumber, lessonNumber, canManageSources, canUploadMedia }: { courseId: string; courseSlug: string; lesson: CourseLesson; moduleTitle: string; moduleNumber: number; lessonNumber: number; canManageSources: boolean; canUploadMedia: boolean }) {
-  const [message, setMessage] = useState(""); const [tab, setTab] = useState<LessonTab>("content"); const [contentView, setContentView] = useState<ContentView>("write"); const [draft, setDraft] = useState(createLessonDraft(lesson)); const [savedDraft, setSavedDraft] = useState(createLessonDraft(lesson)); const [localResources, setLocalResources] = useState(lesson.mediaResources ?? {}); const [pending, startTransition] = useTransition(); const { proposal, setProposal, registerLessonDraft, setLessonSelection } = useForgeProposal(); const contentRef = useRef(draft.content); const editorRef = useRef<HTMLTextAreaElement>(null); const focusObjectivesFromAnalysis = useRef(false);
+  const [message, setMessage] = useState(""); const [tab, setTab] = useState<LessonTab>("content"); const [contentView, setContentView] = useState<ContentView>("write"); const [draft, setDraft] = useState(createLessonDraft(lesson)); const [savedDraft, setSavedDraft] = useState(createLessonDraft(lesson)); const [localResources, setLocalResources] = useState(lesson.mediaResources ?? {}); const [pending, startTransition] = useTransition(); const { registerLessonDraft, setLessonSelection } = useForgeProposal(); const contentRef = useRef(draft.content); const draftRef = useRef(draft); const editorRef = useRef<HTMLTextAreaElement>(null); const focusObjectivesFromAnalysis = useRef(false);
   const localObjectUrls = useRef<string[]>([]);
   const queryInsertionDone = useRef(false);
   useEffect(() => { contentRef.current = draft.content; }, [draft.content]);
   useEffect(() => () => { localObjectUrls.current.forEach((url) => URL.revokeObjectURL(url)); }, []);
   useEffect(() => { if (new URLSearchParams(window.location.search).get("focus") !== "objectives") return; focusObjectivesFromAnalysis.current = true; queueMicrotask(() => setTab("info")); }, []);
   useEffect(() => { if (tab !== "info" || !focusObjectivesFromAnalysis.current) return; focusObjectivesFromAnalysis.current = false; document.getElementById("lesson-objectives-editor")?.focus(); }, [tab]);
-  useEffect(() => registerLessonDraft({ lessonId: lesson.id, getContent: () => contentRef.current, applyContent: (content) => { contentRef.current = content; setDraft((current) => ({ ...current, content })); } }), [lesson.id, registerLessonDraft]);
-  useEffect(() => { if (!proposal || proposal.kind === "targeted" || proposal.proposal.target.lessonId !== lesson.id) return; queueMicrotask(() => { const patch = proposal.proposal.patch; setDraft((current) => ({ ...current, ...(patch.title ? { title: patch.title } : {}), ...(patch.description ? { description: patch.description } : {}), ...(patch.content ? { content: patch.content } : {}), ...(patch.objectives ? { objectives: patch.objectives.join("\n") } : {}) })); if (patch.content) setTab("content"); else setTab("info"); setMessage(`${forgeProposalStates.applied}. Sauvegardez pour enregistrer.`); setProposal(null); }); }, [lesson.id, proposal, setProposal]);
-  const updateDraft = useCallback((key: keyof typeof draft, value: string) => setDraft((current) => ({ ...current, [key]: value })), []);
+  useEffect(() => registerLessonDraft({
+    lessonId: lesson.id,
+    getContent: () => contentRef.current,
+    applyContent: (content) => {
+      contentRef.current = content;
+      const next = { ...draftRef.current, content };
+      draftRef.current = next;
+      setDraft(next);
+    },
+    applyProposal: (intent, patch) => {
+      const applied = applyLessonProposalToDraft(draftRef.current, intent, patch);
+      if (!applied.ok) return false;
+      draftRef.current = applied.draft;
+      contentRef.current = applied.draft.content;
+      setDraft(applied.draft);
+      setTab(applied.field === "content" ? "content" : "info");
+      setMessage("Modification appliquée au brouillon.");
+      return true;
+    },
+  }), [lesson.id, registerLessonDraft]);
+  const updateDraft = useCallback((key: keyof typeof draft, value: string) => {
+    const next = { ...draftRef.current, [key]: value };
+    draftRef.current = next;
+    setDraft(next);
+  }, []);
   const dirty = JSON.stringify(draft) !== JSON.stringify(savedDraft);
-  const save = () => startTransition(async () => { const submitted = draft; try { await saveLessonAction(courseId, lesson.id, lessonDraftFormData(submitted)); setSavedDraft(submitted); setMessage(forgeProposalStates.saved); } catch (error) { setMessage(error instanceof Error ? error.message : "La sauvegarde a échoué."); } });
+  const save = () => startTransition(async () => { const submitted = draft; try { await saveLessonAction(courseId, lesson.id, lessonDraftFormData(submitted)); setSavedDraft(submitted); setMessage(forgeProposalStates.saved); window.dispatchEvent(new CustomEvent(forgeLessonSavedEvent, { detail: { lessonId: lesson.id } })); } catch (error) { setMessage(error instanceof Error ? error.message : "La sauvegarde a échoué."); } });
   const tabs: LessonTab[] = canManageSources ? ["info", "content", "resources"] : ["info", "content"];
   const labels = { info: "Informations", content: "Contenu", resources: "Ressources" };
   const moveTab = (index: number, key: string) => { const next = adjacentTab(index, key, tabs.length); if (next === index) return; setTab(tabs[next]); requestAnimationFrame(() => document.getElementById(`lesson-tab-${tabs[next]}`)?.focus()); };

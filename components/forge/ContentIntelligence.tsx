@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { analyzeLessonContentAction } from "@/app/app/forge/intelligence-actions";
 import type { ForgeAvailability, ForgeResult } from "@/lib/forge/contracts";
 import type { ContentReview, ContentTask } from "@/lib/forge/intelligence/contracts";
@@ -9,6 +9,7 @@ import { fullRewriteThreshold } from "@/lib/forge/intelligence/content-policy";
 import { useForgeProposal, type TargetedContentProposal } from "./ForgeProposalContext";
 import { ForgeProposalDialog } from "./ForgeProposalDialog";
 import { forgeErrorMessages, forgeProposalStates } from "@/lib/forge/authoring-ux";
+import { forgeLessonSavedEvent } from "@/lib/forge/lesson-content-event";
 
 type Proposal = Extract<ForgeResult, { kind: "proposal" }>;
 type ContentProposal = Proposal | TargetedContentProposal;
@@ -40,12 +41,22 @@ export function ContentIntelligence({ courseSlug, lessonSlug, lessonId, level, h
   const [applying, setApplying] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [lastRequest, setLastRequest] = useState<{ task: ContentTask; targetLevel?: "beginner" | "intermediate" | "advanced"; sourceIds: string[]; input?: string } | null>(null);
-  const { setProposal, lessonDraft } = useForgeProposal();
+  const { applyLessonProposal, lessonDraft } = useForgeProposal();
   const levelAvailable = level === "beginner" || level === "intermediate" || level === "advanced";
   const draft = lessonDraft(lessonId);
   const isLong = Boolean(draft && draft.content.length > fullRewriteThreshold);
   const selection = draft?.selection ?? null;
   const selectedText = selection?.text ?? null;
+
+  useEffect(() => {
+    const onSaved = (event: Event) => {
+      if ((event as CustomEvent<{ lessonId: string }>).detail.lessonId !== lessonId) return;
+      setError(null);
+      setConfirmation("");
+    };
+    window.addEventListener(forgeLessonSavedEvent, onSaved);
+    return () => window.removeEventListener(forgeLessonSavedEvent, onSaved);
+  }, [lessonId]);
 
   function run(nextTask: ContentTask, options?: { targetLevel?: "beginner" | "intermediate" | "advanced"; sourceIds?: string[]; input?: string }) {
     if (pendingRef.current || availability !== "configured") return;
@@ -91,10 +102,35 @@ export function ContentIntelligence({ courseSlug, lessonSlug, lessonId, level, h
     {review && <section className="forge-content-intelligence__review" aria-label="Revue de cohérence"><h4>Revue de cohérence</h4><p>{review.summary}</p>{review.findings.length ? <ul>{review.findings.map((finding, index) => <li key={`${finding.type}:${index}`}><strong>{findingLabels[finding.type]} · {importanceLabels[finding.importance]}</strong><p>{finding.reason}</p><p>{finding.suggestion}</p></li>)}</ul> : <p>Aucun écart significatif relevé.</p>}</section>}
     <ForgeProposalDialog result={dialogOpen ? proposal : null} busy={pending || applying} applying={applying} error={dialogOpen ? error : null}
       onClose={closeDialog} onReject={() => { closeDialog(); setCurrentProposal(null); }}
-      onApply={() => { if (!proposal || pendingRef.current || applyingRef.current) return; applyingRef.current = true; setApplying(true);
-        window.setTimeout(() => { try { if (proposal.kind === "targeted") { const current = lessonDraft(lessonId); if (!current) throw new Error("draft_missing"); const applied = applyTargetedOperation(current.content, proposal.operation); if (!applied.ok) { setError("Le contenu a changé depuis la génération. Régénérez la proposition."); return; } current.apply(applied.content); } else setProposal(proposal); setConfirmation(`${forgeProposalStates.applied}. Sauvegardez pour enregistrer.`); closeDialog(); setCurrentProposal(null); }
-          catch { setError("La proposition n'a pas pu être appliquée. Réessayez."); }
-          finally { applyingRef.current = false; setApplying(false); } }, 80); }}
+      onApply={() => {
+        if (!proposal || pendingRef.current || applyingRef.current) return;
+        applyingRef.current = true;
+        setApplying(true);
+        try {
+          if (proposal.kind === "targeted") {
+            const current = lessonDraft(lessonId);
+            if (!current) throw new Error("draft_missing");
+            const applied = applyTargetedOperation(current.content, proposal.operation);
+            if (!applied.ok) {
+              setError("Le contenu a changé depuis la génération. Régénérez la proposition.");
+              return;
+            }
+            current.apply(applied.content);
+          } else if (!applyLessonProposal(lessonId, proposal)) {
+            setError("La modification n'a pas pu être appliquée.");
+            return;
+          }
+          setError(null);
+          setConfirmation(`${forgeProposalStates.applied}. Sauvegardez pour enregistrer.`);
+          closeDialog();
+          setCurrentProposal(null);
+        } catch {
+          setError("La modification n'a pas pu être appliquée.");
+        } finally {
+          applyingRef.current = false;
+          setApplying(false);
+        }
+      }}
       onRegenerate={retry} onAdjust={(input) => { if (lastRequest) run(lastRequest.task, { ...lastRequest, input }); }} />
   </section>;
 }

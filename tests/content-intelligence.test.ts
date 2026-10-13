@@ -51,6 +51,7 @@ test("improve reuses a lesson-only explicit proposal and selected source context
   const response = await runContentIntelligence({ ...input, sourceIds: [sourceId] }, deps);
   assert.ok(response.ok && response.kind === "proposal");
   assert.equal(response.result.proposal.patch.content, "Contenu amélioré.");
+  assert.equal(response.result.proposal.patch.title, null);
   assert.deepEqual(response.result.proposal.target, { courseId: "course-id", lessonId: "lesson-id" });
   assert.deepEqual(response.result.sourcesUsed, [{ id: sourceId, title: "Source réelle" }]);
   assert.equal(response.result.proposal.application, "explicit_only");
@@ -59,6 +60,18 @@ test("improve reuses a lesson-only explicit proposal and selected source context
   assert.match(calls.join(" "), /Design/);
   assert.match(calls.join(" "), /Extrait authentique/);
   assert.ok(!calls.join(" ").includes("entire course body"));
+});
+
+test("lesson improvement never proposes a title change", async () => {
+  const { deps } = fixture();
+  deps.provider.generate = async () => ({
+    output: { ...transform, title: "Titre généré hors périmètre" },
+    finishReason: "stop",
+  });
+  const response = await runContentIntelligence(input, deps);
+  assert.ok(response.ok && response.kind === "proposal");
+  assert.equal(response.result.proposal.patch.title, null);
+  assert.equal(response.result.proposal.patch.content, transform.content);
 });
 
 for (const task of ["clarify", "adapt_level"] as const) test(`${task} returns a scoped content patch`, async () => {

@@ -131,7 +131,7 @@ export async function runContentIntelligence(raw: unknown, deps: ContentDeps): P
       mode: "edit", kind: "proposal", intent: "improve", text: rationale, sourcesUsed,
       metadata: { warnings: context.warnings, finishReason: "stop" },
       proposal: { target: { courseId: context.course.id, lessonId: context.lesson.id },
-        patch: { title, subtitle: null, description: null, content: nextContent, objectives: null }, application: "explicit_only" },
+        patch: { title: null, subtitle: null, description: null, content: nextContent, objectives: null }, application: "explicit_only" },
     };
     report("ok", "none", targeted);
     return { ok: true, kind: "proposal", result };
