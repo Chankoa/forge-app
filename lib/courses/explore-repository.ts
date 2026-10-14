@@ -1,12 +1,62 @@
 import type { CourseSummary } from "./contracts";
+import { courseCoverBucket, courseCoverPresentation } from "./cover-contracts";
 import { domainNameFromRelation } from "./presentation";
+import { publicAuthorIdentity } from "@/lib/profiles/author-identity";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getPublicCourseAuthor } from "@/lib/profiles/public-author-repository";
-import { resolveCourseCovers } from "./cover-repository";
-type ExploreCourseRow = Pick<CourseSummary, "id" | "slug" | "title" | "status" | "description" | "level"> & { duration_minutes: number | null; domains: { name: string } | { name: string }[] | null };
 
-export function mapExploreCourse(row: ExploreCourseRow): CourseSummary {
-	return { id: row.id, slug: row.slug, title: row.title, status: row.status, description: row.description, domain: domainNameFromRelation(row.domains), durationMinutes: row.duration_minutes, level: row.level };
+type PublicDiscoverableCourseRow = {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  status: string;
+  duration_minutes: number | null;
+  level: string | null;
+  domain_name: string | null;
+  cover_image: string | null;
+  cover_storage_path: string | null;
+  cover_mime_type: string | null;
+  cover_file_size: number | null;
+  author_profile_id: string | null;
+  author_name: string | null;
+  author_avatar_url: string | null;
+};
+
+type LegacyExploreCourseRow = Pick<CourseSummary, "id" | "slug" | "title" | "status" | "description" | "level"> & {
+  duration_minutes: number | null;
+  domains: { name: string } | { name: string }[] | null;
+};
+
+// Keeps legacy callers and fixtures compatible while discovery uses the narrow RPC below.
+export function mapExploreCourse(row: LegacyExploreCourseRow): CourseSummary {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    status: row.status,
+    description: row.description,
+    domain: domainNameFromRelation(row.domains),
+    durationMinutes: row.duration_minutes,
+    level: row.level,
+  };
+}
+
+export function mapPublicDiscoverableCourse(row: PublicDiscoverableCourseRow, publicStorageUrl: (path: string) => string): CourseSummary {
+  const author = row.author_profile_id
+    ? publicAuthorIdentity({ profile_id: row.author_profile_id, name: row.author_name, avatar_url: row.author_avatar_url })
+    : { displayName: "Propriétaire non renseigné", initials: "?", avatarUrl: null };
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    description: row.description,
+    status: row.status,
+    domain: row.domain_name,
+    durationMinutes: row.duration_minutes,
+    level: row.level,
+    author,
+    cover: courseCoverPresentation(row, publicStorageUrl),
+  };
 }
 
 export async function listDiscoverableCourses(): Promise<{ courses: Array<CourseSummary & { enrolled: boolean }>; envRequired: boolean; unavailable: boolean }> {
@@ -14,22 +64,14 @@ export async function listDiscoverableCourses(): Promise<{ courses: Array<Course
 
 	if (!client) return { courses: [], envRequired: true, unavailable: false };
 
-	const { data, error } = await client
-		.from("courses")
-		.select("id, slug, title, status, description, duration_minutes, level, domains(name)")
-		.eq("status", "published")
-		.eq("visibility", "public")
-		.order("created_at", { ascending: false });
+	const { data, error } = await client.rpc("list_public_discoverable_courses");
 
 	if (error) return { courses: [], envRequired: false, unavailable: true };
 
-	const courses = await Promise.all((data ?? []).map(async (row) => {
-		const course = mapExploreCourse(row as ExploreCourseRow);
-		const author = await getPublicCourseAuthor(client, { id: course.id, status: course.status, visibility: "public" });
-		return { ...course, author: author ?? { displayName: "Propriétaire non renseigné", initials: "?", avatarUrl: null } };
-	}));
-	const covers = await resolveCourseCovers(client, courses.map((course) => course.id));
-	const withCovers = courses.map((course) => ({ ...course, cover: covers[course.id] ?? null }));
+	const withCovers = (data as PublicDiscoverableCourseRow[] ?? []).map((row) => mapPublicDiscoverableCourse(
+		row,
+		(path) => client.storage.from(courseCoverBucket).getPublicUrl(path).data.publicUrl,
+	));
 	const { data: { user } } = await client.auth.getUser();
 	if (!user || withCovers.length === 0) return { courses: withCovers.map((course) => ({ ...course, enrolled: false })), envRequired: false, unavailable: false };
 	const { data: enrollments } = await client.from("enrollments").select("course_id").eq("user_id", user.id).in("course_id", withCovers.map((course) => course.id));

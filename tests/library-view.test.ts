@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -55,5 +56,11 @@ test("Card view renders the same course records and actions without table semant
   assert.doesNotMatch(html, /role="table"/);
   assert.match(html, /Un parcours créé/);
   assert.match(html, /Un parcours suivi/);
-  assert.match(html, /href="\/app\/courses\/owner\?mode=edit"/);
+  assert.match(html, /href="\/app\/courses\/owner"/);
+});
+
+test("course search is wired to the contextual topbar rather than duplicated in the page body", () => {
+  const source = readFileSync(new URL("../components/course/CourseLibrary.tsx", import.meta.url), "utf8");
+  assert.match(source, /useContextualTopbarSearch\(topbarSearch\)/);
+  assert.doesNotMatch(source, /course-library__search/);
 });

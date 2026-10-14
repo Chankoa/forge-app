@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { courseEditPath, courseOverviewPath } from "../lib/courses/context-navigation";
+import { courseEditPath, courseManagePath, courseOverviewPath } from "../lib/courses/context-navigation";
 import { courseRelationshipMarker } from "../lib/courses/presentation";
 import { forgeErrorMessages, forgeProposalStates } from "../lib/forge/authoring-ux";
 
@@ -8,6 +8,10 @@ test("owner editing has a canonical route while the overview remains distinct", 
   assert.equal(courseEditPath("cours"), "/app/courses/cours?mode=edit");
   assert.equal(courseOverviewPath("cours"), "/app/courses/cours");
   assert.notEqual(courseEditPath("cours"), courseOverviewPath("cours"));
+});
+
+test("Gérer always routes to the management overview", () => {
+  assert.equal(courseManagePath("cours"), courseOverviewPath("cours"));
 });
 
 test("Forge uses one display vocabulary for proposal and persistence states", () => {

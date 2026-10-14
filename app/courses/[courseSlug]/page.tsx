@@ -5,7 +5,7 @@ import { PublicCourseDetail } from "@/components/course/PublicCourseDetail";
 import { CourseRemixButton } from "@/components/course/CourseRemixButton";
 import { PublicShell } from "@/components/shell/PublicShell";
 import { getAuthoringRelationship } from "@/lib/courses/authoring-repository";
-import { courseEditPath } from "@/lib/courses/context-navigation";
+import { courseManagePath } from "@/lib/courses/context-navigation";
 import { canOfferPublicCourseRemix } from "@/lib/courses/remix";
 import { getPublicCourseDetail } from "@/lib/courses/public-course-repository";
 
@@ -23,7 +23,7 @@ export default async function PublicCoursePage({ params }: Props) {
   const next = encodeURIComponent(`/courses/${course.slug}`);
   const remixable = canOfferPublicCourseRemix({ isAuthenticated: relationship.isAuthenticated, isOwner: relationship.isOwner, status: "published", visibility: "public", hasPublicAuthor: Boolean(course.author) });
   const action = !relationship.isAuthenticated ? <div className="public-course__actions"><Link className="button" href={`/login?next=${next}`}>Se connecter pour commencer</Link><Link className="button button--secondary" href={`/login?next=${next}`}>Se connecter pour remixer</Link></div>
-    : relationship.isOwner ? <Link className="button" href={courseEditPath(course.slug)}>Gérer le parcours</Link>
+    : relationship.isOwner ? <Link className="button" href={courseManagePath(course.slug)}>Gérer le parcours</Link>
     : relationship.membershipStatus === "active" && relationship.membershipRole === "editor" ? <Link className="button" href={`/app/courses/${course.slug}`}>J’édite ce parcours</Link>
     : relationship.membershipStatus === "active" && relationship.membershipRole === "viewer" ? <Link className="button button--secondary" href={`/app/courses/${course.slug}`}>Ouvrir en lecture</Link>
     : remixable ? <CourseRemixButton courseId={course.id} />

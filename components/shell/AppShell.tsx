@@ -8,13 +8,19 @@ import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { IconButton } from "@/components/ui/IconButton";
 import { createBrowserClient } from "@/lib/supabase/browser";
 import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
+import { ContextualTopbarSearch, ContextualTopbarSearchProvider, useContextualTopbarSearchState } from "./ContextualTopbarSearch";
 
 const links = [["/app", "Accueil", Home], ["/app/courses", "Mes parcours", Library], ["/app/explore", "Explorer", Compass], ["/app/create", "Créer", PenLine], ["/app/classroom", "Classroom", GraduationCap], ["/app/profile", "Profil", CircleUserRound]] as const;
 
 export function AppShell({ children, profileName, profileAvatarUrl }: { children: ReactNode; profileName?: string | null; profileAvatarUrl?: string | null }) {
+  return <ContextualTopbarSearchProvider><AppShellContent profileName={profileName} profileAvatarUrl={profileAvatarUrl}>{children}</AppShellContent></ContextualTopbarSearchProvider>;
+}
+
+function AppShellContent({ children, profileName, profileAvatarUrl }: { children: ReactNode; profileName?: string | null; profileAvatarUrl?: string | null }) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const contextualSearch = useContextualTopbarSearchState();
   const courseShell = /^\/app\/courses\/[^/]+/.test(pathname);
   const activeHref = pathname === "/app/classroom" || /^\/app\/courses\/[^/]+\/classroom/.test(pathname) ? "/app/classroom" : pathname.startsWith("/app/courses/") ? "/app/courses" : links.find(([href]) => href === pathname)?.[0];
 
@@ -36,7 +42,7 @@ export function AppShell({ children, profileName, profileAvatarUrl }: { children
       <button className="sidebar-signout" type="button" aria-label="Se déconnecter" title={collapsed ? "Se déconnecter" : undefined} onClick={signOut}><LogOut size={19} strokeWidth={1.8} /><span>Déconnexion</span></button>
     </aside>
     <div className="app-main">
-      <header className="app-header workspace-topbar"><strong className="app-header__title">{courseShell ? "Parcours" : links.find(([href]) => href === activeHref)?.[1] ?? "Forge"}</strong><div className="header-actions"><ThemeToggle /><IconButton label="Se déconnecter" onClick={signOut}><LogOut size={18} /></IconButton></div></header>
+      <header className={`app-header workspace-topbar${contextualSearch ? " app-header--with-search" : ""}`}><strong className="app-header__title">{courseShell ? "Parcours" : links.find(([href]) => href === activeHref)?.[1] ?? "Forge"}</strong><ContextualTopbarSearch /><div className="header-actions"><ThemeToggle /><IconButton label="Se déconnecter" onClick={signOut}><LogOut size={18} /></IconButton></div></header>
       <main className={courseShell ? "course-body" : "app-body"}>{children}</main>
     </div>
   </div>;

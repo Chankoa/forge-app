@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -6,6 +7,7 @@ import { CourseFacts, PersonalCourseCard } from "../components/course/CoursePres
 import { ExploreCatalog } from "../components/course/ExploreCatalog";
 import { courseLevelLabel, exploreDomains, selectExploreCourses, type DiscoverableCourse } from "../lib/courses/explore-view";
 import type { LibraryCourse } from "../lib/courses/library-view";
+import { positionCourseOverflowMenu } from "../lib/courses/overflow-menu";
 
 const courses: DiscoverableCourse[] = [
   { id: "a", slug: "a", title: "Écologie alpine", description: "Découvrir la montagne", domain: "Environnement", status: "published", durationMinutes: 90, enrolled: true },
@@ -22,6 +24,15 @@ test("Explorer uses only published courses and domains from real course data", (
   assert.equal(selectExploreCourses([...courses, { ...courses[0], id: "draft", status: "draft" }], "", "").count, 4);
 });
 
+test("public catalogue rows retain visibility independently from the current user relationship", () => {
+  const mixed = [{ ...courses[0], enrolled: false }, { ...courses[1], enrolled: true }, { ...courses[2], status: "draft" }];
+  assert.deepEqual(selectExploreCourses(mixed, "", "").featured.map((course) => course.id), ["a", "b"]);
+});
+
+test("overflow menus stay inside the viewport near bottom and right edges", () => {
+  assert.deepEqual(positionCourseOverflowMenu({ top: 740, bottom: 772, left: 970, right: 1000 }, { width: 1024, height: 800 }), { left: 770, top: 628 });
+});
+
 test("Explorer renders discovery actions and never exposes personal management", () => {
   const html = renderToStaticMarkup(createElement(ExploreCatalog, { courses }));
   assert.match(html, /À découvrir/);
@@ -30,6 +41,7 @@ test("Explorer renders discovery actions and never exposes personal management",
   assert.match(html, /Voir le parcours/);
   assert.doesNotMatch(html, />Gérer</);
   assert.doesNotMatch(html, /Recommandé pour vous/);
+  assert.doesNotMatch(html, /Parcours de/);
 });
 
 test("public Explorer uses public detail paths without protected learning actions", () => {
@@ -40,6 +52,12 @@ test("public Explorer uses public detail paths without protected learning action
   assert.doesNotMatch(html, />Continuer</);
   assert.doesNotMatch(html, />Commencer</);
   assert.doesNotMatch(html, />Gérer</);
+});
+
+test("Explorer owns its search semantics while AppShell owns its placement", () => {
+  const source = readFileSync(new URL("../components/course/ExploreCatalog.tsx", import.meta.url), "utf8");
+  assert.match(source, /useContextualTopbarSearch\(topbarSearch\)/);
+  assert.doesNotMatch(source, /explore-journey__search/);
 });
 
 test("Explorer displays only supported real levels and filters by loaded domains", () => {
