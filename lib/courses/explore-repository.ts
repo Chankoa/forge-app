@@ -59,7 +59,7 @@ export function mapPublicDiscoverableCourse(row: PublicDiscoverableCourseRow, pu
   };
 }
 
-export async function listDiscoverableCourses(): Promise<{ courses: Array<CourseSummary & { enrolled: boolean }>; envRequired: boolean; unavailable: boolean }> {
+export async function listDiscoverableCourses(): Promise<{ courses: Array<CourseSummary & { enrolled: boolean; isOwner: boolean }>; envRequired: boolean; unavailable: boolean }> {
 	const client = await createServerSupabaseClient();
 
 	if (!client) return { courses: [], envRequired: true, unavailable: false };
@@ -73,8 +73,9 @@ export async function listDiscoverableCourses(): Promise<{ courses: Array<Course
 		(path) => client.storage.from(courseCoverBucket).getPublicUrl(path).data.publicUrl,
 	));
 	const { data: { user } } = await client.auth.getUser();
-	if (!user || withCovers.length === 0) return { courses: withCovers.map((course) => ({ ...course, enrolled: false })), envRequired: false, unavailable: false };
+	if (!user || withCovers.length === 0) return { courses: withCovers.map((course) => ({ ...course, enrolled: false, isOwner: false })), envRequired: false, unavailable: false };
+	const ownerCourseIds = new Set((data as PublicDiscoverableCourseRow[] ?? []).filter((row) => row.author_profile_id === user.id).map((row) => row.id));
 	const { data: enrollments } = await client.from("enrollments").select("course_id").eq("user_id", user.id).in("course_id", withCovers.map((course) => course.id));
 	const enrolledIds = new Set((enrollments ?? []).map((enrollment: { course_id: string }) => enrollment.course_id));
-	return { courses: withCovers.map((course) => ({ ...course, enrolled: enrolledIds.has(course.id) })), envRequired: false, unavailable: false };
+	return { courses: withCovers.map((course) => ({ ...course, enrolled: enrolledIds.has(course.id), isOwner: ownerCourseIds.has(course.id) })), envRequired: false, unavailable: false };
 }

@@ -10,6 +10,10 @@ import { CourseCover } from "./CourseCoverVisual";
 
 export { CourseCover } from "./CourseCoverVisual";
 
+export function CourseMediaIdentity({ cover, domain, title }: { cover: { url: string; altText?: string | null } | null | undefined; domain: string | null; title: ReactNode }) {
+  return <div className="course-presentation__media-identity"><CourseCover image={cover} domain={domain} compact /><div className="course-presentation__identity"><DomainMetadata domain={domain} /><h3 className="course-presentation__title">{title}</h3></div></div>;
+}
+
 export function RelationPills({ relations }: { relations: CourseRelation[] }) {
   if (relations.length === 0) return null;
   return <div className="relation-pills" aria-label="Relations au parcours">{relations.map((relation) => <span key={relation}>{relation === "learn" ? <GraduationCap size={13} /> : relation === "create" ? <PenLine size={13} /> : relation === "edit" ? <Pencil size={13} /> : <Eye size={13} />}{relation === "learn" ? "J’apprends" : relation === "create" ? "Je crée" : relation === "edit" ? "J’édite" : "Lecteur"}</span>)}</div>;
@@ -48,17 +52,17 @@ function PersonalCourseStatus({ course }: { course: LibraryCourse }) {
   return status ? <span className={`course-status course-status--${status}`}>{libraryStatusLabels[status]}</span> : null;
 }
 export function PersonalCourseRow({ course, relations, action, menu }: PersonalCourseProps) {
-  return <article className="personal-course-row" role="row">
-    <div className="personal-course-row__course" role="cell"><CourseCover image={course.cover} domain={course.domain} compact /><div className="personal-course-row__identity"><DomainMetadata domain={course.domain} /><h3>{course.title}</h3>{course.description && <p>{course.description}</p>}{showLibraryCreator(course) && <AuthorAttribution author={course.author} />}</div></div>
-    <div className="personal-course-row__relationship" role="cell"><RelationPills relations={relations} /></div>
-    <div className="personal-course-row__state" role="cell"><PersonalCourseStatus course={course} /></div>
-    <div className="personal-course-row__progress" role="cell">{course.enrolled && <ProgressIndicator value={course.percentage} completedCount={course.completedCount} />}</div>
+  return <article className="course-presentation course-presentation--row personal-course-row" role="row">
+    <div className="personal-course-row__course course-presentation__course" role="cell"><CourseCover image={course.cover} domain={course.domain} compact /><div className="personal-course-row__identity course-presentation__identity"><DomainMetadata domain={course.domain} /><h3 className="course-presentation__title">{course.title}</h3>{course.description && <p className="course-presentation__description">{course.description}</p>}{showLibraryCreator(course) && <AuthorAttribution author={course.author} />}</div></div>
+    <div className="personal-course-row__relationship course-presentation__relation" role="cell"><RelationPills relations={relations} /></div>
+    <div className="personal-course-row__state course-presentation__status" role="cell"><PersonalCourseStatus course={course} /></div>
+    <div className="personal-course-row__progress course-presentation__progress" role="cell">{course.enrolled && <ProgressIndicator value={course.percentage} completedCount={course.completedCount} />}</div>
     <div className="personal-course-row__modules" role="cell"><CourseFacts moduleCount={course.moduleCount} lessonCount={course.lessonCount} durationMinutes={course.durationMinutes} /></div>
     <div className="personal-course-row__actions" role="cell"><div>{action}</div>{menu}</div>
   </article>;
 }
 export function PersonalCourseCard({ course, relations, action, menu }: PersonalCourseProps) {
   const status = course.status === "published" || course.status === "draft" || course.status === "archived" ? course.status : null;
-  return <article className="personal-course-card"><div className="personal-course-card__badges"><RelationPills relations={relations} />{status && <span className={`course-status course-status--${status}`}>{libraryStatusLabels[status]}</span>}</div><DomainMetadata domain={course.domain} /><div className="personal-course-card__heading"><CourseCover image={course.cover} domain={course.domain} compact /><h3>{course.title}</h3></div>{course.description && <p className="personal-course-card__description">{course.description}</p>}{showLibraryCreator(course) && <AuthorAttribution author={course.author} />}<CourseFacts moduleCount={course.moduleCount} lessonCount={course.lessonCount} durationMinutes={course.durationMinutes} />{course.enrolled && <ProgressIndicator value={course.percentage} completedCount={course.completedCount} />}<div className="personal-course-card__actions"><div>{action}</div>{menu}</div></article>;
+  return <article className="course-presentation course-presentation--card personal-course-card"><div className="personal-course-card__badges"><RelationPills relations={relations} />{status && <span className={`course-status course-status--${status}`}>{libraryStatusLabels[status]}</span>}</div><CourseMediaIdentity cover={course.cover} domain={course.domain} title={course.title} />{course.description && <p className="personal-course-card__description course-presentation__description">{course.description}</p>}{showLibraryCreator(course) && <AuthorAttribution author={course.author} />}<CourseFacts moduleCount={course.moduleCount} lessonCount={course.lessonCount} durationMinutes={course.durationMinutes} />{course.enrolled && <ProgressIndicator value={course.percentage} completedCount={course.completedCount} />}<div className="personal-course-card__actions"><div>{action}</div>{menu}</div></article>;
 }
 export function ExploreCourseCard({ course, action }: { course: CourseSummary; action: ReactNode }) { return <Surface className="explore-course-card"><CourseCover image={course.cover} domain={course.domain} /><div className="explore-course-card__body"><p className="caption">{domainLabel(course.domain)}</p><h2>{course.title}</h2>{course.description && <p className="explore-course-card__description">{course.description}</p>}<CourseMeta lessonCount={course.lessonCount} durationMinutes={course.durationMinutes} /><div className="explore-course-card__action">{action}</div></div></Surface>; }

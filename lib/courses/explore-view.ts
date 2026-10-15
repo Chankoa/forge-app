@@ -1,6 +1,6 @@
 import type { CourseSummary } from "./contracts";
 
-export type DiscoverableCourse = CourseSummary & { enrolled: boolean };
+export type DiscoverableCourse = CourseSummary & { enrolled: boolean; isOwner?: boolean };
 
 export function courseLevelLabel(level: string | null | undefined): string | null {
   return level === "beginner" ? "Débutant" : level === "intermediate" ? "Intermédiaire" : level === "advanced" ? "Avancé" : null;

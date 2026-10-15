@@ -4,7 +4,7 @@ import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { CourseFacts, PersonalCourseCard } from "../components/course/CoursePresentation";
-import { ExploreCatalog } from "../components/course/ExploreCatalog";
+import { ExploreCatalog, featuredActionLabel } from "../components/course/ExploreCatalog";
 import { courseLevelLabel, exploreDomains, selectExploreCourses, type DiscoverableCourse } from "../lib/courses/explore-view";
 import type { LibraryCourse } from "../lib/courses/library-view";
 import { positionCourseOverflowMenu } from "../lib/courses/overflow-menu";
@@ -22,6 +22,13 @@ test("Explorer uses only published courses and domains from real course data", (
   assert.deepEqual(selectExploreCourses(courses, "", "").recent.map((course) => course.id), ["d"]);
   assert.deepEqual(selectExploreCourses(courses, "ecologie", "Environnement").featured.map((course) => course.id), ["a"]);
   assert.equal(selectExploreCourses([...courses, { ...courses[0], id: "draft", status: "draft" }], "", "").count, 4);
+});
+
+test("featured and catalogue partitions are unique and cover every matching course", () => {
+  const selection = selectExploreCourses(courses, "", "");
+  const ids = [...selection.featured, ...selection.recent].map((course) => course.id);
+  assert.equal(new Set(ids).size, ids.length);
+  assert.equal(ids.length, selection.count);
 });
 
 test("public catalogue rows retain visibility independently from the current user relationship", () => {
@@ -42,6 +49,13 @@ test("Explorer renders discovery actions and never exposes personal management",
   assert.doesNotMatch(html, />Gérer</);
   assert.doesNotMatch(html, /Recommandé pour vous/);
   assert.doesNotMatch(html, /Parcours de/);
+});
+
+test("featured cards always expose a visible CTA for public, learner, and owner relationships", () => {
+  assert.equal(featuredActionLabel({ enrolled: false }, false), "S'inscrire");
+  assert.equal(featuredActionLabel({ enrolled: true }, false), "Continuer");
+  assert.equal(featuredActionLabel({ enrolled: false, isOwner: true }, false), "Gérer");
+  assert.equal(featuredActionLabel({ enrolled: false }, true), "Voir le parcours");
 });
 
 test("public Explorer uses public detail paths without protected learning actions", () => {
@@ -82,7 +96,7 @@ test("personal card keeps role and status above title, with real metadata and on
   const course: LibraryCourse = { id: "owner", slug: "owner", title: "Design", description: "Un parcours créé", domain: "Design", status: "draft", moduleCount: 2, lessonCount: 5, durationMinutes: 90, lessonSlug: "start", enrolled: false, isOwner: true, percentage: 0, completedCount: 0 };
   const html = renderToStaticMarkup(createElement(PersonalCourseCard, { course, relations: ["create"], action: createElement("a", { href: "/app/courses/owner" }, "Gérer") }));
   assert.ok(html.indexOf("J’apprends") < 0);
-  assert.ok(html.indexOf("Brouillon") < html.indexOf("<h3>Design</h3>"));
+  assert.ok(html.indexOf("Brouillon") < html.indexOf('course-presentation__title">Design</h3>'));
   assert.match(html, /2 modules/);
   assert.match(html, /5 leçons/);
   assert.match(html, /1 h 30 min/);

@@ -4,16 +4,31 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Gauge } from "lucide-react";
 import { EnrollButton, StartCourseLink } from "@/components/learning/LearningActions";
-import { CourseCover, CourseFacts } from "./CoursePresentation";
+import { CourseCover, CourseFacts, CourseMediaIdentity } from "./CoursePresentation";
 import { DomainMetadata } from "./DomainMetadata";
 import { AuthorAttribution } from "./AuthorAttribution";
 import { CourseOverflowMenu } from "./OwnerCourseMenu";
 import { courseLevelLabel, exploreDomains, selectExploreCourses, type DiscoverableCourse } from "@/lib/courses/explore-view";
 import { useContextualTopbarSearch } from "@/components/shell/ContextualTopbarSearch";
+import { courseManagePath } from "@/lib/courses/context-navigation";
+
+export function featuredActionLabel(course: Pick<DiscoverableCourse, "enrolled" | "isOwner">, publicView: boolean) {
+  if (publicView) return "Voir le parcours";
+  if (course.isOwner) return "Gérer";
+  return course.enrolled ? "Continuer" : "S'inscrire";
+}
 
 function FeaturedCourse({ course, publicView }: { course: DiscoverableCourse; publicView: boolean }) {
   const href = `${publicView ? "/courses" : "/app/courses"}/${course.slug}`;
-  return <article className="explore-feature"><div className="explore-feature__body"><DomainMetadata domain={course.domain} /><div className="explore-feature__identity"><CourseCover image={course.cover} domain={course.domain} compact /><h3><Link href={href}>{course.title}</Link></h3></div>{course.description && <p>{course.description}</p>}<div className="explore-feature__author-meta"><AuthorAttribution author={course.author} /><div className="explore-feature__meta"><CourseFacts durationMinutes={course.durationMinutes} />{courseLevelLabel(course.level) && <span><Gauge size={14} aria-hidden="true" />{courseLevelLabel(course.level)}</span>}</div></div><div className="explore-feature__actions">{publicView ? <Link className="button" href={href}>Voir le parcours <ArrowRight size={16} aria-hidden="true" /></Link> : course.enrolled ? <StartCourseLink href={href} label="Continuer" /> : <EnrollButton courseId={course.id} courseSlug={course.slug} />}<CourseOverflowMenu title={course.title} previewHref={href} /></div></div></article>;
+  const actionLabel = featuredActionLabel(course, publicView);
+  const action = actionLabel === "Voir le parcours"
+    ? <Link className="button" href={href}>Voir le parcours <ArrowRight size={16} aria-hidden="true" /></Link>
+    : actionLabel === "Gérer"
+      ? <Link className="button" href={courseManagePath(course.slug)}>Gérer <ArrowRight size={16} aria-hidden="true" /></Link>
+      : actionLabel === "Continuer"
+        ? <StartCourseLink href={href} label="Continuer" />
+        : <EnrollButton courseId={course.id} courseSlug={course.slug} />;
+  return <article className="course-presentation course-presentation--card explore-feature"><div className="explore-feature__body"><CourseMediaIdentity cover={course.cover} domain={course.domain} title={<Link href={href}>{course.title}</Link>} />{course.description && <p className="course-presentation__description">{course.description}</p>}<div className="explore-feature__author-meta"><AuthorAttribution author={course.author} /><div className="explore-feature__meta"><CourseFacts durationMinutes={course.durationMinutes} />{courseLevelLabel(course.level) && <span><Gauge size={14} aria-hidden="true" />{courseLevelLabel(course.level)}</span>}</div></div><div className="explore-feature__actions"><div className="explore-feature__primary-action">{action}</div><CourseOverflowMenu title={course.title} previewHref={href} /></div></div></article>;
 }
 
 function RecentCourse({ course, publicView }: { course: DiscoverableCourse; publicView: boolean }) {

@@ -41,7 +41,7 @@ test("My Paths starts in accessible List view with editorial columns and a Card 
 
 test("list rows keep one primary action and a secondary preview menu", () => {
   const html = renderToStaticMarkup(createElement(CourseLibrary, { courses: [owner] }));
-  const row = html.match(/<article class="personal-course-row"[\s\S]*?<\/article>/)?.[0] ?? "";
+  const row = html.match(/<article class="course-presentation course-presentation--row personal-course-row"[\s\S]*?<\/article>/)?.[0] ?? "";
   assert.match(row, /class="button course-action course-action--manage"/);
   assert.match(row, />Gérer<\/a>/);
   assert.equal((row.match(/class="button course-action/g) ?? []).length, 1);
@@ -57,6 +57,16 @@ test("Card view renders the same course records and actions without table semant
   assert.match(html, /Un parcours créé/);
   assert.match(html, /Un parcours suivi/);
   assert.match(html, /href="\/app\/courses\/owner"/);
+  assert.match(html, /course-presentation__media-identity/);
+  assert.ok(html.indexOf("course-presentation__media-identity") < html.indexOf("Un parcours créé"));
+});
+
+test("shared course presentation keeps grid identity, relation, and status as separate semantics", () => {
+  const source = readFileSync(new URL("../components/course/CoursePresentation.tsx", import.meta.url), "utf8");
+  assert.match(source, /course-presentation__media-identity/);
+  assert.match(source, /course-presentation__relation/);
+  assert.match(source, /course-presentation__status/);
+  assert.match(source, /course-presentation__progress/);
 });
 
 test("course search is wired to the contextual topbar rather than duplicated in the page body", () => {

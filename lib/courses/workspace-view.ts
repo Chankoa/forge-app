@@ -20,10 +20,9 @@ export function workspaceCourseAction(item: WorkspaceCourse) {
 
 export function selectWorkspaceCourses(courses: WorkspaceCourse[]) {
   const continuing = courses.find(({ state }) => state.enrollment && state.percentage > 0 && state.percentage < 100)
-    ?? courses.find(({ state }) => state.enrollment && state.percentage < 100)
-    ?? courses.find(({ isOwner }) => isOwner)
-    ?? courses[0];
-  const paths = courses.slice(0, 3);
+    ?? courses.find(({ state }) => state.enrollment && state.percentage === 0)
+    ?? null;
+  const paths = courses.filter((item) => item.course.id !== continuing?.course.id).slice(0, 3);
   const learning = courses.find((item) => item.state.enrollment && item.course.id !== continuing?.course.id)
     ?? courses.find((item) => item.state.enrollment);
   const editableLesson = courses.filter((item) => item.isOwner).map((item) => ({ item, lesson: workspaceLesson(item) })).find(({ lesson }) => Boolean(lesson));
