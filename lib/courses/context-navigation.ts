@@ -1,6 +1,6 @@
 import type { CourseCapabilities } from "@/lib/capabilities/course-capabilities";
 
-export type CourseContextLink = { label: "Vue d'ensemble" | "Gérer" | "Classroom" | "Apprendre" | "Prévisualiser" | "Modifier" | "Publication"; href: string };
+export type CourseContextLink = { label: "Vue d'ensemble" | "Gérer" | "Classroom" | "Apprendre" | "Prévisualiser" | "Modifier" | "Publication" | "Discussion"; href: string };
 
 export function courseOverviewPath(courseSlug: string) { return `/app/courses/${courseSlug}`; }
 
@@ -9,6 +9,8 @@ export function courseManagePath(courseSlug: string) { return courseOverviewPath
 export function courseEditPath(courseSlug: string) { return `${courseOverviewPath(courseSlug)}?mode=edit`; }
 
 export function courseClassroomPath(courseSlug: string) { return `${courseOverviewPath(courseSlug)}/classroom`; }
+
+export function courseDiscussionPath(courseSlug: string) { return `${courseOverviewPath(courseSlug)}/discussion`; }
 
 export function courseClassroomLearnerPath(courseSlug: string, learnerId: string) { return `${courseClassroomPath(courseSlug)}/learners/${learnerId}`; }
 
@@ -34,5 +36,6 @@ export function getCourseContextLinks(courseSlug: string, capabilities: CourseCa
     // authoring destinations.
     ...(capabilities.canEdit && lessonSlug ? [{ label: "Modifier" as const, href: `${selectedLessonPath}?mode=edit` }] : []),
     ...(capabilities.canPublish ? [{ label: "Publication" as const, href: `${courseOverviewPath(courseSlug)}?mode=publication` }] : []),
+    ...(capabilities.canViewPrivate ? [{ label: "Discussion" as const, href: courseDiscussionPath(courseSlug) }] : []),
   ];
 }
