@@ -9,13 +9,14 @@ import type { CollaboratorCandidate, CollaboratorRole, CourseCollaborator } from
 import type { CourseCollaborationRequest } from "@/lib/courses/collaboration-requests";
 import { CourseCollaborationRequestsPanel } from "./CourseCollaborationRequestsPanel";
 import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
+import { dispatchToast } from "@/lib/ui/toast";
 
 const statusLabel = { active: "Actif", invited: "Invité", suspended: "Suspendu", revoked: "Révoqué" } as const;
 
 export function CourseCollaboratorManager({ courseId, courseTitle, initialCollaborators, available, collaborationRequestsEnabled, requests, requestsAvailable }: { courseId: string; courseTitle: string; initialCollaborators: CourseCollaborator[]; available: boolean; collaborationRequestsEnabled: boolean; requests: CourseCollaborationRequest[]; requestsAvailable: boolean }) {
   const router = useRouter();
   const [query, setQuery] = useState(""); const [candidates, setCandidates] = useState<CollaboratorCandidate[]>([]); const [selected, setSelected] = useState<CollaboratorCandidate | null>(null); const [role, setRole] = useState<CollaboratorRole>("viewer"); const [message, setMessage] = useState(""); const [error, setError] = useState(false); const [pending, startTransition] = useTransition();
-  const run = (work: () => Promise<void>, success: string) => startTransition(async () => { try { await work(); setMessage(success); setError(false); router.refresh(); } catch (reason) { setMessage(reason instanceof Error ? reason.message : "L'action a échoué."); setError(true); } });
+  const run = (work: () => Promise<void>, success: string) => startTransition(async () => { try { await work(); setMessage(""); setError(false); if (success) dispatchToast(success); router.refresh(); } catch (reason) { setMessage(reason instanceof Error ? reason.message : "L'action a échoué."); setError(true); } });
   const search = () => run(async () => { const results = await searchCourseCollaboratorCandidatesAction(courseId, query); setCandidates(results); setSelected(null); }, "");
   return <section className="collaborator-manager" aria-labelledby="collaborator-manager-title">
     <header className="collaborator-manager__heading"><div><p className="eyebrow">Équipe du parcours</p><h2 id="collaborator-manager-title">Collaborateurs</h2><p>Ajoutez des membres Forge existants pour consulter ou modifier « {courseTitle} ».</p></div></header>

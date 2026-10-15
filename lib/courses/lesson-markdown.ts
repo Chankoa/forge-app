@@ -1,4 +1,4 @@
-export type LessonInsertAction = "paragraph" | "heading2" | "heading3" | "bullets" | "numbers" | "callout" | "quote" | "code" | "divider" | "link" | "image" | "audio" | "video" | "tab" | "practice";
+export type LessonInsertAction = "paragraph" | "heading2" | "heading3" | "bold" | "italic" | "bullets" | "numbers" | "callout" | "quote" | "code" | "divider" | "link" | "image" | "audio" | "video" | "tab" | "practice";
 
 export type LessonInsertion = { content: string; selectionStart: number; selectionEnd: number };
 
@@ -19,6 +19,8 @@ export function insertLessonMarkdown(content: string, start: number, end: number
     case "paragraph": focusText = hasSelection ? value : "Nouveau paragraphe"; inserted = focusText; break;
     case "heading2": focusText = hasSelection ? value : "Titre de section"; inserted = `## ${focusText}`; break;
     case "heading3": focusText = hasSelection ? value : "Sous-section"; inserted = `### ${focusText}`; break;
+    case "bold": focusText = hasSelection ? value : "Texte important"; inserted = `**${focusText}**`; break;
+    case "italic": focusText = hasSelection ? value : "Texte mis en évidence"; inserted = `*${focusText}*`; break;
     case "bullets": {
       focusText = hasSelection ? value : "Premier point";
       inserted = focusText.split("\n").map((line) => `- ${line.replace(/^\s*(?:[-*]|\d+\.)\s+/, "").trim()}`).join("\n");

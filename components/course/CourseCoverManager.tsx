@@ -8,6 +8,7 @@ import { removeCourseCoverAction, setCourseCoverAction } from "@/app/app/courses
 import { coverGuidance, validateCourseCoverUpload, type CoverPresentation } from "@/lib/courses/cover-contracts";
 import { CourseCover } from "./CourseCoverVisual";
 import { uploadOperationError } from "@/lib/uploads/upload-feedback";
+import { dispatchToast } from "@/lib/ui/toast";
 
 export function CourseCoverManager({ courseId, cover, domain }: { courseId: string; cover?: CoverPresentation | null; domain?: string | null }) {
   const router = useRouter();
@@ -22,8 +23,9 @@ export function CourseCoverManager({ courseId, cover, domain }: { courseId: stri
       const cleanupWarning = result && typeof result === "object" && "cleanupWarning" in result && typeof result.cleanupWarning === "string"
         ? result.cleanupWarning
         : null;
-      setMessage(cleanupWarning ?? success);
+      setMessage(cleanupWarning ?? "");
       setError(false);
+      if (!cleanupWarning) dispatchToast(success);
       router.refresh();
     }
     catch { setMessage(upload ? uploadOperationError("cover") : "L’image de couverture n’a pas pu être supprimée."); setError(true); }

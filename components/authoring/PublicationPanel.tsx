@@ -9,6 +9,7 @@ import type { PublicationReadiness } from "@/lib/courses/publication";
 import { publicationCorrectionPath } from "@/lib/courses/context-navigation";
 import { publishCourseAction, unpublishCourseAction } from "@/app/app/create/actions";
 import { Button } from "@/components/ui/Button";
+import { dispatchToast } from "@/lib/ui/toast";
 
 export function PublicationPanel({ course, readiness }: { course: CourseDetail; readiness: PublicationReadiness }) {
   const router = useRouter();
@@ -21,7 +22,7 @@ export function PublicationPanel({ course, readiness }: { course: CourseDetail; 
   const structureHref = publicationCorrectionPath(course.slug, "blocking");
   const previewHref = lessons[0] ? `/app/courses/${course.slug}/lessons/${lessons[0].slug}?mode=preview` : null;
   const mutate = (action: () => Promise<void>, success: string) => startTransition(async () => {
-    try { setMessage(""); setFailed(false); await action(); router.refresh(); setMessage(success); }
+    try { setMessage(""); setFailed(false); await action(); router.refresh(); dispatchToast(success); }
     catch (error) { setFailed(true); setMessage(error instanceof Error ? error.message : "La publication a échoué."); }
   });
 

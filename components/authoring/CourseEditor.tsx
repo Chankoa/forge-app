@@ -13,6 +13,7 @@ import { CurriculumAnalysis } from "@/components/forge/CurriculumAnalysis";
 import type { PublicationReadiness } from "@/lib/courses/publication";
 import type { CourseCapabilities } from "@/lib/capabilities/course-capabilities";
 import { forgeProposalStates } from "@/lib/forge/authoring-ux";
+import { dispatchToast } from "@/lib/ui/toast";
 
 type CockpitTab = "overview" | "information" | "structure" | "sources";
 
@@ -38,13 +39,14 @@ export function CourseEditor({ course, domains, readiness, capabilities, showOve
       setDraft((current) => ({ ...current, ...(patch.title ? { title: patch.title } : {}), ...(patch.subtitle ? { subtitle: patch.subtitle } : {}), ...(patch.description ? { description: patch.description } : {}) }));
       setTab("information");
       setMessage(`${forgeProposalStates.applied}. Sauvegardez pour enregistrer.`);
+      dispatchToast("Modification appliquée au brouillon.");
       setMessageError(false);
       setProposal(null);
     });
   }, [course.id, proposal, setProposal]);
 
   const run = (action: () => Promise<void>, success: string) => startTransition(async () => {
-    try { await action(); setMessage(success); setMessageError(false); } catch (error) { setMessage(error instanceof Error ? error.message : "La sauvegarde a échoué."); setMessageError(true); }
+    try { await action(); setMessage(""); setMessageError(false); dispatchToast(success); } catch (error) { setMessage(error instanceof Error ? error.message : "La sauvegarde a échoué."); setMessageError(true); }
   });
   const tabs: Array<{ id: CockpitTab; label: string }> = [{ id: "information", label: "Informations" }, { id: "structure", label: "Structure" }, ...(capabilities.canManageSources ? [{ id: "sources" as const, label: "Ressources" }] : [])];
 

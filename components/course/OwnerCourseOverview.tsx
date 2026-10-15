@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BookOpen, Check, ChevronDown, PenLine, AlertCircle, Users } from "lucide-react";
+import { ArrowRight, BookOpen, Check, ChevronDown, LayoutDashboard, PenLine, AlertCircle, Users } from "lucide-react";
 import type { CourseDetail } from "@/lib/courses/contracts";
 import type { PublicationReadiness } from "@/lib/courses/publication";
 import { knownCourseDuration } from "@/lib/courses/presentation";
@@ -19,8 +19,18 @@ export function OwnerCourseOverview({ course, readiness, archiveAction, restoreA
   const structureHref = `/app/courses/${course.slug}?mode=edit#cockpit-program-title`;
   const issueCount = readiness.blocking.length + readiness.recommended.length;
 
-  return <div className="owner-overview">
+  return <div className="owner-overview" id="course-overview-cockpit">
     <CourseMetrics modules={course.outline.length} lessons={lessons.length} durationMinutes={duration} publication={course.status === "published" ? "Publié" : readiness.ready ? "Prêt à publier" : "À compléter"} />
+    <nav className="owner-overview__management" aria-label="Destinations de gestion du parcours">
+      <span className="eyebrow">Gestion du parcours</span>
+      <Link href={`/app/courses/${course.slug}`} aria-current="page"><LayoutDashboard size={15} aria-hidden="true" />Vue d’ensemble</Link>
+      <Link href={structureHref}>Structure</Link>
+      <Link href={publicationHref}>Publication</Link>
+      <Link href={`/app/courses/${course.slug}?mode=collaborators`}>Équipe</Link>
+      <Link href={courseClassroomPath(course.slug)}>Classroom</Link>
+      <Link className="owner-overview__management-secondary" href="#overview-lifecycle-title">Disponibilité</Link>
+      {(course.status === "draft" || course.status === "published") && <Link className="owner-overview__management-secondary" href="#overview-remix-title">Remix / provenance</Link>}
+    </nav>
     <CourseProvenance provenance={course.provenance} />
     {canManageCover && <CourseCoverManager courseId={course.id} cover={course.cover} domain={course.domain} />}
     <section className="owner-overview__section" aria-labelledby="overview-modules-title">

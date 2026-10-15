@@ -11720,3 +11720,383 @@ textarea,select {
     padding: 8px 12px;
   }
 }
+
+.owner-overview__management {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 20px 0 24px;
+  padding: 12px 0;
+  border-block: 1px solid var(--border);
+}
+
+.owner-overview__management > .eyebrow {
+  margin: 0 6px 0 0;
+  color: var(--text-muted);
+}
+
+.owner-overview__management a {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font: var(--font-label);
+}
+
+.owner-overview__management a[aria-current="page"],
+.owner-overview__management a:hover {
+  color: var(--violet);
+}
+
+.owner-overview__management .owner-overview__management-secondary {
+  color: var(--text-muted);
+  font: var(--font-caption);
+}
+
+.forge-context-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2px;
+  margin: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.forge-context-tabs button {
+  min-width: 0;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 5px 2px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font: var(--font-caption);
+  cursor: pointer;
+}
+
+.forge-context-tabs button[aria-selected="true"] {
+  border-bottom-color: var(--violet);
+  color: var(--violet);
+}
+
+.forge-tab-panel {
+  min-width: 0;
+  outline: none;
+}
+
+.forge-suggestion-list,
+.forge-analysis,
+.forge-chat {
+  display: grid;
+  gap: 12px;
+}
+
+.forge-suggestion {
+  min-width: 0;
+  padding: 13px 0;
+  border-top: 1px solid var(--border);
+}
+
+.forge-suggestion h3,
+.forge-resource-list h3 {
+  margin: 0;
+  font: var(--font-label);
+}
+
+.forge-suggestion p {
+  margin: 7px 0;
+  overflow-wrap: anywhere;
+  color: var(--text-secondary);
+  font: var(--font-caption);
+}
+
+.forge-suggestion .forge-suggestion__evidence {
+  padding: 8px 10px;
+  border-left: 2px solid var(--violet);
+  background: var(--surface-soft);
+  color: var(--text-primary);
+}
+
+.forge-suggestion .button {
+  margin-top: 5px;
+}
+
+.forge-resource-list ul {
+  display: grid;
+  gap: 0;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.forge-resource-list li {
+  min-width: 0;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+.forge-resource-list label {
+  min-width: 0;
+  display: flex;
+  align-items: start;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.forge-resource-list label > span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.forge-resource-list strong,
+.forge-resource-list small {
+  overflow-wrap: anywhere;
+}
+
+.forge-resource-list small {
+  color: var(--text-muted);
+  font: var(--font-caption);
+}
+
+.forge-chat__messages {
+  display: grid;
+  gap: 10px;
+  max-height: 44vh;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.forge-chat__message {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.forge-chat__message--assistant {
+  background: var(--surface-ai);
+}
+
+.forge-chat__message strong {
+  font: var(--font-caption);
+}
+
+.forge-chat__message p {
+  margin: 5px 0 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.forge-chat__form {
+  display: grid;
+  gap: 8px;
+}
+
+.forge-chat__form textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.forge-chat__form button {
+  justify-self: start;
+}
+
+.product-toasts {
+  position: fixed;
+  z-index: 12000;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  display: grid;
+  width: min(360px, calc(100vw - 32px));
+  gap: 8px;
+  pointer-events: none;
+}
+
+.product-toast {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-primary);
+  box-shadow: 0 8px 26px rgb(15 23 42 / 14%);
+  font: var(--font-caption);
+  pointer-events: auto;
+}
+
+.product-toast--success > svg {
+  color: var(--success);
+}
+
+.product-toast > span {
+  overflow-wrap: anywhere;
+}
+
+.product-toast button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.lesson-editor__toolbar {
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: var(--surface-soft);
+}
+
+.lesson-editor__toolbar > button,
+.lesson-editor__insert-menu > summary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.lesson-editor__insert-menu > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.lesson-editor__insert-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.lesson-editor__composition .lesson-editor__writing-label {
+  margin-top: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-top: 0;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  background: var(--surface);
+}
+
+.lesson-editor__composition .content-editor {
+  min-height: 360px;
+  padding: 12px;
+  border: 0;
+  background: transparent;
+  resize: vertical;
+}
+
+.lesson-editor__composition .content-editor:focus-visible {
+  outline-offset: -3px;
+}
+
+.lesson-editor__writing-label--source {
+  background: var(--surface-soft) !important;
+}
+
+.lesson-editor__writing-label--source textarea {
+  color: var(--text-secondary);
+  font: 400 13px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.lesson-editor__media-overlay {
+  position: fixed;
+  z-index: 13000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: var(--shell-overlay);
+}
+
+.lesson-editor__media-upload {
+  width: min(480px, 100%);
+  max-height: min(720px, 90vh);
+  overflow-y: auto;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.lesson-editor__media-upload header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.lesson-editor__media-upload header button {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.lesson-editor__media-upload > div {
+  display: grid;
+  gap: 12px;
+}
+
+.lesson-editor__media-upload label {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  font: var(--font-label);
+}
+
+.lesson-editor__media-upload input {
+  max-width: 100%;
+}
+
+@media (max-width: 700px) {
+  .owner-overview__management {
+    align-items: flex-start;
+    gap: 4px 12px;
+  }
+
+  .owner-overview__management > .eyebrow {
+    flex-basis: 100%;
+  }
+
+  .forge-context-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .forge-context-tabs button {
+    min-height: 44px;
+  }
+
+  .lesson-editor__toolbar {
+    gap: 2px;
+    padding: 6px;
+  }
+
+  .lesson-editor__toolbar > button,
+  .lesson-editor__insert-menu > summary {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 4px 7px;
+  }
+
+  .lesson-editor__composition .content-editor {
+    min-height: 300px;
+  }
+}

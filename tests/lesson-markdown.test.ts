@@ -3,7 +3,7 @@ import test from "node:test";
 import { hasUnclosedCodeFence, insertLessonMarkdown, type LessonInsertAction } from "../lib/courses/lesson-markdown";
 
 test("editor insertions preserve text around a selection", () => {
-  for (const action of ["paragraph", "heading2", "heading3", "bullets", "numbers", "callout", "quote", "code", "divider", "link"] satisfies LessonInsertAction[]) {
+  for (const action of ["paragraph", "heading2", "heading3", "bold", "italic", "bullets", "numbers", "callout", "quote", "code", "divider", "link"] satisfies LessonInsertAction[]) {
     const next = insertLessonMarkdown("Avant\n\nTexte choisi\n\nAprès", 7, 19, action);
     assert.ok(next.content.startsWith("Avant\n\n"), action);
     assert.ok(next.content.endsWith("\n\nAprès"), action);
@@ -14,6 +14,8 @@ test("editor insertions preserve text around a selection", () => {
 test("heading, list, code and callout insert predictable Markdown", () => {
   assert.match(insertLessonMarkdown("", 0, 0, "heading2").content, /^## Titre de section$/);
   assert.match(insertLessonMarkdown("", 0, 0, "heading3").content, /^### Sous-section$/);
+  assert.equal(insertLessonMarkdown("Texte choisi", 0, 12, "bold").content, "**Texte choisi**");
+  assert.equal(insertLessonMarkdown("Texte choisi", 0, 12, "italic").content, "*Texte choisi*");
   assert.equal(insertLessonMarkdown("a\nb", 0, 3, "bullets").content, "- a\n- b");
   assert.equal(insertLessonMarkdown("a\nb", 0, 3, "numbers").content, "1. a\n2. b");
   assert.equal(insertLessonMarkdown("", 0, 0, "code").content, "```\nVotre code ici\n```");

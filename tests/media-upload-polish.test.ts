@@ -59,6 +59,9 @@ test("lesson media action commits upload and metadata without requiring a signed
   assert.match(lessonEditor, /setLocalResources\(\(current\) => \(\{ \.\.\.current, \[resource\.id\]: \{ \.\.\.resource, url: previewUrl, durationSeconds: null \} \}\)\)/);
   assert.match(lessonEditor, /URL\.revokeObjectURL\(url\)/);
   assert.doesNotMatch(lessonEditor, /lesson-editor__media-upload[\s\S]*?<input value=\{text\} required/);
+  assert.match(lessonEditor, /mediaPanelOpen && canUploadMedia && <MediaUpload/);
+  assert.match(lessonEditor, /onUploaded=\{insertUploadedResource\}/);
+  assert.match(lessonEditor, /dispatchToast\(`\$\{kind === "image" \? "Image" : "Audio"\} ajouté au brouillon\.`\)/);
 });
 
 test("lesson directives persist only resource identity, never storage or signed URLs", () => {
@@ -110,6 +113,17 @@ test("upload controls prevent repeated submits while an upload is pending", () =
   assert.match(avatar, /disabled=\{pending\} onClick=\{\(\) => input\.current\?\.click\(\)\}/);
   assert.match(cover, /disabled=\{pending\} onClick=\{\(\) => input\.current\?\.click\(\)\}/);
   assert.match(media, /onClick=\{upload\} disabled=\{pending\}/);
+});
+
+test("empty lessons stay compact until writing starts and draft preview uses the learner renderer", () => {
+  const editor = readFileSync("components/authoring/LessonEditor.tsx", "utf8");
+  assert.match(editor, /!draft\.content\.trim\(\) && !writingStarted \? <LessonEmptyContent/);
+  assert.match(editor, /<LessonMarkdown content=\{draft\.content\} mode="author" resources=\{localResources\}/);
+  assert.match(editor, /contentView === "source" \? "Source Markdown" : "Rédaction"/);
+  assert.match(editor, /aria-label="Mise en forme du contenu"/);
+  for (const label of ["Gras", "Italique", "Liste à puces", "Liste numérotée", "Lien", "Citation", "Bloc de code"]) {
+    assert.match(editor, new RegExp(`aria-label="${label}"`));
+  }
 });
 
 test("avatar and cover dimensions use the approved variants", () => {
