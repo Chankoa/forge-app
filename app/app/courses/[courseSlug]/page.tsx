@@ -19,6 +19,7 @@ import { redirect } from "next/navigation";
 import { canOfferPublicCourseRemix } from "@/lib/courses/remix";
 import { CourseRemixButton } from "@/components/course/CourseRemixButton";
 import { CourseProvenance } from "@/components/course/CourseProvenance";
+import { CourseLifecycleControls } from "@/components/course/CourseLifecycleControls";
 
 export default async function CoursePage({ params, searchParams }: { params: Promise<{ courseSlug: string }>; searchParams: Promise<{ mode?: string }> }) {
   const { courseSlug } = await params;
@@ -31,6 +32,8 @@ export default async function CoursePage({ params, searchParams }: { params: Pro
   const capabilities = resolveCourseCapabilities({ isOwner: relationship.isOwner, isEnrolled: state.enrollment !== null, courseStatus: course.status, membershipRole: relationship.membershipRole, membershipStatus: relationship.membershipStatus });
   if (course.status === "archived" && !capabilities.canView) return <p className="env-note">Ce parcours est archivé et n&apos;est plus accessible.</p>;
   const collaboratorMode = relationship.isOwner && requestedMode === "collaborators";
+  const availabilityMode = relationship.isOwner && requestedMode === "availability";
+  const remixMode = relationship.isOwner && requestedMode === "remix";
   const learnerRequestContext = Boolean(state.enrollment) && !relationship.isOwner;
   const [domains, collaboratorData, ownerRequestData, myRequestData] = await Promise.all([capabilities.canEdit ? listActiveDomains() : [], collaboratorMode ? listCourseCollaborators(course.id) : Promise.resolve({ collaborators: [], available: true }), collaboratorMode ? listCourseCollaborationRequests(course.id) : Promise.resolve({ requests: [], available: true }), learnerRequestContext ? getMyCourseCollaborationRequest(course.id) : Promise.resolve({ request: null, available: true })]);
   // The root owner surface is the cockpit. Legacy ?mode=edit links converge here.
@@ -48,8 +51,12 @@ export default async function CoursePage({ params, searchParams }: { params: Pro
 
   const content = collaboratorMode
     ? <CourseCollaboratorManager courseId={course.id} courseTitle={course.title} initialCollaborators={collaboratorData.collaborators} available={collaboratorData.available} collaborationRequestsEnabled={Boolean(course.collaborationRequestsEnabled)} requests={ownerRequestData.requests} requestsAvailable={ownerRequestData.available} />
+    : availabilityMode
+    ? <section className="course-management-destination" aria-labelledby="availability-title"><p className="eyebrow">Disponibilité</p><h2 id="availability-title">{course.status === "archived" ? "Parcours archivé" : "Disponibilité du parcours"}</h2><p>{course.status === "archived" ? "Le parcours reste modifiable pour vous. Restaurez-le avant toute nouvelle publication." : "L’archivage retire le parcours de l’Explorer et suspend l’accès des apprenants sans supprimer leurs données."}</p><CourseLifecycleControls courseId={course.id} courseSlug={course.slug} status={course.status} archiveAction={archiveCourseAction} restoreAction={restoreCourseAction} /></section>
+    : remixMode
+    ? <section className="course-management-destination" aria-labelledby="remix-title"><p className="eyebrow">Remix</p><h2 id="remix-title">Provenance et copie indépendante</h2><p>Une copie remixée repart en brouillon privé. Les relations, sources, données d’apprentissage et l’image de couverture ne sont pas reprises.</p><CourseProvenance provenance={course.provenance} /></section>
     : mode === "edit"
-    ? <CourseEditor course={course} domains={domains} readiness={readiness} capabilities={capabilities} showOverview={ownerOverview} archiveAction={relationship.isOwner ? archiveCourseAction : undefined} restoreAction={relationship.isOwner ? restoreCourseAction : undefined} />
+    ? <CourseEditor course={course} domains={domains} readiness={readiness} capabilities={capabilities} showOverview={ownerOverview} />
     : mode === "publication"
       ? <PublicationPanel course={course} readiness={readiness} />
       : <div className="course-overview course-overview--learner">

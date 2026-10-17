@@ -7624,6 +7624,10 @@ textarea,select {
   font: var(--font-label);
 }
 
+.course-metrics > div > svg + dt {
+  min-width: 0;
+}
+
 .course-metrics__progress progress {
   grid-column: 1 / -1;
   width: 100%;
@@ -12112,6 +12116,45 @@ textarea,select {
 .owner-overview__management .owner-overview__management-secondary {
   color: var(--text-muted);
   font: var(--font-caption);
+}
+
+/* Course overview synthesis and Forge contextual accents */
+.course-management-destination {
+  display: grid;
+  gap: 14px;
+  max-width: 760px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.course-management-destination h2,
+.course-management-destination p {
+  margin: 0;
+}
+
+.course-management-destination > p:not(.eyebrow) {
+  color: var(--text-secondary);
+}
+
+.course-cover-manager__forge {
+  border-color: color-mix(in srgb, var(--violet) 32%, var(--border));
+  background: var(--surface-ai);
+  color: var(--violet);
+}
+
+.course-cover-manager__forge:hover:not(:disabled) {
+  border-color: var(--violet);
+  background: color-mix(in srgb, var(--violet) 10%, var(--surface));
+}
+
+.rail-title--forge {
+  color: var(--violet);
+}
+
+.rail-title--forge svg {
+  color: var(--violet);
 }
 
 .forge-context-tabs {
