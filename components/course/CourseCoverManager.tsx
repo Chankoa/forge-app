@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/Button";
 import { removeCourseCoverAction, setCourseCoverAction } from "@/app/app/courses/cover-actions";
 import { coverGuidance, validateCourseCoverUpload, type CoverPresentation } from "@/lib/courses/cover-contracts";
 import { CourseCover } from "./CourseCoverVisual";
+import dynamic from "next/dynamic";
+import { Sparkles } from "lucide-react";
+const CoverForgeEntry = dynamic(() => import("./CoverForgeStudio").then((module) => module.CoverForgeEntry), { ssr: false });
 import { uploadOperationError } from "@/lib/uploads/upload-feedback";
 import { dispatchToast } from "@/lib/ui/toast";
 
@@ -17,6 +20,7 @@ export function CourseCoverManager({ courseId, cover, domain }: { courseId: stri
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
+  const [studio, setStudio] = useState(false);
   const run = (task: () => Promise<unknown>, success: string, upload = false) => startTransition(async () => {
     try {
       const result = await task();
@@ -52,7 +56,9 @@ export function CourseCoverManager({ courseId, cover, domain }: { courseId: stri
         <div>
           <Button type="button" variant="secondary" disabled={pending} onClick={() => input.current?.click()}><ImagePlus size={16} aria-hidden="true" />{pending ? "Traitement…" : cover ? "Remplacer" : "Ajouter une image"}</Button>
           {cover && <Button type="button" variant="ghost" disabled={pending} onClick={() => run(() => removeCourseCoverAction(courseId), "Image de couverture supprimée.")}><Trash2 size={16} aria-hidden="true" />Supprimer</Button>}
+          {!studio && <Button type="button" variant="secondary" disabled={pending} onClick={() => setStudio(true)}><Sparkles size={16} aria-hidden="true" />Créer avec Forge</Button>}
         </div>
+        {studio && <CoverForgeEntry courseId={courseId} onDone={() => setStudio(false)} />}
         {pending && <p className="caption" role="status">Traitement en cours…</p>}
         {message && <p className={error ? "form-error" : "completion-state"} role="status">{message}</p>}
       </div>

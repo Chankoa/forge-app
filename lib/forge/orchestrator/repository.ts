@@ -3,8 +3,33 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { resolveCourseCapabilities } from "@/lib/capabilities/course-capabilities";
 import { domainNameFromRelation } from "@/lib/courses/presentation";
 import type { CourseOperation, CoursePlanContext } from "./contracts";
+import type { CoverContext } from "./media-contracts";
+import { canManageCourseCover } from "@/lib/courses/cover-contracts";
 
 type Client = NonNullable<Awaited<ReturnType<typeof createServerSupabaseClient>>>;
+
+// Cover context: identity-level metadata only, and only for the owner (the existing cover contract is owner-only).
+export function createCoverRepository(client: Client, userId: string) {
+  const clip = (value: string | null, max: number) => (value ?? "").trim().slice(0, max);
+  return {
+    async loadCover(courseId: string): Promise<CoverContext | null> {
+      const { data: course, error } = await client.from("courses").select("title,subtitle,description,teacher_id,domains(name),level").eq("id", courseId).maybeSingle();
+      if (error || !course || !canManageCourseCover(course.teacher_id, userId)) return null;
+      const [modules, lessons] = await Promise.all([
+        client.from("course_modules").select("title").eq("course_id", courseId).order("display_order").order("id").limit(12),
+        client.from("lessons").select("objectives").eq("course_id", courseId).order("display_order").order("id").limit(60),
+      ]);
+      if (modules.error || lessons.error || !modules.data || !lessons.data) throw new Error("context_unavailable");
+      const objectives = [...new Set(lessons.data.flatMap((lesson) => lesson.objectives ?? []).map((item: string) => clip(item, 240)).filter(Boolean))].slice(0, 12);
+      return {
+        title: clip(course.title, 260), subtitle: clip(course.subtitle, 300) || null, description: clip(course.description, 1200) || null,
+        domain: domainNameFromRelation(course.domains), level: course.level ? clip(String(course.level), 60) : null,
+        objectives, moduleTitles: modules.data.map((module) => clip(module.title, 240)).filter(Boolean),
+      };
+    },
+  };
+}
+
 export function createCoursePlanRepository(client: Client, userId: string) {
   return {
     async load(courseId: string): Promise<CoursePlanContext | null> {

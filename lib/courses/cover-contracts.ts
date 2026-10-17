@@ -12,6 +12,11 @@ export const courseCoverMaxBytes = 5 * 1024 * 1024;
 export const courseCoverBucket = "course-covers";
 export const coverGuidance = "Format horizontal recommandé (JPEG, PNG ou WebP, 5 Mo maximum).";
 
+// Cover mutation is owner-only. Editors, viewers and learners cannot create, accept or replace a cover.
+export function canManageCourseCover(teacherId: string | null | undefined, userId: string | null | undefined) {
+  return Boolean(teacherId) && Boolean(userId) && teacherId === userId;
+}
+
 export function validateCourseCoverUpload(mimeType: string, size: number) {
   if (!coverMimeTypes.includes(mimeType as (typeof coverMimeTypes)[number])) {
     return { ok: false as const, error: "Utilisez une image JPEG, PNG ou WebP." };

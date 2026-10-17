@@ -10131,6 +10131,32 @@ textarea,select {
   gap: 8px;
 }
 
+.course-cover-manager__actions > .cover-studio {
+  display: grid;
+  flex-wrap: nowrap;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface, transparent);
+}
+
+.cover-studio h3 { margin: 0; font: var(--font-label, inherit); }
+.cover-studio__step { display: grid; gap: 10px; min-width: 0; }
+.cover-studio label { display: grid; gap: 4px; font: var(--font-caption); color: var(--text-muted); }
+.cover-studio textarea, .cover-studio input { width: 100%; box-sizing: border-box; font: inherit; color: var(--text); background: var(--surface, transparent); border: 1px solid var(--border); border-radius: var(--radius-sm, 8px); padding: 8px 10px; }
+.cover-studio textarea { resize: vertical; }
+.cover-studio__prompt { margin: 0; padding: 10px; overflow-wrap: anywhere; border-radius: var(--radius-sm, 8px); background: var(--violet-soft); color: var(--text); }
+.cover-studio__preview { display: block; width: 100%; max-width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; border-radius: var(--radius-md); border: 1px solid var(--border); }
+.cover-studio .caption { overflow-wrap: anywhere; }
+.course-cover-manager__actions > .cover-studio .cover-studio__actions,
+.course-cover-manager__actions > .cover-studio .cover-studio__chips,
+.course-cover-manager__actions > .cover-studio .cover-studio__footer { display: flex; flex-wrap: wrap; gap: 8px; }
+.cover-studio__chip { padding: 4px 10px; font: var(--font-caption); color: var(--text); background: transparent; border: 1px solid var(--border); border-radius: 999px; cursor: pointer; }
+.cover-studio__chip:hover:not(:disabled) { background: var(--violet-soft); }
+.cover-studio__chip:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .public-course__hero {
   position: relative;
 }

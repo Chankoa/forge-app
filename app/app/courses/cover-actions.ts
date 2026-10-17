@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { courseCoverBucket, validateCourseCoverUpload } from "@/lib/courses/cover-contracts";
 import { sanitizeMediaFilename } from "@/lib/courses/media-contracts";
+import { inspectImage } from "@/lib/forge/orchestrator/media-validation";
 
 async function requireCoverOwner(courseId: string) {
   const client = await createServerSupabaseClient();
@@ -22,10 +23,11 @@ async function removeUploadedObject(client: Awaited<ReturnType<typeof createServ
   if (error) throw new Error("Le nettoyage de l’image téléversée a échoué.");
 }
 
-export async function setCourseCoverAction(courseId: string, formData: FormData) {
-  const { client, course } = await requireCoverOwner(courseId);
-  const file = formData.get("cover");
-  if (!(file instanceof File)) throw new Error("Sélectionnez une image.");
+type CoverClient = NonNullable<Awaited<ReturnType<typeof createServerSupabaseClient>>>;
+type CoverCourse = { slug: string; teacher_id: string };
+
+// Single persistence path shared by manual upload and Forge-generated covers.
+async function storeCover(client: CoverClient, course: CoverCourse, courseId: string, file: File) {
   const validation = validateCourseCoverUpload(file.type, file.size);
   if (!validation.ok) throw new Error(validation.error);
 
@@ -46,6 +48,31 @@ export async function setCourseCoverAction(courseId: string, formData: FormData)
   revalidateCoverSurfaces(course.slug);
   return { saved: true };
 }
+
+export async function setCourseCoverAction(courseId: string, formData: FormData) {
+  const { client, course } = await requireCoverOwner(courseId);
+  const file = formData.get("cover");
+  if (!(file instanceof File)) throw new Error("Sélectionnez une image.");
+  return storeCover(client, course, courseId, file);
+}
+
+// Explicit acceptance of a Forge-generated image. The bytes are re-inspected here (type from content, size, dimensions)
+// and then follow the same pipeline as a manual upload; the declared client type is never trusted.
+export async function acceptGeneratedCoverAction(courseId: string, formData: FormData) {
+  const { client, course } = await requireCoverOwner(courseId);
+  const file = formData.get("cover");
+  if (!(file instanceof File)) throw new Error("Cette image ne peut pas être utilisée comme couverture.");
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const inspected = inspectImage(bytes);
+  if (!inspected.ok) throw new Error("Cette image ne peut pas être utilisée comme couverture.");
+  const extension = inspected.mimeType === "image/jpeg" ? "jpg" : inspected.mimeType.slice(6);
+  try {
+    return await storeCover(client, course, courseId, new File([bytes], `forge-cover.${extension}`, { type: inspected.mimeType }));
+  } catch {
+    throw new Error("L’enregistrement de la couverture a échoué.");
+  }
+}
+
 
 export async function removeCourseCoverAction(courseId: string) {
   const { client, course } = await requireCoverOwner(courseId);
