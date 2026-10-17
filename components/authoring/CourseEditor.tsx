@@ -16,9 +16,7 @@ import { dispatchToast } from "@/lib/ui/toast";
 
 type CockpitTab = "overview" | "information" | "structure" | "sources";
 
-type CourseLifecycleAction = (courseId: string, courseSlug: string) => Promise<void>;
-
-export function CourseEditor({ course, domains, readiness, capabilities, showOverview = false, archiveAction, restoreAction }: { course: CourseDetail; domains: Array<{ id: string; name: string }>; readiness: PublicationReadiness; capabilities: CourseCapabilities; showOverview?: boolean; archiveAction?: CourseLifecycleAction; restoreAction?: CourseLifecycleAction }) {
+export function CourseEditor({ course, domains, readiness, capabilities, showOverview = false }: { course: CourseDetail; domains: Array<{ id: string; name: string }>; readiness: PublicationReadiness; capabilities: CourseCapabilities; showOverview?: boolean }) {
   const [message, setMessage] = useState("");
   const [messageError, setMessageError] = useState(false);
   const [tab, setTab] = useState<CockpitTab>(showOverview ? "overview" : "information");
@@ -49,7 +47,7 @@ export function CourseEditor({ course, domains, readiness, capabilities, showOve
   });
   const tabs: Array<{ id: CockpitTab; label: string }> = [{ id: "information", label: "Informations" }, { id: "structure", label: "Structure" }, ...(capabilities.canManageSources ? [{ id: "sources" as const, label: "Ressources" }] : [])];
 
-  if (tab === "overview") return <OwnerCourseOverview course={course} readiness={readiness} archiveAction={archiveAction} restoreAction={restoreAction} canManageCover={capabilities.canViewClassroom} />;
+  if (tab === "overview") return <OwnerCourseOverview course={course} readiness={readiness} canManageCover={capabilities.canViewClassroom} />;
 
   return <div className="editor-stack course-cockpit">
     <div className="cockpit-heading"><div><p className="eyebrow">Cockpit du parcours</p><h2>Piloter le parcours</h2><p className="caption">Structure, informations et sources du parcours. Les propositions Forge modifient le brouillon local ; seule la sauvegarde enregistre les informations.</p></div><span className={`cockpit-status cockpit-status--${course.status === "published" ? "published" : course.status === "archived" ? "archived" : "draft"}`}>{course.status === "published" ? "Publié" : course.status === "archived" ? "Archivé" : "Brouillon"}</span></div>

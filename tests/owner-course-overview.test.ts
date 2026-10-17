@@ -14,26 +14,30 @@ const course: CourseDetail = {
   }] }],
 };
 
-test("owner overview links a real readiness recommendation to the affected lesson without inventing duration or score", () => {
+test("owner overview keeps publication as a compact status with its dedicated destination", () => {
   const html = renderToStaticMarkup(createElement(OwnerCourseOverview, { course, readiness: getPublicationReadiness(course) }));
-  assert.match(html, /Ajoutez du contenu aux leçons/);
-  assert.match(html, /\/app\/courses\/real-course\/lessons\/first-lesson\?mode=edit/);
+  assert.match(html, /À finaliser avant publication/);
+  assert.match(html, /Voir la publication/);
+  assert.match(html, /real-course\?mode=publication/);
+  assert.doesNotMatch(html, /class="owner-overview__issue"/);
   assert.doesNotMatch(html, /durée estimée|Score de préparation|80 %/);
 });
 
 test("owner overview sends an empty course to its existing structure editor", () => {
   const empty = { ...course, outline: [] };
   const html = renderToStaticMarkup(createElement(OwnerCourseOverview, { course: empty, readiness: getPublicationReadiness(empty) }));
-  assert.match(html, /Ajoutez au moins une leçon avant de publier/);
+  assert.match(html, /prérequis bloquant à compléter/);
   assert.match(html, /real-course\?mode=edit#cockpit-program-title/);
 });
 
-test("owner cockpit orders Modules, Remix, publication, availability, collaborators, then Classroom", () => {
+test("owner overview stays a synthesis and delegates management to local destinations", () => {
   const html = renderToStaticMarkup(createElement(OwnerCourseOverview, { course, readiness: getPublicationReadiness(course) }));
-  const sections = ["Modules", "Créer une copie indépendante", "À finaliser avant publication", "Disponibilité du parcours", "Collaborateurs", "Apprenants"];
-  const positions = sections.map((section) => html.indexOf(section));
-  assert.ok(positions.every((position) => position >= 0));
-  assert.deepEqual([...positions].sort((left, right) => left - right), positions);
-  assert.doesNotMatch(html, /Remixer ce parcours/);
-  assert.match(html, /href="\/app\/courses\/real-course\/classroom"[^>]*>Voir le Classroom/);
+  assert.match(html, /Modules/);
+  assert.match(html, /Collaboration/);
+  assert.match(html, /mode=availability/);
+  assert.match(html, /mode=remix/);
+  assert.doesNotMatch(html, /Créer une copie indépendante/);
+  assert.doesNotMatch(html, /Disponibilité du parcours/);
+  assert.doesNotMatch(html, /Collaborateurs/);
+  assert.doesNotMatch(html, />Apprenants</);
 });

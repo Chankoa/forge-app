@@ -17,3 +17,9 @@ test("Creator and Learner share one domain-title-status header without repeated 
     assert.equal((header.match(/J’apprends/g) ?? []).length, isOwner ? 0 : 1);
   }
 });
+
+test("owner overview places author attribution after the course description", () => {
+  const course = { id: "course-1", slug: "course-1", title: "Un parcours réel", description: "Un objectif réel", domain: "Création web", status: "published" as const, author: { displayName: "Chandra Proton", initials: "CP", avatarUrl: null } };
+  const header = renderToStaticMarkup(createElement(CourseIdentityHeader, { course, capabilities: resolveCourseCapabilities({ isOwner: true, isEnrolled: false }), overview: true }));
+  assert.ok(header.indexOf("Un objectif réel") < header.indexOf("Chandra Proton"));
+});

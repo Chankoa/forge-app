@@ -17,3 +17,8 @@ test("learner progress has one visible value and an accessible progress control"
   assert.match(html, /<dt>Progression<\/dt><dd>42 %<\/dd>/);
   assert.match(html, /aria-label="Progression du parcours"/);
 });
+
+test("publication uses the same icon, label, and value structure as the other metrics", () => {
+  const html = renderToStaticMarkup(createElement(CourseMetrics, { modules: 2, lessons: 5, durationMinutes: 35, publication: "Prêt à publier" }));
+  assert.match(html, /class="lucide lucide-upload"[\s\S]*?<dt>Publication<\/dt><dd>Prêt à publier<\/dd>/);
+});

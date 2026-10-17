@@ -56,7 +56,7 @@ export function CourseCoverManager({ courseId, cover, domain }: { courseId: stri
         <div>
           <Button type="button" variant="secondary" disabled={pending} onClick={() => input.current?.click()}><ImagePlus size={16} aria-hidden="true" />{pending ? "Traitement…" : cover ? "Remplacer" : "Ajouter une image"}</Button>
           {cover && <Button type="button" variant="ghost" disabled={pending} onClick={() => run(() => removeCourseCoverAction(courseId), "Image de couverture supprimée.")}><Trash2 size={16} aria-hidden="true" />Supprimer</Button>}
-          {!studio && <Button type="button" variant="secondary" disabled={pending} onClick={() => setStudio(true)}><Sparkles size={16} aria-hidden="true" />Créer avec Forge</Button>}
+          {!studio && <Button type="button" variant="secondary" className="course-cover-manager__forge" disabled={pending} onClick={() => setStudio(true)}><Sparkles size={16} aria-hidden="true" />Créer avec Forge</Button>}
         </div>
         {studio && <CoverForgeEntry courseId={courseId} onDone={() => setStudio(false)} />}
         {pending && <p className="caption" role="status">Traitement en cours…</p>}

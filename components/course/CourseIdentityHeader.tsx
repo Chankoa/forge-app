@@ -14,10 +14,10 @@ export function CourseIdentityHeader({ course, capabilities, overview }: { cours
   return <>
     <DomainMetadata domain={course.domain} />
     <div className="course-context__title-row"><h1>{course.title}</h1><Badge success={course.status === "published"}>{statusLabel}</Badge>{overview && canOfferOwnerCourseRemix({ isAuthenticated: true, isOwner: capabilities.canViewClassroom, status: course.status, visibility: null }) && <CourseRemixButton courseId={course.id} compact />}</div>
+    {overview && course.description && <p className="course-context__description">{course.description}</p>}
     {capabilities.canEdit && !capabilities.canViewClassroom && <p className="course-context__owner-action"><ProfileAvatar name={course.author?.displayName ?? course.owner?.displayName} url={course.author?.avatarUrl} size="sm" />Vous modifiez le parcours de {course.owner?.displayName ?? course.author?.displayName ?? "Propriétaire non renseigné"}</p>}
     {!capabilities.canEdit && capabilities.membershipStatus === "active" && capabilities.membershipRole === "viewer" && <p className="course-context__owner-action"><ProfileAvatar name={course.author?.displayName ?? course.owner?.displayName} url={course.author?.avatarUrl} size="sm" />Vous consultez le parcours de {course.owner?.displayName ?? course.author?.displayName ?? "Propriétaire non renseigné"}</p>}
     {(capabilities.canViewClassroom || (!capabilities.canEdit && !(capabilities.membershipStatus === "active" && capabilities.membershipRole === "viewer"))) && <AuthorAttribution author={course.author} />}
-    {overview && course.description && <p className="course-context__description">{course.description}</p>}
     {relationshipMarker && <p className="course-context__relationship">{relationshipMarker}</p>}
   </>;
 }

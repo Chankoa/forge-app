@@ -11,6 +11,9 @@ test("course management destinations converge on overview and route each destina
   assert.match(source, /href=\{structureHref\}>Structure/);
   assert.match(source, /href=\{publicationHref\}>Publication/);
   assert.match(source, /mode=collaborators/);
-  assert.match(source, /courseClassroomPath\(course\.slug\)/);
-  assert.match(source, /#overview-lifecycle-title/);
+  assert.match(source, />Collaboration</);
+  assert.match(source, /\/classroom/);
+  assert.match(source, /mode=availability/);
+  assert.match(source, /mode=remix/);
+  assert.doesNotMatch(source, />Équipe</);
 });
