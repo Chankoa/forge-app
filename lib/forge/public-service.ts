@@ -25,7 +25,7 @@ export async function runPublicCoursePreview(raw: unknown, deps: { provider: Pub
     return { ok: true, preview: { ...preview.data, suggestedDomainLabel: businessDomainLabel(preview.data.suggestedDomainLabel) } };
   } catch (error) {
     const code = error instanceof ForgeError ? error.code : "provider_error";
-    const result = code === "unauthenticated" || code === "forbidden" || code === "context_unavailable" || code === "source_unavailable" ? "provider_error" : code;
+    const result = code === "unauthenticated" || code === "forbidden" || code === "context_unavailable" || code === "source_unavailable" ? "provider_error" : code === "result_too_long" ? "invalid_result" : code;
     deps.telemetry?.({ ...metrics, elapsedMs: Date.now() - started, result });
     return { ok: false, error: result };
   }

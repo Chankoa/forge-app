@@ -87,7 +87,7 @@ export function ForgeRail({ context, availability, course, lessonResources = [] 
     try {
       const response: ForgeResponse = await generateForgeAction({ mode: context.mode, intent, courseSlug: context.courseSlug, lessonSlug: context.lessonSlug, sourceIds: requestedSourceIds, input: freeInput });
       setResult((current) => forgeResultAfterResponse(current, response));
-      if (!response.ok) { setError(response.error === "invalid_result" ? "La proposition n’a pas pu être générée complètement. Vous pouvez réessayer." : errors[response.error]); return; }
+      if (!response.ok) { setError(response.error === "result_too_long" ? forgeErrorMessages.result_too_long : response.error === "invalid_result" ? "La proposition n’a pas pu être générée complètement. Vous pouvez réessayer." : errors[response.error]); return; }
       setLastRequest({ intent, input: freeInput, sourceIds: requestedSourceIds });
       onResponse?.(response.result);
       if (response.result.mode === "edit" && "proposal" in response.result) setDialogOpen(true);

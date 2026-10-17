@@ -295,7 +295,7 @@ test("objectives proposal maps to objectives and complete lesson content remains
 test("lesson proposals above 3800 characters fail instead of returning shortened success", async () => {
   const { deps } = fixture();
   editOutput(deps, { text: "Contenu proposé", patch: { title: null, subtitle: null, description: null, content: "x".repeat(3801), objectives: null } });
-  assert.deepEqual(await runForge({ ...request, mode: "edit", intent: "improve" }, deps), { ok: false, error: "invalid_result" });
+  assert.deepEqual(await runForge({ ...request, mode: "edit", intent: "improve" }, deps), { ok: false, error: "result_too_long" });
 });
 test("course descriptions above 1000 characters fail instead of returning shortened success", async () => {
   const { deps } = fixture();
@@ -309,9 +309,9 @@ test("course descriptions above 1000 characters fail instead of returning shorte
 test("free edit requests respect the same proposal limits", async () => {
   const { deps } = fixture();
   editOutput(deps, { text: "Leçon", patch: { title: null, subtitle: null, description: null, content: "x".repeat(3801), objectives: null } });
-  assert.deepEqual(await runForge({ ...request, mode: "edit", intent: "ask", input: "Améliore la leçon" }, deps), { ok: false, error: "invalid_result" });
+  assert.deepEqual(await runForge({ ...request, mode: "edit", intent: "ask", input: "Améliore la leçon" }, deps), { ok: false, error: "result_too_long" });
   editOutput(deps, { text: "Parcours", patch: { title: null, subtitle: null, description: "x".repeat(1001), content: null, objectives: null } });
-  assert.deepEqual(await runForge({ mode: "edit", intent: "ask", courseSlug: "course", input: "Améliore le parcours" }, deps), { ok: false, error: "invalid_result" });
+  assert.deepEqual(await runForge({ mode: "edit", intent: "ask", courseSlug: "course", input: "Améliore le parcours" }, deps), { ok: false, error: "result_too_long" });
 });
 test("missing provider controlled, no call or quota consumed", async () => {
   const { deps, calls } = fixture();

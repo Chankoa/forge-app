@@ -47,8 +47,8 @@ export async function runForge(raw: unknown, deps: ForgeDependencies): Promise<F
         throw new ForgeError("invalid_result");
       }
       if ((isLesson && patch.content && patch.content.length > 3800) || (!isLesson && patch.description && patch.description.length > 1000)) {
-        deps.telemetry?.({ ...metrics, stage: "proposal_length", elapsedMs: Date.now() - started, result: "invalid_result" });
-        throw new ForgeError("invalid_result");
+        deps.telemetry?.({ ...metrics, stage: "proposal_length", contentChars: (isLesson ? patch.content : patch.description)        ?.length ?? 0, elapsedMs: Date.now() - started, result: "result_too_long" });
+                throw new ForgeError("result_too_long");
       }
       if (request.intent === "ask") {
         if (Object.values(patch).every((item) => item === null)) result = { ...common, mode: "edit", kind: "answer" };

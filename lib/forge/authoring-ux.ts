@@ -31,6 +31,7 @@ export const forgeErrorMessages = {
   timeout: "Forge a mis trop de temps à répondre. Réessayez.",
   rate_limited: "La limite de générations est atteinte. Réessayez plus tard.",
   invalid_result: "La proposition est incomplète. Vous pouvez la régénérer.",
+  result_too_long: "La proposition générée est trop longue. Relancez-la pour obtenir une version plus concise.",
 } as const;
 
 export function forgeContextLabels(context: ForgeRailContext, selectedSourceCount: number, usableSourceCount: number): string[] {

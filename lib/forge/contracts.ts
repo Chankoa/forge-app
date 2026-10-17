@@ -20,7 +20,7 @@ export const forgeRequestSchema = z.discriminatedUnion("mode", [
 ]).refine((r) => Boolean(r.lessonSlug) || (r.mode === "learn" ? ["explain", "ask"].includes(r.intent) : ["improve", "summarize", "ask"].includes(r.intent)), { message: "Cette intention nécessite une leçon." });
 export type ForgeRequest = z.infer<typeof forgeRequestSchema>;
 export type ForgeAvailability = "configured" | "not_configured";
-export type ForgeErrorCode = "invalid_request" | "unauthenticated" | "forbidden" | "context_unavailable" | "source_unavailable" | "not_configured" | "provider_auth" | "provider_not_found" | "provider_network" | "provider_error" | "timeout" | "rate_limited" | "invalid_result";
+export type ForgeErrorCode = "invalid_request" | "unauthenticated" | "forbidden" | "context_unavailable" | "source_unavailable" | "not_configured" | "provider_auth" | "provider_not_found" | "provider_network" | "provider_error" | "timeout" | "rate_limited" | "invalid_result" | "result_too_long";
 export class ForgeError extends Error {
   constructor(public readonly code: ForgeErrorCode) { super(code); }
 }

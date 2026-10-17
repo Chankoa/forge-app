@@ -30,11 +30,12 @@ export function createForgeProvider(config: ReturnType<typeof parseForgeConfig>)
           return { output: { text: result.output.summary, patch: { title: null, subtitle: null, description: null, content: null, objectives: result.output.patch.objectives } }, finishReason: result.finishReason };
         }
         const result = await generateText({ model: provider.chat(config.model!), ...messages, output: Output.object({ schema: lessonContentProviderOutputSchema }), maxOutputTokens: config.maxOutputTokens, maxRetries: 0, abortSignal: signal });
+        console.info("[forge] provider usage", { scope, intent, model: config.model, maxOutputTokens: config.maxOutputTokens, finishReason: result.finishReason, outputTokens: result.usage.outputTokens ?? null, reasoningTokens: result.usage.outputTokenDetails?.reasoningTokens ?? null, totalTokens: result.usage.totalTokens ?? null, contentChars: result.output.patch.content?.length ?? null });
         const patch = { title: null, subtitle: null, description: null, content: result.output.patch.content, objectives: null };
         return { output: { text: result.output.summary, patch }, finishReason: result.finishReason };
       } catch (error) {
         const classified = classifyProviderError(error, signal.aborted);
-        console.error("[forge] provider request failed", { code: classified.code, scope, model: config.model, maxOutputTokens: config.maxOutputTokens, elapsedMs: Date.now() - started, signalAborted: signal.aborted, errorClass: error instanceof Error ? error.constructor.name : typeof error, noObjectGenerated: NoObjectGeneratedError.isInstance(error), noOutputGenerated: NoOutputGeneratedError.isInstance(error), causeClass: NoObjectGeneratedError.isInstance(error) && error.cause instanceof Error ? error.cause.constructor.name : null });
+        console.error("[forge] provider request failed", { code: classified.code, scope, model: config.model, maxOutputTokens: config.maxOutputTokens, elapsedMs: Date.now() - started, signalAborted: signal.aborted, errorClass: error instanceof Error ? error.constructor.name : typeof error, noObjectGenerated: NoObjectGeneratedError.isInstance(error), noOutputGenerated: NoOutputGeneratedError.isInstance(error), finishReason: NoObjectGeneratedError.isInstance(error) ? error.finishReason ?? null : null, outputTokens: NoObjectGeneratedError.isInstance(error) ? error.usage?.outputTokens ?? null : null, totalTokens: NoObjectGeneratedError.isInstance(error) ? error.usage?.totalTokens ?? null : null, causeClass: NoObjectGeneratedError.isInstance(error) && error.cause instanceof Error ? error.cause.constructor.name : null });
         throw classified;
       }
     },
