@@ -1,0 +1,84 @@
+/* Forge — bounded course plan review */
+.course-plan,
+.course-plan-review {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.course-plan-review {
+  display: grid;
+  gap: var(--space-3);
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.course-plan-review__operations {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.course-plan-review__operations > li {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--border);
+  scroll-margin-block: var(--space-4);
+}
+
+.course-plan-review__select {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.course-plan-review__select input {
+  flex: 0 0 auto;
+  width: auto;
+  accent-color: var(--violet);
+}
+
+.course-plan-review textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  resize: vertical;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-control);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.course-plan-review__before {
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+}
+
+.course-plan-review__revision {
+  display: grid;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+}
+
+.course-plan-review .button {
+  max-width: 100%;
+  white-space: normal;
+  height: auto;
+  min-height: 40px;
+}
+
+.course-plan-review :focus-visible,
+.course-plan-review__operations > li:focus {
+  outline: 2px solid var(--violet);
+  outline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+  .course-plan-review .button {
+    width: 100%;
+  }
+}

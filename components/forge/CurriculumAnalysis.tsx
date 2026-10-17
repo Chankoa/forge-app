@@ -1,57 +1,32 @@
 "use client";
 
-import Link from "next/link";
-import { useRef, useState, useTransition } from "react";
-import { analyzeCurriculumAction } from "@/app/app/forge/intelligence-actions";
 import type { CourseDetail } from "@/lib/courses/contracts";
-import { curriculumStateAfterResponse, type CurriculumViewState } from "@/lib/forge/intelligence/view-state";
-import { curriculumImplementationAction, pedagogicalConsequences } from "@/lib/forge/intelligence/curriculum-implementation";
+import type { CourseTarget } from "@/lib/forge/orchestrator/contracts";
+import { useCoursePlan } from "./CoursePlanContext";
+import { CoursePlanReview } from "./CoursePlanReview";
 
-const types = { redundancy: "Redondance", gap: "Prérequis ou notion manquante", sequence_issue: "Ordre pédagogique", imbalance: "Équilibre", objective_gap: "Objectif peu couvert", scope_issue: "Périmètre", consolidation_opportunity: "Regroupement possible" };
-const severity = { info: "À examiner", attention: "Attention", important: "Prioritaire" };
-
+export function courseTargetLabel(course: CourseDetail, target: CourseTarget) {
+  if (target.kind === "course") return `Parcours · ${course.title}`;
+  const courseModule = course.outline.find((item) => item.id === (target.kind === "module" ? target.id : target.moduleId));
+  return target.kind === "module" ? `Module · ${courseModule?.moduleTitle ?? "Indisponible"}` : `Leçon · ${courseModule?.lessons.find((lesson) => lesson.id === target.id)?.title ?? "Indisponible"}`;
+}
+const evidenceLabels = { title: "Titre", description: "Description", objectives: "Objectifs", lessonCount: "Nombre de leçons", contentLength: "Caractères de contenu", durationMinutes: "Durée en minutes", sourceCount: "Nombre de sources" };
 export function CurriculumAnalysis({ course }: { course: CourseDetail }) {
-  const [pending, startTransition] = useTransition();
-  const inFlight = useRef(false);
-  const [state, setState] = useState<CurriculumViewState>({ result: null, status: "idle" });
-  const { result } = state;
-  const modules = new Map(course.outline.map((module) => [module.id, module]));
-  const lessons = new Map(course.outline.flatMap((module) => module.lessons.map((lesson) => [lesson.id, { ...lesson, moduleId: module.id }] as const)));
-  function analyze() {
-    if (inFlight.current) return;
-    inFlight.current = true;
-    setState((previous) => ({ ...previous, status: previous.result ? "ready" : "idle" }));
-    startTransition(async () => {
-      try {
-        const response = await analyzeCurriculumAction(course.id);
-        setState((previous) => curriculumStateAfterResponse(previous, response));
-      } catch {
-        setState((previous) => curriculumStateAfterResponse(previous, { ok: false, error: "provider_error" }));
-      } finally {
-        inFlight.current = false;
-      }
-    });
-  }
-  return <section className="intelligence-section" aria-labelledby="curriculum-heading" aria-busy={pending}><div className="section-heading"><div><p className="eyebrow">Forge · Architecte du cursus</p><h3 id="curriculum-heading">Analyse de la structure</h3></div></div>
-    <p>Forge examine titres, objectifs et résumés. Ses constats sont des suggestions ; aucune modification n’est appliquée.</p>
-    <button type="button" className="button button--secondary" disabled={pending} onClick={analyze}>{pending ? "Analyse en cours…" : state.status === "incomplete" || state.status === "unavailable" ? "Réessayer l’analyse" : result ? "Relancer l’analyse" : "Analyser la structure"}</button>
-    {pending && <p role="status" aria-live="polite">Analyse en cours…</p>}
-    {state.status === "incomplete" && <p role="alert" className="form-error">L’analyse n’a pas pu être générée complètement. Vous pouvez réessayer.</p>}
-    {state.status === "unavailable" && <p role="alert" className="form-error">L’analyse est indisponible pour le moment. Vous pouvez réessayer.</p>}
-    {result && <div className="intelligence-results">
-      <p role="status">{!pending && state.status === "ready" ? "Analyse prête. " : "Dernière analyse valide. "}{result.summary}</p>
-      {result.review.omittedFindings > 0 && <p className="caption">Certains constats n’ont pas satisfait les vérifications et ont été écartés.</p>}
-      {result.findings.length === 0 && <p>Aucun point particulier à signaler dans cette analyse.</p>}
-      {result.findings.map((finding, index) => <article key={index} className="intelligence-finding">
-        <p className="eyebrow">{types[finding.type]} · {severity[finding.severity]}</p>
-        <div className="intelligence-finding__detail"><strong>Constat</strong><p>{finding.reason}</p></div>
-        <div className="intelligence-finding__detail"><strong>Pourquoi c’est important</strong><p>{pedagogicalConsequences[finding.type]}</p></div>
-        <div className="intelligence-finding__detail"><strong>Mise en œuvre suggérée</strong><p>{finding.suggestion}</p>{(() => { const action = curriculumImplementationAction(finding, lessons, course.slug); return action ? <Link className="button button--secondary" href={action.href}>{action.label}</Link> : <p className="caption">Recommandation à examiner ; aucune modification automatique disponible.</p>; })()}</div>
-        <div className="intelligence-references">
-          {[...new Set(finding.moduleIds)].map((id) => <a key={id} href={`#module-${id}`}>Voir le module « {modules.get(id)?.moduleTitle} »</a>)}
-          {[...new Set(finding.lessonIds)].map((id) => { const lesson = lessons.get(id); return lesson ? <Link key={id} href={`/app/courses/${course.slug}/lessons/${lesson.slug}?mode=edit`}>Voir la leçon « {lesson.title} »</Link> : null; })}
-        </div>
-      </article>)}
-    </div>}
+  const workflow = useCoursePlan();
+  return <section className="intelligence-section course-plan" aria-label="Analyse du parcours" aria-busy={workflow.pending}>
+    <h3>Analyse du parcours</h3>
+    <p>Forge examine les titres, objectifs, durées et la présence de contenu. Le texte des leçons n’est pas transmis. Les propositions restent à examiner.</p>
+    <button type="button" className="button button--secondary" disabled={workflow.pending} onClick={() => workflow.generate()}>{workflow.pending ? "Préparation du plan…" : workflow.data ? "Relancer l’analyse du parcours" : "Analyser le parcours"}</button>
+    {workflow.message && <p role="status">{workflow.message}</p>}
+    {workflow.data && <>
+      <section aria-label="Constats et éléments observés">{workflow.data.analysis.observations.length === 0 && <p>Forge n’a pas identifié de modification structurelle prioritaire.</p>}{workflow.data.analysis.observations.map((observation) => <article className="intelligence-finding" key={observation.id}>
+        <p className="eyebrow">{observation.severity === "important" ? "Prioritaire" : observation.severity === "attention" ? "Attention" : "À examiner"}</p>
+        <h4>{observation.title}</h4><p className="caption">{courseTargetLabel(course, observation.target)}</p>
+        <strong>Pourquoi c’est important</strong><p>{observation.explanation}</p>
+        <strong>Éléments observés</strong><ul>{observation.evidence.map((evidence, index) => <li key={index}>{courseTargetLabel(course, evidence.target)} — {evidenceLabels[evidence.field]} : {evidence.value || "Non renseigné"}</li>)}</ul>
+        <strong>Actions possibles</strong><ul>{observation.possibleActions.map((action, index) => <li key={index}>{action}</li>)}</ul>
+      </article>)}</section>
+      <CoursePlanReview data={workflow.data} pending={workflow.pending} consumed={workflow.consumed} report={workflow.report?.data ?? null} targetLabel={(target) => courseTargetLabel(course, target)} onUpdate={workflow.update} onSelectAll={workflow.selectAll} onApply={workflow.apply} onRevise={workflow.generate} />
+    </>}
   </section>;
 }
