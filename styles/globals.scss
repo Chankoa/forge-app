@@ -6027,7 +6027,7 @@ textarea,select {
 }
 
 .create-journey {
-  width: min(100%, 1280px);
+ /*  width: min(100%, 1280px); /* TEST */
   margin: 0 auto;
 }
 
@@ -6324,7 +6324,7 @@ textarea,select {
 .course-library__heading {
   padding: 0 0 16px;
   border: 0;
-  border-bottom: 1px solid var(--shell-separator);
+  /* border-bottom: 1px solid var(--shell-separator); */
   border-radius: 0;
   background: transparent;
 }
