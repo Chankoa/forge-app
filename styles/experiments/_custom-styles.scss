@@ -1,0 +1,110 @@
+/* =====================================================
+FORGE — VISUAL EXPERIMENTS
+Temporary overrides / DS refinement
+@date : 02.10.26
+@ to-do :
+
+===================================================== */
+
+/* TEST */
+
+
+/* 01 — TYPOGRAPHY
+   Status: testing
+   ----------------------------------------- */
+
+
+
+
+/* 02 — NAVIGATION
+   Status: testing
+   ----------------------------------------- */
+
+.sidebar-nav {
+  // Modifications expérimentales
+}
+
+
+/* 03 — BUTTONS
+   Status: validated
+   ----------------------------------------- */
+
+.button-primary {
+  // Ajustements validés
+}
+
+/* 04 — WORKSPACE
+   Status: pending
+   ----------------------------------------- */
+
+.course-author {
+	padding-top: var(--space-2); /* TEST */
+}
+
+
+/* 05 — COURSE EDITOR
+   Status: pending
+   ----------------------------------------- */
+
+/* Rail Structure ( grands écrans) */
+.course-workspace .workspace-columns {
+	grid-template-columns: 320px minmax(0,1fr) minmax(320px,340px); /* TEST */
+}
+
+.lucide-list-tree {
+	display: none; /* TEST : bug affichage de l'icône structure */
+}
+
+/* paddings des blocs summary */
+.outline-module summary {
+	padding: .5rem; /* modif */
+}
+
+/* timeline */
+.outline-module ol::before {
+	left: 14px; /* modif */
+}
+
+/* Cockpit */
+/* En tête */
+.cockpit-program > .section-heading {
+	margin-bottom: 16px;
+	padding-top: 1rem;
+	border: none;
+}
+
+
+.cockpit-lessons li > div {
+	gap: 3px;
+	min-width: 0;
+	display: inline-flex;
+}
+
+/* Bug color boutons */
+.mode-switch a {
+	border: 1px solid var(--border);
+	border-radius: var(--radius-sm);
+	/* color: var(--background); */ /* Annuler */
+	font: var(--font-label);
+	padding: 6px 10px;
+}
+
+.explore-feature__actions > a {
+	min-height: 44px;
+	/* color: var(--violet); */ /* Annuler */
+	font: var(--font-label);
+	justify-content: space-between;
+	align-items: center;
+	gap: 5px;
+	display: inline-flex;
+}
+
+/* DISCUSSIONS */
+.discussion-message__content {
+	background-color: var(--surface-soft);
+	border-radius: var(--radius-md);
+	padding: .5rem .75rem;
+	border-top-left-radius: 0;
+	margin-left: 4px;
+}
+

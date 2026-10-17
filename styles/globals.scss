@@ -336,10 +336,11 @@ button {
   font-weight: 600;
 }
 
+/*
 .workspace-content {
   padding: var(--space-8);
 }
-
+*/
 .workspace-content h2 {
   margin-top: 0;
   font: var(--font-object);
@@ -532,6 +533,7 @@ button {
 
 .section-heading h2 {
   margin: 0;
+  padding-bottom: var(--space-2); /* MODIF */
 }
 
 .section-heading input, .inline-form input {
@@ -1279,7 +1281,7 @@ button {
     display: flex;
     gap: var(--space-2);
     padding: var(--space-3);
-    border-bottom: 1px solid var(--border);
+    /* border-bottom: 1px solid var(--border); */ /* TEST */
     background: var(--surface);
   }
   .workspace-panel-tools .button {
@@ -1894,9 +1896,11 @@ button {
   grid-template-columns: 248px minmax(400px,1fr) minmax(420px,470px);
 }
 
+/*
 .workspace-content {
   padding: 28px 30px;
 }
+*/
 
 .workspace-content > * {
   max-width: 720px;
@@ -2418,7 +2422,7 @@ button {
 .workspace-columns[data-structure="collapsed"] .rail-header,.workspace-columns[data-forge="collapsed"] .rail-header {
   min-height: 76px;
   align-content: center;
-  flex-direction: column;
+  /* flex-direction: column; */
 }
 
 .workspace-columns[data-structure="collapsed"] .rail-title,.workspace-columns[data-forge="collapsed"] .rail-title {
@@ -4064,8 +4068,9 @@ textarea,select {
     display: flex;
     gap: var(--space-2);
     padding: var(--space-3);
-    border-bottom: 1px solid var(--border);
+    /* border-bottom: 1px solid var(--border); */ /* TEST */
     background: var(--surface);
+    justify-content: space-between; /* MODIF */
   }
   .workspace-panel-tools .button {
     min-height: 44px;
@@ -4481,8 +4486,8 @@ textarea,select {
 }
 
 .cockpit-lessons li > div {
-  min-width: 0;
-  display: grid;
+ /* min-width: 0;
+  display: grid;*/
   gap: 3px;
 }
 
@@ -5582,7 +5587,7 @@ textarea,select {
 }
 
 .learner-lesson .lesson-page-header h2 {
-  max-width: 18ch;
+  /* max-width: 18ch; */ /* TEST */
   font-size: clamp(26px, 4vw, 36px);
   line-height: 1.12;
 }
@@ -5647,7 +5652,7 @@ textarea,select {
 }
 
 .learner-lesson .lesson-objectives {
-  max-width: 68ch;
+  /* max-width: 68ch; */ /* TEST */
   margin: 28px auto 0;
   padding: 14px 16px;
   border: 0;
@@ -7550,6 +7555,7 @@ textarea,select {
   font: 700 26px/1.2 ui-sans-serif, system-ui, sans-serif;
   letter-spacing: -.025em;
   overflow-wrap: anywhere;
+  padding-bottom: var(--space-3); /* TEST */
 }
 
 .course-context__title-row {
@@ -7579,8 +7585,8 @@ textarea,select {
   flex-wrap: wrap;
   gap: 0;
   margin: 0;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--shell-separator);
+ /* padding: 14px 0;
+  border-bottom: 1px solid var(--shell-separator); */
 }
 
 .course-metrics > div {
@@ -8469,10 +8475,11 @@ textarea,select {
   padding: 8px 2px;
 }
 
+/*
 .cockpit-lessons li > div {
   min-width: 0;
 }
-
+*/
 .cockpit-lesson__rename {
   grid-column: 2 / -1;
   justify-self: start;
@@ -9872,7 +9879,7 @@ textarea,select {
 /* I.1: author attribution and the self-managed profile stay intentionally compact. */
 
 .course-author {
-  display: inline-flex;
+  display: inline-flex!important; /* TEST */
   align-items: center;
   gap: 5px;
   margin: 0;
@@ -12022,7 +12029,7 @@ textarea,select {
   padding: 0 12px;
   border: 1px solid color-mix(in srgb, var(--violet) 34%, var(--border));
   border-radius: var(--radius-sm);
-  color: var(--violet);
+  /* color: var(--violet);*/ /* BUG ? */
   font: var(--font-label);
   text-decoration: none;
   white-space: nowrap;
@@ -12150,8 +12157,8 @@ textarea,select {
 
 .forge-suggestion {
   min-width: 0;
-  padding: 13px 0;
-  border-top: 1px solid var(--border);
+  /*padding: 13px 0;
+  border-top: 1px solid var(--border);*/ /* MODIF */
 }
 
 .forge-suggestion h3,
@@ -12468,7 +12475,7 @@ textarea,select {
   justify-content: space-between;
   gap: 16px;
   padding-bottom: 14px;
-  border-bottom: 1px solid var(--border);
+  /* border-bottom: 1px solid var(--border); */ /* MODIF */
 }
 
 .course-discussion__header h1 {
@@ -12510,7 +12517,6 @@ textarea,select {
   grid-template-columns: 40px minmax(0, 1fr);
   gap: 10px;
   padding: 15px 0;
-  border-bottom: 1px solid var(--border);
 }
 
 .discussion-message--deleted {
@@ -12563,7 +12569,7 @@ textarea,select {
   padding: 2px 0;
   border: 0;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-muted); /* MODIF */
   font: var(--font-label);
 }
 
@@ -12612,8 +12618,8 @@ textarea,select {
 .discussion-empty,
 .discussion-readonly {
   padding: 18px 0;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+  /* border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border); */
   color: var(--text-secondary);
 }
 
