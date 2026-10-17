@@ -12658,3 +12658,147 @@ textarea,select {
     width: 100%;
   }
 }
+
+/* Mobile discussion containment and navigation density. */
+@media (max-width: 700px) {
+  .course-shell .course-body,
+  .course-workspace,
+  .course-workspace .workspace-columns,
+  .course-workspace .workspace-content,
+  .course-workspace .workspace-content > *,
+  .course-discussion,
+  .course-discussion > *,
+  .discussion-list,
+  .discussion-message,
+  .discussion-message__content,
+  .discussion-composer,
+  .discussion-edit {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .course-shell .course-body {
+    width: auto;
+    margin: 12px;
+  }
+
+  .course-workspace .workspace-content {
+    padding-inline: 0;
+  }
+
+  .course-discussion {
+    margin: 0;
+    padding: 0 0 24px;
+  }
+
+  .course-discussion__header {
+    gap: var(--space-3);
+  }
+
+  .course-discussion__header > div,
+  .discussion-message__content,
+  .discussion-message__content header,
+  .discussion-composer__footer,
+  .discussion-composer__footer label {
+    min-width: 0;
+  }
+
+  .course-discussion__header > svg,
+  .discussion-message > .profile-avatar {
+    flex: 0 0 auto;
+  }
+
+  .discussion-filter {
+    width: 100%;
+    max-width: 100%;
+    gap: var(--space-1);
+  }
+
+  .discussion-filter button {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .discussion-message {
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: var(--space-2);
+    padding-block: var(--space-3);
+  }
+
+  .discussion-message__content {
+    margin-left: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .discussion-message__content header {
+    align-items: flex-start;
+  }
+
+  .discussion-message__content time,
+  .discussion-message__content p,
+  .discussion-context {
+    overflow-wrap: anywhere;
+  }
+
+  .discussion-message__actions {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    opacity: 1;
+  }
+
+  .discussion-composer,
+  .discussion-edit {
+    padding: var(--space-3);
+  }
+
+  .discussion-composer textarea,
+  .discussion-edit textarea,
+  .discussion-composer select,
+  .discussion-edit select {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .discussion-composer__footer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .discussion-composer__footer label,
+  .discussion-composer__footer .button {
+    width: 100%;
+    margin-right: 0;
+  }
+
+  /* The desktop classroom route remains available; only the compact nav omits it. */
+  .app-sidebar .nav a[href="/app/classroom"] {
+    display: none;
+  }
+
+  .app-sidebar .nav {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .app-main {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+
+  .course-context-navigation .mode-switch,
+  .workspace-panel-tools {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .workspace-panel-tools {
+    flex-wrap: wrap;
+  }
+
+  .workspace-panel-tools .button {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
