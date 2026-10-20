@@ -4336,7 +4336,7 @@ textarea,select {
   justify-content: space-between;
   gap: 20px;
   padding-bottom: 18px;
-  border-bottom: 1px solid var(--border);
+  /* border-bottom: 1px solid var(--border); */ /* TEST */
 }
 
 .cockpit-heading h2 {
@@ -4369,6 +4369,7 @@ textarea,select {
 
 .cockpit-form {
   grid-template-columns: repeat(2,minmax(0,1fr));
+  padding-top: var(--space-4); /* TEST */
 }
 
 .cockpit-form__wide {
@@ -5391,7 +5392,7 @@ textarea,select {
   display: grid;
   gap: 7px;
   padding-bottom: 18px;
-  border-bottom: 1px solid var(--shell-separator);
+  /* border-bottom: 1px solid var(--shell-separator); */ /* TEST */
 }
 
 .lesson-page-header .eyebrow, .lesson-page-header__position {
@@ -9674,9 +9675,9 @@ textarea,select {
 }
 
 .forge-content-intelligence {
-  border-top: 1px solid var(--border, #e2e8f0);
-  margin-top: 1rem;
-  padding-top: 1rem;
+  /* border-top: 1px solid var(--border, #e2e8f0); */ /* TEST */
+  margin-top: 0; /* TEST */
+  /* padding-top: 1rem; */ /* TEST */
   min-width: 0;
 }
 

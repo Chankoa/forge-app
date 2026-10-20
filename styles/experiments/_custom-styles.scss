@@ -33,7 +33,15 @@ Temporary overrides / DS refinement
   // Ajustements validés
 }
 
-/* 04 — WORKSPACE
+/* 04 — PUBLIC PAGES
+   Status: pending
+   ----------------------------------------- */
+
+.explore-journey {
+	padding: var(--space-4);
+}
+
+/* 05 — WORKSPACE
    Status: pending
    ----------------------------------------- */
 
@@ -42,13 +50,14 @@ Temporary overrides / DS refinement
 }
 
 
-/* 05 — COURSE EDITOR
+/* 06 — COURSE EDITOR
    Status: pending
    ----------------------------------------- */
 
 /* Rail Structure ( grands écrans) */
 .course-workspace .workspace-columns {
 	grid-template-columns: 320px minmax(0,1fr) minmax(320px,340px); /* TEST */
+	padding: var(--space-4); /* TEST */
 }
 
 .lucide-list-tree {
