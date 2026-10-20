@@ -64,9 +64,25 @@ export function hasUnclosedCodeFence(content: string) {
   return fences.length % 2 !== 0;
 }
 
+// A media directive inside a code fence would render as code, so an insertion point inside a fence moves after its closing line.
+function outsideCodeFence(content: string, position: number) {
+  let offset = 0;
+  let open = 0;
+  for (const line of content.split("\n")) {
+    const run = /^\s*(`{3,})/.exec(line)?.[1].length ?? 0;
+    const closes = open > 0 && run >= open && /^\s*`+\s*$/.test(line);
+    if (open > 0 && offset >= position && closes) return offset + line.length;
+    if (closes) open = 0;
+    else if (open === 0 && run > 0 && offset < position) open = run;
+    offset += line.length + 1;
+  }
+  return position;
+}
+
 export function insertMediaResource(content: string, start: number, end: number, kind: "image" | "audio", resourceId: string, text: string, caption = ""): LessonInsertion {
-  const from = Math.max(0, Math.min(start, content.length));
-  const to = Math.max(from, Math.min(end, content.length));
+  const rawFrom = Math.max(0, Math.min(start, content.length));
+  const from = outsideCodeFence(content, rawFrom);
+  const to = from === rawFrom ? Math.max(from, Math.min(end, content.length)) : from;
   const field = kind === "image" ? `alt=${text}` : `title=${text}`;
   const extra = caption.trim() ? `\ncaption=${caption.trim()}` : "";
   const inserted = `:::${kind}\nresource=${resourceId}\n${field}${extra}\n:::`;

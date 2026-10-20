@@ -17,7 +17,7 @@ function inline(value: string): ReactNode[] {
   });
 }
 
-export type LessonMediaResource = { url: string | null; title?: string | null; status?: "ready" | "unavailable" };
+export type LessonMediaResource = { kind?: "image" | "audio" | "video"; url: string | null; title?: string | null; status?: "ready" | "unavailable" };
 type LessonRenderMode = "author" | "learner";
 type LessonRenderOptions = { mode: LessonRenderMode; resources: Record<string, LessonMediaResource> };
 
@@ -60,7 +60,7 @@ function richBlock(directive: RichDirective, options: LessonRenderOptions, key: 
   if (fields.status === "placeholder") return options.mode === "author" ? <aside key={key} className="lesson-rich-placeholder" aria-label={`${directive.kind} à ajouter`}><strong>{directive.kind === "audio" ? "Audio" : directive.kind === "video" ? "Vidéo" : directive.kind === "image" ? "Image" : "Exercice"} à ajouter</strong>{fields.caption && <p>{fields.caption}</p>}</aside> : null;
   if (directive.kind === "image") {
     const resource = fields.resource ? options.resources[fields.resource] : undefined;
-    if (!resource || !resource.url || !isSafeLessonLink(resource.url)) return options.mode === "author" ? <aside key={key} className="lesson-rich-placeholder">Image indisponible</aside> : null;
+    if (!resource || (resource.kind && resource.kind !== "image") || !resource.url || !isSafeLessonLink(resource.url)) return options.mode === "author" ? <aside key={key} className="lesson-rich-placeholder">Image indisponible</aside> : null;
     // Resource URLs are resolved by the caller and may be signed storage URLs.
     // eslint-disable-next-line @next/next/no-img-element
     const image = <img src={resource.url} alt={fields.alt} />;
@@ -79,6 +79,15 @@ function richBlock(directive: RichDirective, options: LessonRenderOptions, key: 
   return <aside key={key} className="lesson-practice"><header><strong>{fields.title}</strong>{metadata(fields) && <span>{metadata(fields)}</span>}</header>{directive.body && <p>{inline(directive.body)}</p>}</aside>;
 }
 
+// A media directive that ended up alone inside an untyped code fence (inserted while the cursor was in a fence) still renders as media.
+function mediaDirectiveInFence(code: string[]): RichDirective | null {
+  const lines = code.map((line) => line.trimEnd());
+  while (lines.length && !lines[0].trim()) lines.shift();
+  while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+  const directive = lines.length ? parseRichDirective(lines, 0) : null;
+  return directive && (directive.kind === "image" || directive.kind === "audio") && directive.fields.resource && directive.end === lines.length - 1 ? directive : null;
+}
+
 function blocks(content: string, options: LessonRenderOptions) {
   const normalized = content.replace(/\r\n?/g, "\n");
   const lines = normalized.split("\n"); const result: ReactNode[] = [];
@@ -86,7 +95,7 @@ function blocks(content: string, options: LessonRenderOptions) {
     const line = lines[index];
     if (!line.trim()) { index += 1; continue; }
     const fence = /^(`{3,})([a-zA-Z0-9_-]*)\s*$/.exec(line);
-    if (fence) { const code: string[] = []; index += 1; while (index < lines.length && !new RegExp(`^${fence[1]}\\s*$`).test(lines[index])) code.push(lines[index++]); if (index < lines.length) index += 1; const language = fence[2].toLowerCase(); result.push(language === "tab" ? <figure key={result.length} className="lesson-tab"><figcaption>Tablature</figcaption><pre><code>{code.join("\n")}</code></pre></figure> : <figure key={result.length} className="lesson-code" data-language={language || undefined}>{language && <figcaption>{language}</figcaption>}<pre><code>{code.join("\n")}</code></pre></figure>); continue; }
+    if (fence) { const code: string[] = []; index += 1; while (index < lines.length && !new RegExp(`^${fence[1]}\\s*$`).test(lines[index])) code.push(lines[index++]); if (index < lines.length) index += 1; const language = fence[2].toLowerCase(); const wrapped = language === "" ? mediaDirectiveInFence(code) : null; if (wrapped) { result.push(richBlock(wrapped, options, result.length)); continue; } result.push(language === "tab" ? <figure key={result.length} className="lesson-tab"><figcaption>Tablature</figcaption><pre><code>{code.join("\n")}</code></pre></figure> : <figure key={result.length} className="lesson-code" data-language={language || undefined}>{language && <figcaption>{language}</figcaption>}<pre><code>{code.join("\n")}</code></pre></figure>); continue; }
     if (line.startsWith(":::")) { const directive = parseRichDirective(lines, index); if (directive) { result.push(richBlock(directive, options, result.length)); index = directive.end + 1; continue; } }
     if (/^---+\s*$/.test(line)) { result.push(<hr key={result.length} />); index += 1; continue; }
     const heading = /^(#{1,4})\s+(.+)$/.exec(line);
