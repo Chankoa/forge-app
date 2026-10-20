@@ -25,6 +25,10 @@ export function OwnerCourseOverview({ course, readiness, canManageCover = false 
       <Link className="owner-overview__management-secondary" href={`/app/courses/${course.slug}?mode=availability`}>Disponibilité</Link>
       {(course.status === "draft" || course.status === "published") && <Link className="owner-overview__management-secondary" href={`/app/courses/${course.slug}?mode=remix`}>Remix / provenance</Link>}
     </nav>
+    <section className="owner-overview__section owner-overview__information" aria-labelledby="overview-information-title">
+      <div className="owner-overview__section-heading"><div><p className="eyebrow">Informations du parcours</p><h2 id="overview-information-title">Domaine</h2></div><Link className="owner-overview__section-link" href={`/app/courses/${course.slug}?mode=edit#course-domain-field`}>Modifier le domaine <ArrowRight size={16} /></Link></div>
+      <p>{course.domain ?? "Aucun domaine sélectionné."}</p>
+    </section>
     {canManageCover && <CourseCoverManager courseId={course.id} cover={course.cover} domain={course.domain} />}
     <section className="owner-overview__section" aria-labelledby="overview-modules-title">
       <div className="owner-overview__section-heading"><div><p className="eyebrow">Structure du parcours</p><h2 id="overview-modules-title">Modules</h2></div><Link className="owner-overview__section-link" href={structureHref}>Gérer la structure <ArrowRight size={16} /></Link></div>
