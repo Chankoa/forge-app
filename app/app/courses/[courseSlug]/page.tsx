@@ -20,6 +20,8 @@ import { canOfferPublicCourseRemix } from "@/lib/courses/remix";
 import { CourseRemixButton } from "@/components/course/CourseRemixButton";
 import { CourseProvenance } from "@/components/course/CourseProvenance";
 import { CourseLifecycleControls } from "@/components/course/CourseLifecycleControls";
+import { CourseDeletionPanel } from "@/components/course/CourseDeletionPanel";
+import { getCourseDeletionEligibility } from "@/lib/courses/course-deletion-repository";
 
 export default async function CoursePage({ params, searchParams }: { params: Promise<{ courseSlug: string }>; searchParams: Promise<{ mode?: string }> }) {
   const { courseSlug } = await params;
@@ -35,7 +37,7 @@ export default async function CoursePage({ params, searchParams }: { params: Pro
   const availabilityMode = relationship.isOwner && requestedMode === "availability";
   const remixMode = relationship.isOwner && requestedMode === "remix";
   const learnerRequestContext = Boolean(state.enrollment) && !relationship.isOwner;
-  const [domains, collaboratorData, ownerRequestData, myRequestData] = await Promise.all([capabilities.canEdit ? listActiveDomains() : [], collaboratorMode ? listCourseCollaborators(course.id) : Promise.resolve({ collaborators: [], available: true }), collaboratorMode ? listCourseCollaborationRequests(course.id) : Promise.resolve({ requests: [], available: true }), learnerRequestContext ? getMyCourseCollaborationRequest(course.id) : Promise.resolve({ request: null, available: true })]);
+  const [domains, collaboratorData, ownerRequestData, myRequestData, deletionEligibility] = await Promise.all([capabilities.canEdit ? listActiveDomains() : [], collaboratorMode ? listCourseCollaborators(course.id) : Promise.resolve({ collaborators: [], available: true }), collaboratorMode ? listCourseCollaborationRequests(course.id) : Promise.resolve({ requests: [], available: true }), learnerRequestContext ? getMyCourseCollaborationRequest(course.id) : Promise.resolve({ request: null, available: true }), availabilityMode ? getCourseDeletionEligibility(course.id) : Promise.resolve(null)]);
   // The root owner surface is the cockpit. Legacy ?mode=edit links converge here.
   const mode = requestedMode === "publication" && capabilities.canPublish ? "publication" : capabilities.canEdit ? "edit" : "view";
   const ownerOverview = relationship.isOwner && mode === "edit" && requestedMode !== "edit";
@@ -52,7 +54,7 @@ export default async function CoursePage({ params, searchParams }: { params: Pro
   const content = collaboratorMode
     ? <CourseCollaboratorManager courseId={course.id} courseTitle={course.title} initialCollaborators={collaboratorData.collaborators} available={collaboratorData.available} collaborationRequestsEnabled={Boolean(course.collaborationRequestsEnabled)} requests={ownerRequestData.requests} requestsAvailable={ownerRequestData.available} />
     : availabilityMode
-    ? <section className="course-management-destination" aria-labelledby="availability-title"><p className="eyebrow">Disponibilité</p><h2 id="availability-title">{course.status === "archived" ? "Parcours archivé" : "Disponibilité du parcours"}</h2><p>{course.status === "archived" ? "Le parcours reste modifiable pour vous. Restaurez-le avant toute nouvelle publication." : "L’archivage retire le parcours de l’Explorer et suspend l’accès des apprenants sans supprimer leurs données."}</p><CourseLifecycleControls courseId={course.id} courseSlug={course.slug} status={course.status} archiveAction={archiveCourseAction} restoreAction={restoreCourseAction} /></section>
+    ? <section className="course-management-destination" aria-labelledby="availability-title"><p className="eyebrow">Disponibilité</p><h2 id="availability-title">{course.status === "archived" ? "Parcours archivé" : "Disponibilité du parcours"}</h2><p>{course.status === "archived" ? "Le parcours reste modifiable pour vous. Restaurez-le avant toute nouvelle publication." : "L’archivage retire le parcours de l’Explorer et suspend l’accès des apprenants sans supprimer leurs données."}</p><CourseLifecycleControls courseId={course.id} courseSlug={course.slug} status={course.status} archiveAction={archiveCourseAction} restoreAction={restoreCourseAction} />{deletionEligibility && <CourseDeletionPanel courseId={course.id} title={course.title} eligibility={deletionEligibility} />}</section>
     : remixMode
     ? <section className="course-management-destination" aria-labelledby="remix-title"><p className="eyebrow">Remix</p><h2 id="remix-title">Provenance et copie indépendante</h2><p>Une copie remixée repart en brouillon privé. Les relations, sources, données d’apprentissage et l’image de couverture ne sont pas reprises.</p><CourseProvenance provenance={course.provenance} /></section>
     : mode === "edit"

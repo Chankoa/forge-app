@@ -12,6 +12,8 @@ import { courseDomainUpdate, parseDomainSelection } from "@/lib/forge/domain-map
 import { resolveCourseCapabilities } from "@/lib/capabilities/course-capabilities";
 import { draftCourseCreationAttributes, ownerEditorRedirect } from "@/lib/forge/creation-flow";
 import { courseMediaStoragePath, validateMediaUpload, type MediaKind } from "@/lib/courses/media-contracts";
+import { evaluateCourseDeletionEligibility } from "@/lib/courses/course-management";
+import { getCourseStorageDependencyCount } from "@/lib/courses/course-deletion-repository";
 
 function slugify(value: string) { return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 72) || "nouveau-parcours"; }
 async function authorClient() { const client = await createServerSupabaseClient(); if (!client) throw new Error("Supabase local n'est pas configuré."); const { data: { user } } = await client.auth.getUser(); if (!user) throw new Error("Votre session a expiré. Connectez-vous à nouveau."); return { client, user }; }
@@ -191,4 +193,27 @@ export async function restoreCourseAction(courseId: string, courseSlug: string) 
   const { error } = await client.from("courses").update(values).eq("id", courseId);
   if (error) throw new Error("Le parcours n'a pas pu être restauré.");
   revalidatePath("/app/explore"); revalidatePath("/app/courses"); revalidatePath(`/app/courses/${courseSlug}`); revalidatePath(`/app/courses/${courseSlug}/lessons`, "layout");
+}
+
+export async function deleteDraftCourseAction(courseId: string) {
+  const { client, user } = await authorClient();
+  const { data: course, error: courseError } = await client.from("courses").select("id,slug,teacher_id,status,cover_storage_path").eq("id", courseId).maybeSingle();
+  if (courseError || !course) return { ok: false as const, blocker: "unavailable" as const };
+  const [enrollments, storageDependencyCount] = await Promise.all([
+    client.from("enrollments").select("id", { count: "exact", head: true }).eq("course_id", courseId),
+    getCourseStorageDependencyCount(client, courseId, course.cover_storage_path),
+  ]);
+  if (enrollments.error || storageDependencyCount === null) return { ok: false as const, blocker: "unavailable" as const };
+  const eligibility = evaluateCourseDeletionEligibility({
+    isOwner: course.teacher_id === user.id,
+    status: course.status,
+    enrollmentCount: enrollments.count ?? 0,
+    storageDependencyCount,
+  });
+  if (!eligibility.allowed) return { ok: false as const, blocker: eligibility.blocker ?? "unavailable" };
+  const { data, error } = await client.from("courses").delete().eq("id", courseId).eq("teacher_id", user.id).eq("status", "draft").select("id").maybeSingle();
+  if (error || !data) return { ok: false as const, blocker: "unavailable" as const };
+  revalidatePath("/app/courses");
+  revalidatePath(`/app/courses/${course.slug}`);
+  return { ok: true as const };
 }
