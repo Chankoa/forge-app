@@ -30,7 +30,8 @@ export async function buildForgeContext(reader: ForgeReader, userId: string, req
   const currentModule = lesson ? modules.find((m) => m.id === lesson.module_id) : undefined;
   if (lesson && !currentModule) throw new ForgeError("context_unavailable");
   const titles = !lesson ? await reader.lessonTitles(course.id) : [];
-  const resolved = await resolveForgeSources(reader, course.id, request.sourceIds, request.mode === "learn" && course.status !== "published");
+  // Forge sources are authoring context: learners never select them, whatever the course status.
+  const resolved = await resolveForgeSources(reader, course.id, request.sourceIds, request.mode === "learn");
   return {
     course: { id: course.id, title: course.title, subtitle: course.subtitle, summary: course.description ?? "", domain: course.domain, level: course.level }, module: currentModule,
     lesson: lesson ? { id: lesson.id, title: lesson.title, summary: lesson.description ?? "", content: lesson.content ?? "", objectives: lesson.objectives ?? [] } : undefined,
