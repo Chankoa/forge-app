@@ -67,3 +67,23 @@ An alt-text suggestion is shown in review. The product has no persisted cover al
 ## Deferred
 
 Video, storyboard, audio/voice, lesson illustration persistence, editor-level cover management, persistent alt text, a ForgeRail suggestion to start a cover.
+
+## V1.2 — Lesson illustrations (figurative / conceptual)
+
+**Visual purposes.** `cover` (existing, owner-only, unchanged), `figurative` (concrete scene/object/situation, no identifiable person) and `conceptual` (symbolic/abstract). Pedagogical diagrams are deferred.
+
+**Capabilities.** `generate_visual_brief`, `generate_visual_prompt`, `generate_visual_image` (target `lesson`) reuse the cover schemas (`VisualBrief`, `CoverPrompt`, `CoverImageResult`), the text/image provider adapters and the same process-local rate limiters (image = 10/hour, shared with covers; the actions live in `cover-workflow-actions.ts`). The brief is normalised to landscape 16:9, no text in image.
+
+**Context bounds.** Course title/subtitle/domain/level, module title, lesson title/description/objectives (= 8) and a body excerpt = 1500 characters with directives, URLs and UUIDs stripped. No discussions, learner data, emails, profiles, storage URLs or other lessons.
+
+**Models.** The image model is `FORGE_COVER_IMAGE_MODEL` (no fallback; a text model is never used for images). The text model is `FORGE_COVER_TEXT_MODEL`, falling back to the default model. The UI never names a model. Prompts do not impose the Forge design system (no violet/lavender/SaaS branding).
+
+**Lifecycle.** Generate ? transient data-URL preview (nothing persisted) ? explicit "Utiliser cette image". Regenerate re-runs only the image call with the same prompt; cancel persists nothing; there is no history.
+
+**Accept and insertion.** `acceptGeneratedLessonImageAction` revalidates auth, lesson ownership in the course and permission, sniffs the bytes (PNG/JPEG/WebP, size, dimensions), requires alt text, then reuses `uploadCourseMediaAction` (bucket `course-media`, row in `course_media_resources`). The existing `:::image` directive (resource id + alt + optional caption) is inserted into the **local draft**; the lesson is persisted only through the usual **Save**. Compromise: the file and media row exist from acceptance, so abandoning the draft leaves an unreferenced media row (same as the manual upload flow).
+
+**Alt text.** Proposed from the prompt (`altText`), editable, required. Caption is optional and never generated.
+
+**Permissions.** Owner and active editor (`canEditLessons` + `canUploadMedia`); viewers, learners and unrelated users are denied on generate and accept.
+
+**Course non-cover illustration.** Deferred: no canonical persistence slot exists besides the cover.

@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { Bold, Code2, Image as ImageIcon, Italic, Link2, List, ListOrdered, MoreHorizontal, Music2, Plus, Quote, Rows3, Save, Type, Video, X } from "lucide-react";
+import { Bold, Code2, Image as ImageIcon, Italic, Link2, List, ListOrdered, MoreHorizontal, Music2, Plus, Quote, Rows3, Save, Sparkles, Type, Video, X } from "lucide-react";
 import type { CourseLesson } from "@/lib/courses/contracts";
 import { createLessonDraft, lessonDraftFormData } from "@/lib/courses/lesson-draft";
 import { Button } from "@/components/ui/Button";
 import { ForgeSourceResources } from "@/components/forge/ForgeSourceResources";
 import { LessonResourcesPanel } from "@/components/forge/LessonResourcesPanel";
+import { LessonImageStudio } from "@/components/forge/LessonImageStudio";
 import { useForgeProposal } from "@/components/forge/ForgeProposalContext";
 import { saveLessonAction, uploadCourseMediaAction } from "@/app/app/create/actions";
 import { adjacentTab } from "@/lib/courses/workspace-layout";
@@ -40,6 +41,7 @@ function LessonEditorDraft({ courseId, courseSlug, lesson, moduleTitle, moduleNu
   const [message, setMessage] = useState(""); const [tab, setTab] = useState<LessonTab>("content"); const [contentView, setContentView] = useState<ContentView>("write"); const [draft, setDraft] = useState(createLessonDraft(lesson)); const [savedDraft, setSavedDraft] = useState(createLessonDraft(lesson)); const [localResources, setLocalResources] = useState(lesson.mediaResources ?? {}); const [pending, startTransition] = useTransition(); const { registerLessonDraft, setLessonSelection } = useForgeProposal(); const contentRef = useRef(draft.content); const draftRef = useRef(draft); const editorRef = useRef<HTMLTextAreaElement>(null); const focusObjectivesFromAnalysis = useRef(false);
   const [writingStarted, setWritingStarted] = useState(Boolean(lesson.content?.trim()));
   const [mediaPanelOpen, setMediaPanelOpen] = useState(false);
+  const [imageStudioOpen, setImageStudioOpen] = useState(false);
   const [mediaKind, setMediaKind] = useState<"image" | "audio">("image");
   const insertMenuRef = useRef<HTMLDetailsElement>(null);
   const localObjectUrls = useRef<string[]>([]);
@@ -74,6 +76,7 @@ function LessonEditorDraft({ courseId, courseSlug, lesson, moduleTitle, moduleNu
     setDraft(next);
   }, []);
   const closeMediaPanel = useCallback(() => setMediaPanelOpen(false), []);
+  const closeImageStudio = useCallback(() => setImageStudioOpen(false), []);
   const dirty = JSON.stringify(draft) !== JSON.stringify(savedDraft);
   const save = () => startTransition(async () => { const submitted = draft; try { await saveLessonAction(courseId, lesson.id, lessonDraftFormData(submitted)); setSavedDraft(submitted); setMessage(""); dispatchToast(forgeProposalStates.saved); window.dispatchEvent(new CustomEvent(forgeLessonSavedEvent, { detail: { lessonId: lesson.id } })); } catch (error) { setMessage(error instanceof Error ? error.message : "La sauvegarde a échoué."); } });
   const tabs: LessonTab[] = canManageSources ? ["info", "content", "resources"] : ["info", "content"];
@@ -107,10 +110,12 @@ function LessonEditorDraft({ courseId, courseSlug, lesson, moduleTitle, moduleNu
       <details ref={insertMenuRef} className="lesson-editor__insert-menu" onKeyDown={(event) => { if (event.key === "Escape") { event.currentTarget.open = false; event.currentTarget.querySelector("summary")?.focus(); } }}><summary><Plus size={16} aria-hidden="true" />Insérer</summary><div role="menu">
         <button type="button" role="menuitem" onMouseDown={(event) => event.preventDefault()} onClick={() => { setMediaKind("image"); insertMenuRef.current?.removeAttribute("open"); setMediaPanelOpen(true); }}><ImageIcon size={15} aria-hidden="true" />Image</button>
         <button type="button" role="menuitem" onMouseDown={(event) => event.preventDefault()} onClick={() => { setMediaKind("audio"); insertMenuRef.current?.removeAttribute("open"); setMediaPanelOpen(true); }}><Music2 size={15} aria-hidden="true" />Audio</button>
+        {canUploadMedia && <button type="button" role="menuitem" onMouseDown={(event) => event.preventDefault()} onClick={() => { insertMenuRef.current?.removeAttribute("open"); setImageStudioOpen(true); }}><Sparkles size={15} aria-hidden="true" />Créer une image avec Forge</button>}
         {richInsertActions.map(({ action, label }) => <button key={action} type="button" role="menuitem" onMouseDown={(event) => event.preventDefault()} onClick={(event) => { event.currentTarget.closest("details")?.removeAttribute("open"); insert(action); }}>{action === "video" ? <Video size={15} aria-hidden="true" /> : action === "tab" ? <Rows3 size={15} aria-hidden="true" /> : null}{label}</button>)}
       </div></details>
       <details className="lesson-editor__insert-menu" onKeyDown={(event) => { if (event.key === "Escape") { event.currentTarget.open = false; event.currentTarget.querySelector("summary")?.focus(); } }}><summary><MoreHorizontal size={16} aria-hidden="true" />Plus</summary><div role="menu"><button type="button" role="menuitem" onMouseDown={(event) => event.preventDefault()} onClick={(event) => { event.currentTarget.closest("details")?.removeAttribute("open"); insert("divider"); }}>Séparateur</button></div></details>
       {mediaPanelOpen && canUploadMedia && <MediaUpload courseId={courseId} initialKind={mediaKind} onClose={closeMediaPanel} onUploaded={insertUploadedResource} />}
+      {imageStudioOpen && canUploadMedia && <LessonImageStudio courseId={courseId} lessonId={lesson.id} onClose={closeImageStudio} onAccepted={(resource, alt, caption, file) => insertUploadedResource(resource, "image", alt, caption, file)} />}
     </div>}{contentView === "preview" ? <div className="lesson-editor__local-preview" aria-label="Aperçu du contenu non sauvegardé">{draft.content.trim() ? <LessonMarkdown content={draft.content} mode="author" resources={localResources} /> : <p className="caption">Cette leçon n’a pas encore de contenu.</p>}</div> : <label className={`lesson-editor__writing-label${contentView === "source" ? " lesson-editor__writing-label--source" : ""}`} htmlFor="lesson-content-editor">{contentView === "source" ? "Source Markdown" : "Rédaction"}<textarea ref={editorRef} id="lesson-content-editor" className={`content-editor ${contentView === "source" ? "content-editor--source" : "content-editor--editorial"}`} name="content" value={draft.content} onChange={(event) => { contentRef.current = event.target.value; updateDraft("content", event.target.value); setLessonSelection(lesson.id, null); }} onSelect={(event) => captureSelection(event.currentTarget)} onMouseUp={(event) => captureSelection(event.currentTarget)} onKeyUp={(event) => captureSelection(event.currentTarget)} spellCheck={contentView === "write"} /></label>}{hasUnclosedCodeFence(draft.content) && <p className="lesson-editor__warning" role="status">Un bloc de code semble ne pas être fermé. Vérifiez l’aperçu avant de sauvegarder.</p>}</section>}</>}
   </form>{tab === "resources" && canManageSources && <><LessonResourcesPanel courseSlug={courseSlug} lessonId={lesson.id} canManage /><ForgeSourceResources courseSlug={courseSlug} /></>}</>;
 }

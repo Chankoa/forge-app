@@ -30,11 +30,11 @@ export function coverFlowReducer(state: CoverFlowState, action: CoverFlowAction)
   }
 }
 
-export function dataUrlToFile(previewUrl: string, mimeType: string): File | null {
+export function dataUrlToFile(previewUrl: string, mimeType: string, name = "forge-cover"): File | null {
   const match = /^data:([^;]+);base64,(.+)$/.exec(previewUrl);
   if (!match) return null;
   const binary = atob(match[2]);
   const bytes = new Uint8Array(binary.length);
   for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
-  return new File([bytes], "forge-cover", { type: mimeType });
+  return new File([bytes], name, { type: mimeType });
 }

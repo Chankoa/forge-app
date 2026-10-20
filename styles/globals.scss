@@ -13179,3 +13179,23 @@ textarea,select {
   outline: 2px solid currentColor;
   outline-offset: 2px;
 }
+
+.lesson-image-studio { width: min(640px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 0; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface, var(--bg)); color: var(--text); overflow: auto; }
+.lesson-image-studio::backdrop { background: rgb(0 0 0 / 0.45); }
+.lesson-image-studio__panel { display: grid; gap: 12px; padding: 16px; min-width: 0; }
+.lesson-image-studio__panel > header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.lesson-image-studio__panel h3 { display: flex; align-items: center; gap: 8px; margin: 0; font: var(--font-label, inherit); }
+.lesson-image-studio__panel > header button { display: grid; place-items: center; min-width: 40px; min-height: 40px; background: transparent; border: 0; color: inherit; cursor: pointer; }
+.lesson-image-studio__form, .lesson-image-studio__preview { display: grid; gap: 10px; min-width: 0; }
+.lesson-image-studio label { display: grid; gap: 4px; font: var(--font-caption); color: var(--text-muted); }
+.lesson-image-studio textarea, .lesson-image-studio input { width: 100%; box-sizing: border-box; font: inherit; color: var(--text); background: var(--surface, transparent); border: 1px solid var(--border); border-radius: var(--radius-sm, 8px); padding: 8px 10px; }
+.lesson-image-studio textarea { resize: vertical; }
+.lesson-image-studio__types { display: flex; gap: 8px; border: 0; padding: 0; margin: 0; }
+.lesson-image-studio__types legend { font: var(--font-caption); color: var(--text-muted); padding: 0 0 4px; }
+.lesson-image-studio__types button { flex: 1; min-height: 40px; border: 1px solid var(--border); border-radius: var(--radius-sm, 8px); background: transparent; color: inherit; cursor: pointer; }
+.lesson-image-studio__types button[aria-pressed="true"] { background: var(--violet-soft); border-color: var(--violet); }
+.lesson-image-studio__options { display: grid; gap: 8px; }
+.lesson-image-studio__options > label { margin-top: 8px; }
+.lesson-image-studio__preview img { display: block; width: 100%; max-width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; border: 1px solid var(--border); border-radius: var(--radius-md); }
+.lesson-image-studio__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.lesson-image-studio .caption { overflow-wrap: anywhere; margin: 0; }

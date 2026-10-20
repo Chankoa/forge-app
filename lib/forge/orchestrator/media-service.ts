@@ -4,11 +4,12 @@ import {
 } from "./media-contracts";
 import { inspectImage, isCleanPrompt, validateBrief, validatePrompt } from "./media-validation";
 
-export type CoverTextProvider = { generate(capability: "generate_cover_brief" | "generate_cover_prompt", prompt: string): Promise<unknown> };
+export type CoverTextProvider = { generate(capability: "generate_cover_brief" | "generate_cover_prompt" | "generate_visual_brief" | "generate_visual_prompt", prompt: string): Promise<unknown> };
 export type CoverImageProvider = { generate(input: { prompt: string; aspectRatio: CoverAspectRatio }): Promise<CoverImageBytes> };
 export type CoverReader = { loadCover(courseId: string): Promise<CoverContext | null> };
 type Telemetry = (data: { capability: MediaCapability; duration: number; validation: string; width?: number; height?: number }) => void;
-type Common = { consume(): void; telemetry?: Telemetry };
+export type MediaCommon = { consume(): void; telemetry?: Telemetry };
+type Common = MediaCommon;
 
 export function mediaFailure<T>(capability: MediaCapability, status: MediaResult<T>["status"], summary: string): MediaResult<T> {
   return { capability, status, summary, data: null };

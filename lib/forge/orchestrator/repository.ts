@@ -3,7 +3,8 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { resolveCourseCapabilities } from "@/lib/capabilities/course-capabilities";
 import { domainNameFromRelation } from "@/lib/courses/presentation";
 import type { CourseOperation, CoursePlanContext } from "./contracts";
-import type { CoverContext } from "./media-contracts";
+import type { CoverContext, LessonVisualContext } from "./media-contracts";
+import { lessonExcerpt } from "./lesson-visual-context";
 import { canManageCourseCover } from "@/lib/courses/cover-contracts";
 
 type Client = NonNullable<Awaited<ReturnType<typeof createServerSupabaseClient>>>;
@@ -25,6 +26,31 @@ export function createCoverRepository(client: Client, userId: string) {
         title: clip(course.title, 260), subtitle: clip(course.subtitle, 300) || null, description: clip(course.description, 1200) || null,
         domain: domainNameFromRelation(course.domains), level: course.level ? clip(String(course.level), 60) : null,
         objectives, moduleTitles: modules.data.map((module) => clip(module.title, 240)).filter(Boolean),
+      };
+    },
+  };
+}
+
+// Lesson context for illustrations. Permission follows the existing lesson-media authoring contract (owner or active editor).
+export function createLessonVisualRepository(client: Client, userId: string) {
+  const clip = (value: string | null | undefined, max: number) => (value ?? "").trim().slice(0, max);
+  return {
+    async loadLesson(courseId: string, lessonId: string): Promise<LessonVisualContext | null> {
+      const [{ data: course, error }, { data: membership }] = await Promise.all([
+        client.from("courses").select("title,subtitle,teacher_id,status,domains(name),level").eq("id", courseId).maybeSingle(),
+        client.from("course_memberships").select("role,status").eq("course_id", courseId).eq("user_id", userId).maybeSingle(),
+      ]);
+      if (error || !course) return null;
+      const capabilities = resolveCourseCapabilities({ isOwner: course.teacher_id === userId, isEnrolled: false, courseStatus: course.status, membershipRole: membership?.role, membershipStatus: membership?.status });
+      if (!capabilities.canEditLessons || !capabilities.canUploadMedia) return null;
+      const { data: lesson, error: lessonError } = await client.from("lessons").select("title,description,objectives,content,course_modules(title)").eq("id", lessonId).eq("course_id", courseId).maybeSingle();
+      if (lessonError || !lesson) return null;
+      const moduleRelation = lesson.course_modules as { title?: string } | { title?: string }[] | null;
+      const moduleTitle = Array.isArray(moduleRelation) ? moduleRelation[0]?.title : moduleRelation?.title;
+      return {
+        course: { title: clip(course.title, 260), subtitle: clip(course.subtitle, 300) || null, domain: domainNameFromRelation(course.domains), level: course.level ? clip(String(course.level), 60) : null },
+        moduleTitle: clip(moduleTitle, 240), lessonTitle: clip(lesson.title, 260), description: clip(lesson.description, 600) || null,
+        objectives: (lesson.objectives ?? []).map((item: string) => clip(item, 240)).filter(Boolean).slice(0, 8), excerpt: lessonExcerpt(lesson.content),
       };
     },
   };
