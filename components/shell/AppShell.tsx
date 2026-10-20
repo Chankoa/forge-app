@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
-import { CircleUserRound, Compass, GraduationCap, Home, Library, LogOut, PanelLeftClose, PanelLeftOpen, PenLine, Sparkles } from "lucide-react";
+import { CircleUserRound, Compass, GraduationCap, Home, Library, LibraryBig, LogOut, PanelLeftClose, PanelLeftOpen, PenLine, Sparkles } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { IconButton } from "@/components/ui/IconButton";
 import { createBrowserClient } from "@/lib/supabase/browser";
 import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
 import { ContextualTopbarSearch, ContextualTopbarSearchProvider, useContextualTopbarSearchState } from "./ContextualTopbarSearch";
 
-const links = [["/app", "Accueil", Home], ["/app/courses", "Mes parcours", Library], ["/app/explore", "Explorer", Compass], ["/app/create", "Créer", PenLine], ["/app/classroom", "Classroom", GraduationCap], ["/app/profile", "Profil", CircleUserRound]] as const;
+const links = [["/app", "Accueil", Home], ["/app/courses", "Mes parcours", Library], ["/app/explore", "Explorer", Compass], ["/app/create", "Créer", PenLine], ["/app/library", "Bibliothèque", LibraryBig], ["/app/classroom", "Classroom", GraduationCap], ["/app/profile", "Profil", CircleUserRound]] as const;
 
 export function AppShell({ children, profileName, profileAvatarUrl }: { children: ReactNode; profileName?: string | null; profileAvatarUrl?: string | null }) {
   return <ContextualTopbarSearchProvider><AppShellContent profileName={profileName} profileAvatarUrl={profileAvatarUrl}>{children}</AppShellContent></ContextualTopbarSearchProvider>;
