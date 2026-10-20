@@ -2730,7 +2730,7 @@ button {
   display: flex;
   justify-content: space-between;
   gap: var(--space-4);
-  padding: var(--space-5) var(--space-6);
+  padding: var(--space-4) var(--space-6);
   border-bottom: 1px solid var(--border);
 }
 
@@ -12946,6 +12946,10 @@ textarea,select {
 
   /* The desktop classroom route remains available; only the compact nav omits it. */
   .app-sidebar .nav a[href="/app/classroom"] {
+    display: none;
+  }
+
+  .app-sidebar .nav a[href="/app/library"] {
     display: none;
   }
 
