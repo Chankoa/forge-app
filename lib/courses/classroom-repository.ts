@@ -21,7 +21,7 @@ export async function getCourseClassroom(course: CourseDetail): Promise<Classroo
   if (enrollmentError || progressError) return null;
   const enrollments = (enrollmentData ?? []) as ClassroomEnrollmentRow[];
   const learnerIds = Array.from(new Set(enrollments.map((enrollment) => enrollment.user_id)));
-  const { data: profileData, error: profileError } = learnerIds.length ? await client.from("profiles").select("id,name").in("id", learnerIds) : { data: [], error: null };
+  const { data: profileData, error: profileError } = learnerIds.length ? await client.from("profiles").select("id,name,avatar_url").in("id", learnerIds) : { data: [], error: null };
   if (profileError) return null;
 
   return classroomDataFromRows(course.outline, enrollments, (progressData ?? []) as ClassroomProgressRow[], (profileData ?? []) as ClassroomProfileRow[]);
@@ -39,7 +39,7 @@ export async function getCourseClassroomLearnerDetail(course: CourseDetail, lear
   if (enrollmentError || !enrollmentData) return null;
   const [{ data: progressData, error: progressError }, { data: profileData, error: profileError }] = await Promise.all([
     client.from("lesson_progress").select("user_id,lesson_id,completed").eq("course_id", course.id).eq("user_id", learnerId),
-    client.from("profiles").select("id,name").eq("id", learnerId).maybeSingle(),
+    client.from("profiles").select("id,name,avatar_url").eq("id", learnerId).maybeSingle(),
   ]);
   if (progressError || profileError) return null;
 

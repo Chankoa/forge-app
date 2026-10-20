@@ -14,14 +14,14 @@ const classroomRoute = readFileSync(new URL("../app/app/courses/[courseSlug]/cla
 const repository = readFileSync(new URL("../lib/courses/classroom-repository.ts", import.meta.url), "utf8");
 
 test("Classroom progress uses current-course lessons, includes zero progress, and rounds the learner mean", () => {
-  const data = classroomDataFromRows(outline, [{ user_id: "learner-a", status: "in-progress", current_lesson_id: "lesson-2" }, { user_id: "learner-b", status: "completed", current_lesson_id: "outside" }, { user_id: "learner-c", status: "not-started", current_lesson_id: null }], [{ user_id: "learner-a", lesson_id: "lesson-1", completed: true }, { user_id: "learner-a", lesson_id: "other-course", completed: true }, { user_id: "learner-b", lesson_id: "lesson-1", completed: true }, { user_id: "learner-b", lesson_id: "lesson-2", completed: true }], [{ id: "learner-a", name: "Aline Martin" }, { id: "learner-b", name: "Benoît Roy" }, { id: "learner-c", name: null }]);
+  const data = classroomDataFromRows(outline, [{ user_id: "learner-a", status: "in-progress", current_lesson_id: "lesson-2" }, { user_id: "learner-b", status: "completed", current_lesson_id: "outside" }, { user_id: "learner-c", status: "not-started", current_lesson_id: null }], [{ user_id: "learner-a", lesson_id: "lesson-1", completed: true }, { user_id: "learner-a", lesson_id: "other-course", completed: true }, { user_id: "learner-b", lesson_id: "lesson-1", completed: true }, { user_id: "learner-b", lesson_id: "lesson-2", completed: true }], [{ id: "learner-a", name: "Aline Martin", avatar_url: "https://example.com/aline.webp" }, { id: "learner-b", name: "Benoît Roy", avatar_url: null }, { id: "learner-c", name: null, avatar_url: null }]);
   assert.deepEqual(data.learners.map(({ displayName, progress, completedLessons, currentLessonTitle, status }) => ({ displayName, progress, completedLessons, currentLessonTitle, status })), [{ displayName: "Apprenant Forge", progress: 0, completedLessons: 0, currentLessonTitle: null, status: "not-started" }, { displayName: "Aline Martin", progress: 50, completedLessons: 1, currentLessonTitle: "Deuxième leçon", status: "in-progress" }, { displayName: "Benoît Roy", progress: 100, completedLessons: 2, currentLessonTitle: null, status: "completed" }]);
   assert.equal(data.averageProgress, 50);
   assert.equal(data.completedLearners, 1);
 });
 
 test("Classroom returns zero progress for a course with no lessons", () => {
-  const data = classroomDataFromRows([], [{ user_id: "learner", status: "not-started", current_lesson_id: null }], [{ user_id: "learner", lesson_id: "old", completed: true }], [{ id: "learner", name: "Nora" }]);
+  const data = classroomDataFromRows([], [{ user_id: "learner", status: "not-started", current_lesson_id: null }], [{ user_id: "learner", lesson_id: "old", completed: true }], [{ id: "learner", name: "Nora", avatar_url: null }]);
   assert.equal(data.learners[0]?.progress, 0);
   assert.equal(data.learners[0]?.completedLessons, 0);
   assert.equal(data.averageProgress, 0);
@@ -55,14 +55,17 @@ test("legacy Classroom mode redirects to the dedicated course-scoped route", () 
   assert.doesNotMatch(courseRoute, /getCourseClassroom|CourseClassroom/);
 });
 
-test("Classroom rendering exposes operational learner progress only", () => {
-  const html = renderToStaticMarkup(createElement(CourseClassroom, { archived: true, courseSlug: "course", data: { totalLearners: 1, averageProgress: 50, completedLearners: 0, learners: [{ id: "learner-a", displayName: "Aline Martin", initials: "AM", progress: 50, completedLessons: 1, totalLessons: 2, currentLessonTitle: "Deuxième leçon", status: "in-progress" }] } }));
+test("Classroom rendering uses a safe avatar projection with initials fallback", () => {
+  const html = renderToStaticMarkup(createElement(CourseClassroom, { archived: true, courseSlug: "course", data: { totalLearners: 2, averageProgress: 50, completedLearners: 0, learners: [{ id: "learner-a", displayName: "Aline Martin", initials: "AM", avatarUrl: "https://example.com/aline.webp", progress: 50, completedLessons: 1, totalLessons: 2, currentLessonTitle: "Deuxième leçon", status: "in-progress" }, { id: "learner-b", displayName: "Benoît Roy", initials: "BR", avatarUrl: null, progress: 50, completedLessons: 1, totalLessons: 2, currentLessonTitle: null, status: "in-progress" }] } }));
   assert.match(html, /Parcours archivé.*lecture seule/);
   assert.match(html, />Synthèse</);
   assert.match(html, /Aline Martin/);
+  assert.match(html, /src="https:\/\/example\.com\/aline\.webp"/);
+  assert.match(html, />BR</);
   assert.match(html, /1 \/ 2 leçons/);
   assert.doesNotMatch(html, /Activité|Messages|Bientôt/);
   assert.doesNotMatch(html, /email|note|role|historique/i);
+  assert.match(repository, /select\("id,name,avatar_url"\)/);
   assert.match(repository, /from\("enrollments"\)/);
   assert.match(repository, /from\("lesson_progress"\)/);
   assert.doesNotMatch(repository, /from\("notes"\)|course_memberships/);

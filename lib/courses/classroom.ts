@@ -1,11 +1,12 @@
 import { progressPercentage } from "@/lib/learning/progress";
 import { authorInitials } from "@/lib/profiles/author-identity";
+import { safeAvatarUrl } from "@/lib/profiles/avatar-url";
 import type { CourseOutline } from "./contracts";
 
 export type ClassroomEnrollmentRow = { user_id: string; status: string; current_lesson_id: string | null };
 export type ClassroomProgressRow = { user_id: string; lesson_id: string; completed: boolean };
-export type ClassroomProfileRow = { id: string; name: string | null };
-export type ClassroomLearner = { id: string; displayName: string; initials: string; progress: number; completedLessons: number; totalLessons: number; currentLessonTitle: string | null; status: "not-started" | "in-progress" | "completed" };
+export type ClassroomProfileRow = { id: string; name: string | null; avatar_url?: string | null };
+export type ClassroomLearner = { id: string; displayName: string; initials: string; avatarUrl: string | null; progress: number; completedLessons: number; totalLessons: number; currentLessonTitle: string | null; status: "not-started" | "in-progress" | "completed" };
 export type ClassroomData = { totalLearners: number; averageProgress: number | null; completedLearners: number; learners: ClassroomLearner[] };
 export type ClassroomLearnerDetail = ClassroomLearner & { modules: Array<{ id: string; title: string; completedLessons: number; totalLessons: number; progress: number; lessons: Array<{ id: string; title: string; durationMinutes: number | null; state: "completed" | "current" | "todo" }> }> };
 export type GlobalClassroomCourse = { id: string; slug: string; title: string; status: string | null; visibility: string | null; outline: CourseOutline };
@@ -25,7 +26,7 @@ function classroomLearnerFromRows(outline: CourseOutline, enrollment: ClassroomE
   const lessonTitles = new Map(outline.flatMap((module) => module.lessons.map((lesson) => [lesson.id, lesson.title])));
   const displayName = profile?.name?.trim() || "Apprenant Forge";
   const completed = completedLessonIds(outline, progressRows, enrollment.user_id);
-  return { id: enrollment.user_id, displayName, initials: authorInitials(displayName), progress: progressPercentage(lessonIds.size, completed), completedLessons: completed.size, totalLessons: lessonIds.size, currentLessonTitle: enrollment.current_lesson_id ? lessonTitles.get(enrollment.current_lesson_id) ?? null : null, status: classroomStatus(enrollment.status) };
+  return { id: enrollment.user_id, displayName, initials: authorInitials(displayName), avatarUrl: safeAvatarUrl(profile?.avatar_url), progress: progressPercentage(lessonIds.size, completed), completedLessons: completed.size, totalLessons: lessonIds.size, currentLessonTitle: enrollment.current_lesson_id ? lessonTitles.get(enrollment.current_lesson_id) ?? null : null, status: classroomStatus(enrollment.status) };
 }
 
 export function classroomDataFromRows(outline: CourseOutline, enrollments: ClassroomEnrollmentRow[], progressRows: ClassroomProgressRow[], profiles: ClassroomProfileRow[]): ClassroomData {

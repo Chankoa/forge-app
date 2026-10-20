@@ -4142,6 +4142,9 @@ textarea,select {
   .app-shell .workspace-topbar {
     display: none;
   }
+  .app-shell .workspace-topbar .header-actions {
+    display: none;
+  }
   .app-sidebar .nav {
     background: var(--surface);
   }
@@ -7801,16 +7804,8 @@ textarea,select {
   border-bottom: 1px solid var(--shell-separator);
 }
 
-.course-classroom__initials {
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--violet-soft);
-  color: var(--violet);
-  font: var(--font-caption);
-  font-weight: 700;
+.course-classroom__roster .profile-avatar {
+  flex-shrink: 0;
 }
 
 .course-classroom__identity, .course-classroom__progress, .course-classroom__lesson {
