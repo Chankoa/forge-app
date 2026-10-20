@@ -31,7 +31,7 @@ test("learner detail handles zero lessons, zero progress, completion, and an inv
   assert.equal(completed.currentLessonTitle, null);
 });
 
-test("learner detail is owner-only, enrollment-scoped, and selects no private profile data", () => {
+test("learner detail is owner-only, enrollment-scoped, and selects only safe profile identity", () => {
   const owner = resolveCourseCapabilities({ isOwner: true, isEnrolled: false, courseStatus: "archived" });
   const editor = resolveCourseCapabilities({ isOwner: false, isEnrolled: false, courseStatus: "published", membershipRole: "editor", membershipStatus: "active" });
   const viewer = resolveCourseCapabilities({ isOwner: false, isEnrolled: false, courseStatus: "published", membershipRole: "viewer", membershipStatus: "active" });
@@ -44,7 +44,7 @@ test("learner detail is owner-only, enrollment-scoped, and selects no private pr
   assert.equal(unrelated.canViewClassroom, false);
   assert.match(route, /!capabilities\.canViewClassroom/);
   assert.match(repository, /\.eq\("course_id", course\.id\)\.eq\("user_id", learnerId\)\.maybeSingle\(\)/);
-  assert.match(repository, /select\("id,name"\)/);
+  assert.match(repository, /select\("id,name,avatar_url"\)/);
   assert.doesNotMatch(repository, /email|notes|course_memberships|account_status/i);
 });
 
