@@ -7,6 +7,7 @@ import type { CourseLesson } from "@/lib/courses/contracts";
 import { createLessonDraft, lessonDraftFormData } from "@/lib/courses/lesson-draft";
 import { Button } from "@/components/ui/Button";
 import { ForgeSourceResources } from "@/components/forge/ForgeSourceResources";
+import { LessonResourcesPanel } from "@/components/forge/LessonResourcesPanel";
 import { useForgeProposal } from "@/components/forge/ForgeProposalContext";
 import { saveLessonAction, uploadCourseMediaAction } from "@/app/app/create/actions";
 import { adjacentTab } from "@/lib/courses/workspace-layout";
@@ -111,7 +112,7 @@ function LessonEditorDraft({ courseId, courseSlug, lesson, moduleTitle, moduleNu
       <details className="lesson-editor__insert-menu" onKeyDown={(event) => { if (event.key === "Escape") { event.currentTarget.open = false; event.currentTarget.querySelector("summary")?.focus(); } }}><summary><MoreHorizontal size={16} aria-hidden="true" />Plus</summary><div role="menu"><button type="button" role="menuitem" onMouseDown={(event) => event.preventDefault()} onClick={(event) => { event.currentTarget.closest("details")?.removeAttribute("open"); insert("divider"); }}>Séparateur</button></div></details>
       {mediaPanelOpen && canUploadMedia && <MediaUpload courseId={courseId} initialKind={mediaKind} onClose={closeMediaPanel} onUploaded={insertUploadedResource} />}
     </div>}{contentView === "preview" ? <div className="lesson-editor__local-preview" aria-label="Aperçu du contenu non sauvegardé">{draft.content.trim() ? <LessonMarkdown content={draft.content} mode="author" resources={localResources} /> : <p className="caption">Cette leçon n’a pas encore de contenu.</p>}</div> : <label className={`lesson-editor__writing-label${contentView === "source" ? " lesson-editor__writing-label--source" : ""}`} htmlFor="lesson-content-editor">{contentView === "source" ? "Source Markdown" : "Rédaction"}<textarea ref={editorRef} id="lesson-content-editor" className={`content-editor ${contentView === "source" ? "content-editor--source" : "content-editor--editorial"}`} name="content" value={draft.content} onChange={(event) => { contentRef.current = event.target.value; updateDraft("content", event.target.value); setLessonSelection(lesson.id, null); }} onSelect={(event) => captureSelection(event.currentTarget)} onMouseUp={(event) => captureSelection(event.currentTarget)} onKeyUp={(event) => captureSelection(event.currentTarget)} spellCheck={contentView === "write"} /></label>}{hasUnclosedCodeFence(draft.content) && <p className="lesson-editor__warning" role="status">Un bloc de code semble ne pas être fermé. Vérifiez l’aperçu avant de sauvegarder.</p>}</section>}</>}
-  </form>{tab === "resources" && canManageSources && <ForgeSourceResources courseSlug={courseSlug} />}</>;
+  </form>{tab === "resources" && canManageSources && <><LessonResourcesPanel courseSlug={courseSlug} lessonId={lesson.id} canManage /><ForgeSourceResources courseSlug={courseSlug} /></>}</>;
 }
 
 function MediaUpload({ courseId, initialKind, onClose, onUploaded }: { courseId: string; initialKind: "image" | "audio"; onClose: () => void; onUploaded: (resource: Omit<MediaPresentation, "url" | "durationSeconds">, kind: "image" | "audio", text: string, caption: string, file: File) => void }) {

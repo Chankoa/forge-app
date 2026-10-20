@@ -5,6 +5,8 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { BookOpen, MessageCircle, SearchCheck, Sparkles } from "lucide-react";
 import { generateForgeAction } from "@/app/app/forge/actions";
 import { listForgeSourcesAction, type ForgeSourceOption } from "@/app/app/forge/source-actions";
+import { SourceResourceActions } from "@/components/forge/SourceResourceActions";
+import { LessonResourcesPanel } from "@/components/forge/LessonResourcesPanel";
 import type { ForgeAvailability, ForgeIntent, ForgeRailContext, ForgeResponse, ForgeResult } from "@/lib/forge/contracts";
 import { forgeResultAfterResponse } from "@/lib/forge/result-state";
 import { useForgeProposal } from "./ForgeProposalContext";
@@ -179,14 +181,18 @@ export function ForgeRail({ context, availability, course, lessonResources = [] 
         </div>}
         {activeTab === "resources" && <section className="forge-resource-list" aria-labelledby="forge-resources-title">
           <h3 id="forge-resources-title">Ressources de ce contexte</h3>
-          <p className="caption">Les sources sélectionnées servent de contexte aux demandes à Forge. La gestion complète reste dans Bibliothèque.</p>
-          <h4>Sources du parcours</h4>
-          {sources.length === 0 ? <p className="caption">Aucune source ajoutée au parcours.</p> : <ul>{sources.map((source) => {
-            const location = sourceLocationLabel(source);
-            return <li key={source.id}>
-              <label><input type="checkbox" checked={sourceIds.includes(source.id)} disabled={!source.usable || pending} onChange={() => toggleSource(source.id)} /><span><strong>{source.title}</strong><small>{source.type}{location ? ` · ${location}` : ""} · {source.usable ? "Disponible pour Forge" : source.reason === "not_ready" ? "Préparation en cours" : "Contenu non exploitable"}</small></span></label>
-            </li>;
-          })}</ul>}
+          {context.mode === "edit" && <>
+            <p className="caption">Les sources Forge sélectionnées servent de contexte aux demandes à Forge. Elles ne sont pas visibles par les apprenants.</p>
+            <h4>Sources Forge</h4>
+            {sources.length === 0 ? <p className="caption">Aucune source Forge ajoutée au parcours.</p> : <ul>{sources.map((source) => {
+              const location = sourceLocationLabel(source);
+              return <li key={source.id}>
+                <label><input type="checkbox" checked={sourceIds.includes(source.id)} disabled={!source.usable || pending} onChange={() => toggleSource(source.id)} /><span><strong>{source.title}</strong><small>{source.type}{location ? ` · ${location}` : ""} · {source.usable ? "Disponible pour Forge" : source.reason === "not_ready" ? "Préparation en cours" : "Contenu non exploitable"}</small></span></label>
+                <SourceResourceActions courseSlug={context.courseSlug} source={source} />
+              </li>;
+            })}</ul>}
+          </>}
+          {context.lessonId && <LessonResourcesPanel courseSlug={context.courseSlug} lessonId={context.lessonId} compact />}
           <h4>Médias de cette leçon</h4>
           {lessonResources.length === 0 ? <p className="caption">Aucun média référencé dans cette leçon.</p> : <ul>{lessonResources.map((resource) => <li key={resource.id}>
             <span><strong>{resource.title || resource.altText || resource.caption || (resource.kind === "image" ? "Image" : resource.kind === "audio" ? "Audio" : "Vidéo")}</strong><small>{resource.kind === "image" ? "Image" : resource.kind === "audio" ? "Audio" : "Vidéo"} · {resource.status === "ready" ? "Disponible dans la leçon" : "Média indisponible"}</small></span>

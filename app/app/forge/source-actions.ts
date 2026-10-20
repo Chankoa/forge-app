@@ -7,13 +7,14 @@ import { assertForgeAccess } from "@/lib/forge/context";
 import { classifyStorageUploadError, normalizeTextFile, safeUploadDiagnostic, sourceUploadMessage } from "@/lib/forge/source-upload";
 import { fetchPublicText, UrlSourceError, validatePublicUrl } from "@/lib/forge/url-fetch";
 import { extractUrlText } from "@/lib/forge/url-extract";
+import { SOURCE_BUCKET, deleteSourceResource, isPdfSource, resolvePdfAccess, sourceResourceMessages, type DeleteResult, type PdfAccessResult, type SourceResourceRow } from "@/lib/forge/source-resources";
 
 const requestSchema = z.object({
   courseSlug: z.string().trim().min(1).max(180).regex(/^[a-zA-Z0-9_-]+$/),
   mode: z.enum(["learn", "edit"]),
 }).strict();
 
-export type ForgeSourceOption = { id: string; title: string; type: string; url?: string; usable: boolean; reason?: "not_ready" | "extraction_unavailable" | "unsupported_type" };
+export type ForgeSourceOption = { id: string; title: string; type: string; url?: string; usable: boolean; pdf?: boolean; hasFile?: boolean; fileSize?: number; reason?: "not_ready" | "extraction_unavailable" | "unsupported_type" };
 
 const sourceFileSchema = z.object({
   name: z.string().trim().min(1).max(180),
@@ -23,7 +24,7 @@ const sourceFileSchema = z.object({
 
 export async function listForgeSourcesAction(raw: unknown): Promise<ForgeSourceOption[]> {
   const parsed = requestSchema.safeParse(raw);
-  if (!parsed.success) return [];
+  if (!parsed.success || parsed.data.mode === "learn") return [];
   try {
     const client = await createServerSupabaseClient();
     if (!client) return [];
@@ -40,7 +41,7 @@ export async function listForgeSourcesAction(raw: unknown): Promise<ForgeSourceO
       const downloadable = source.source_kind === "file" && ["text", "markdown"].includes(source.type) && source.storage_bucket === "course-sources" && Boolean(source.storage_path) && Boolean(source.file_size) && source.file_size <= 10 * 1024 * 1024 && ["text/plain", "text/markdown"].includes(source.mime_type);
       const supported = ["text", "markdown", "pdf"].includes(source.type) && ["text", "file"].includes(source.source_kind) || source.type === "web" && source.source_kind === "url";
       const usable = supported && source.extraction_status === "ready" && (extracted || downloadable);
-      return { id: source.id, title: source.title, type: source.source_kind === "url" ? "URL" : source.type.toUpperCase(), url: source.source_kind === "url" ? source.original_url ?? undefined : undefined, usable, reason: source.extraction_status !== "ready" ? "not_ready" : !supported ? "unsupported_type" : "extraction_unavailable" };
+      return { id: source.id, title: source.title, type: source.source_kind === "url" ? "URL" : source.type.toUpperCase(), url: source.source_kind === "url" ? source.original_url ?? undefined : undefined, usable, pdf: isPdfSource(source), hasFile: Boolean(source.storage_path), fileSize: source.file_size ?? undefined, reason: source.extraction_status !== "ready" ? "not_ready" : !supported ? "unsupported_type" : "extraction_unavailable" };
     });
   } catch {
     return [];
@@ -98,4 +99,54 @@ export async function addForgeUrlSourceAction(courseSlug: string, rawUrl: string
     revalidatePath(`/app/courses/${courseSlug}`);
     return { ok: true };
   } catch (error) { return { ok: false, error: error instanceof UrlSourceError ? urlMessages[error.code] : "Page inaccessible" }; }
+}
+
+async function resourceDeps() {
+  const client = await createServerSupabaseClient();
+  if (!client) return null;
+  const columns = "id,course_id,type,source_kind,storage_bucket,storage_path,mime_type,title,file_size";
+  const getSource = async (courseId: string, sourceId: string) => {
+    const { data } = await client.from("course_sources").select(columns).eq("id", sourceId).eq("course_id", courseId).maybeSingle();
+    return (data as SourceResourceRow | null) ?? null;
+  };
+  const base = {
+    client,
+    getUserId: async () => (await client.auth.getUser()).data.user?.id ?? null,
+    getCourse: async (slug: string) => (await client.from("courses").select("id,teacher_id").eq("slug", slug).maybeSingle()).data ?? null,
+    getSource,
+  };
+  return base;
+}
+
+export async function getSourcePdfUrlAction(courseSlug: string, sourceId: string): Promise<PdfAccessResult> {
+  try {
+    const base = await resourceDeps();
+    if (!base) return { ok: false, code: "url_unavailable", error: sourceResourceMessages.url_unavailable };
+    const { client, ...deps } = base;
+    return await resolvePdfAccess({
+      ...deps,
+      // Signed with the user's session: Storage RLS stays authoritative. Never persisted.
+      createSignedUrl: async (path, expiresIn) => (await client.storage.from(SOURCE_BUCKET).createSignedUrl(path, expiresIn)).data?.signedUrl ?? null,
+    }, { courseSlug, sourceId });
+  } catch {
+    return { ok: false, code: "url_unavailable", error: sourceResourceMessages.url_unavailable };
+  }
+}
+
+export async function deleteForgeSourceAction(courseSlug: string, sourceId: string): Promise<DeleteResult> {
+  try {
+    const base = await resourceDeps();
+    if (!base) return { ok: false, code: "db_delete_failed", error: sourceResourceMessages.db_delete_failed };
+    const { client, ...deps } = base;
+    const result = await deleteSourceResource({
+      ...deps,
+      countPathReferences: async (bucket, path) => { const { count, error } = await client.from("course_sources").select("id", { count: "exact", head: true }).eq("storage_bucket", bucket).eq("storage_path", path); return error ? null : count ?? 0; },
+      deleteRow: async (courseId, id) => { const { data, error } = await client.from("course_sources").delete().eq("id", id).eq("course_id", courseId).select("id"); return !error && (data?.length ?? 0) === 1; },
+      removeFile: async (path) => { const { data, error } = await client.storage.from(SOURCE_BUCKET).remove([path]); if (error) console.error("[forge] source file cleanup failed", { bucket: SOURCE_BUCKET, code: "storage_delete_failed" }); return !error && (data?.length ?? 0) === 1; },
+    }, { courseSlug, sourceId });
+    if (result.ok || result.code === "storage_delete_failed") revalidatePath(`/app/courses/${courseSlug}`);
+    return result;
+  } catch {
+    return { ok: false, code: "db_delete_failed", error: sourceResourceMessages.db_delete_failed };
+  }
 }

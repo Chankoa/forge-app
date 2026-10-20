@@ -103,14 +103,14 @@ for (const kind of ["foreign", "denied"] as const) test(`source ${kind} rejected
 for (const extraction_status of ["pending", "error"]) test(`${extraction_status} source excluded`, async () => {
   const { deps } = fixture();
   deps.reader.sources = async () => [{ ...source, extraction_status }];
-  const r = await runForge({ ...request, sourceIds: [sourceId] }, deps);
+  const r = await runForge({ ...request, mode: "edit", intent: "ask", input: "Question", sourceIds: [sourceId] }, deps);
   assert.ok(r.ok);
   assert.deepEqual(r.result.sourcesUsed, []);
   assert.equal(r.result.metadata.warnings[0].code, "not_ready");
 });
 test("source-aware attribution comes only from text actually sent", async () => {
   const { deps, calls } = fixture();
-  const result = await runForge({ ...request, sourceIds: [sourceId] }, deps);
+  const result = await runForge({ ...request, mode: "edit", intent: "ask", input: "Question", sourceIds: [sourceId] }, deps);
   assert.ok(result.ok);
   assert.deepEqual(result.result.sourcesUsed, [{ id: sourceId, title: "Source" }]);
   assert.match(calls[1], /AZUR-47/);
@@ -122,7 +122,7 @@ test("source-aware attribution comes only from text actually sent", async () => 
 test("PDF metadata is never passed off as source content", async () => {
   const { deps, calls } = fixture();
   deps.reader.sources = async () => [{ ...source, type: "pdf", source_kind: "file", extracted_content: null }];
-  const r = await runForge({ ...request, sourceIds: [sourceId] }, deps);
+  const r = await runForge({ ...request, mode: "edit", intent: "ask", input: "Question", sourceIds: [sourceId] }, deps);
   assert.ok(r.ok);
   assert.deepEqual(r.result.sourcesUsed, []);
   assert.equal(r.result.metadata.warnings[0].code, "extraction_unavailable");
@@ -131,7 +131,7 @@ test("PDF metadata is never passed off as source content", async () => {
 test("TXT storage uses real authenticated download text", async () => {
   const { deps, calls } = fixture();
   deps.reader.sources = async () => [{ ...source, source_kind: "file", extracted_content: null, storage_bucket: "course-sources", storage_path: "user/course-id/test.txt", file_size: 100 }];
-  const r = await runForge({ ...request, sourceIds: [sourceId] }, deps);
+  const r = await runForge({ ...request, mode: "edit", intent: "ask", input: "Question", sourceIds: [sourceId] }, deps);
   assert.ok(r.ok);
   assert.ok(calls.includes("download"));
   assert.ok(calls.some((s) => s.includes("REAL FILE")));
@@ -346,7 +346,7 @@ test("context truncation explicit and total provider input bounded", async () =>
   const lesson = await deps.reader.lesson("course-id", "lesson");
   deps.reader.lesson = async () => ({ ...lesson!, content: "x".repeat(100000) });
   deps.reader.sources = async () => [{ ...source, extracted_content: "s".repeat(100000) }];
-  const r = await runForge({ ...request, sourceIds: [sourceId] }, deps);
+  const r = await runForge({ ...request, mode: "edit", intent: "ask", input: "Question", sourceIds: [sourceId] }, deps);
   assert.ok(r.ok);
   assert.ok(r.result.metadata.warnings.some((w) => w.code === "truncated"));
   assert.ok(calls[1].length < deps.maxInputChars);

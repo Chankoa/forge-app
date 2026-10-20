@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Clock3 } from "lucide-react";
 import type { CourseLesson } from "@/lib/courses/contracts";
 import { LessonContent } from "./LessonContent";
 import { CompleteLessonButton } from "./LearningActions";
+import { LessonResourcesPanel } from "@/components/forge/LessonResourcesPanel";
 
 export function LearnerLesson({ courseId, courseSlug, lesson, moduleTitle, moduleNumber, lessonNumber, position, total, previous, next, preview, completed }: {
   courseId: string; courseSlug: string; lesson: CourseLesson; moduleTitle: string; moduleNumber: number; lessonNumber: number;
@@ -17,6 +18,7 @@ export function LearnerLesson({ courseId, courseSlug, lesson, moduleTitle, modul
       {lesson.durationMinutes ? <p className="lesson-page-header__meta"><Clock3 size={15} aria-hidden="true" /> {lesson.durationMinutes} min</p> : null}
     </header>
     <LessonContent lesson={lesson} />
+    <LessonResourcesPanel courseSlug={courseSlug} lessonId={lesson.id} />
     <nav className="learner-lesson__navigation" aria-label="Navigation entre les leçons">
       <div>{previous && <Link className="learner-lesson__adjacent" href={href(previous)}><ArrowLeft size={16} aria-hidden="true" /><span>Leçon précédente<small>{previous.title}</small></span></Link>}</div>
       {!preview && <CompleteLessonButton courseId={courseId} lessonId={lesson.id} courseSlug={courseSlug} completed={completed} />}
