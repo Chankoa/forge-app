@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { FileText, Save } from "lucide-react";
+import { FileText, Pencil, Save } from "lucide-react";
 import type { CourseDetail } from "@/lib/courses/contracts";
 import { Button } from "@/components/ui/Button";
 import { saveCourseMetadataAction } from "@/app/app/create/actions";
@@ -57,7 +57,11 @@ export function CourseEditor({ course, domains, readiness, capabilities, showOve
       <label>Titre du parcours<input name="title" value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} required /></label>
       <label>Résumé court<input name="subtitle" value={draft.subtitle} onChange={(event) => setDraft((current) => ({ ...current, subtitle: event.target.value }))} /></label>
       <label className="cockpit-form__wide">Description<textarea name="description" value={draft.description} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} required /></label>
-      <label id="course-domain-field">Domaine<select name="domainId" value={draft.domainId} onChange={(event) => setDraft((current) => ({ ...current, domainId: event.target.value }))}><option value="">Aucun domaine</option>{domains.map((domain) => <option key={domain.id} value={domain.id}>{domain.name}</option>)}</select><span className="caption">Les domaines disponibles sont gérés dans la taxonomie Forge.</span></label>
+      <div id="course-domain-field" className="cockpit-domain-field">
+        <div className="cockpit-domain-field__head"><label htmlFor="course-domain-select">Domaine</label><button type="button" className="cockpit-domain-field__action" onClick={() => document.getElementById("course-domain-select")?.focus()}><Pencil size={14} aria-hidden="true" />{draft.domainId ? "Modifier le domaine" : "Choisir un domaine"}</button></div>
+        <select id="course-domain-select" name="domainId" value={draft.domainId} onChange={(event) => setDraft((current) => ({ ...current, domainId: event.target.value }))}><option value="">Aucun domaine</option>{domains.map((domain) => <option key={domain.id} value={domain.id}>{domain.name}</option>)}</select>
+        <span className="caption">Les domaines disponibles sont gérés dans la taxonomie Forge.</span>
+      </div>
       <Button type="submit" disabled={pending}><Save size={17} /> {pending ? "Sauvegarde…" : "Sauvegarder les modifications"}</Button>
     </form>}
     {tab === "structure" && <><CourseStructureEditor course={course} onFeedback={(text, error = false) => { setMessage(text); setMessageError(error); }} /><p className="caption">Pour examiner un plan d’amélioration, ouvrez Forge puis l’onglet Analyse.</p></>}

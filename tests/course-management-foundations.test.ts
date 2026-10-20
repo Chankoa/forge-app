@@ -32,3 +32,14 @@ test("overview exposes domain editing without a domain-creation path", () => {
   assert.match(editor, /course-domain-field/);
   assert.doesNotMatch(overview, /Créer un domaine/);
 });
+
+test("domain edit affordance reuses the existing select and save, with no new action", () => {
+  const editor = readFileSync("components/authoring/CourseEditor.tsx", "utf8");
+  assert.match(editor, /<label htmlFor="course-domain-select">Domaine<\/label>/);
+  assert.match(editor, /draft\.domainId \? "Modifier le domaine" : "Choisir un domaine"/);
+  assert.match(editor, /getElementById\("course-domain-select"\)\?\.focus\(\)/);
+  assert.match(editor, /<select id="course-domain-select" name="domainId"/);
+  assert.doesNotMatch(editor, /Créer un domaine/);
+  assert.deepEqual(editor.match(/from "@\/app\/app\/create\/actions"/g)?.length, 1);
+  assert.match(editor, /import \{ saveCourseMetadataAction \} from/);
+});

@@ -13136,3 +13136,46 @@ textarea,select {
   border-radius: var(--radius-md);
   background: var(--surface-soft);
 }
+
+.cockpit-domain-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  color: var(--text-secondary);
+}
+
+.cockpit-domain-field__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.cockpit-domain-field__head label {
+  display: inline;
+}
+
+.cockpit-domain-field__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--violet);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.cockpit-domain-field__action:hover {
+  text-decoration: underline;
+}
+
+.cockpit-domain-field__action:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
