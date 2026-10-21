@@ -1,7 +1,7 @@
-@use "./tokens";
+@import "./tokens.css";
 
-@use "./themes";
-@use "./forge-course-plan";
+@import "./themes.css";
+@import "./forge-course-plan.css";
 
 /* =========================================================
    BASE AND SHARED COMPONENTS
@@ -12134,6 +12134,22 @@ textarea,select {
   color: var(--text-secondary);
 }
 
+.course-lifecycle-confirm {
+  display: grid;
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.course-lifecycle-confirm p {
+  color: var(--text-secondary);
+}
+
+.course-lifecycle-confirm > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .owner-overview__information > p {
   margin: 0;
   color: var(--text-secondary);
@@ -12422,6 +12438,28 @@ textarea,select {
 
 .forge-chat__form button {
   justify-self: start;
+}
+
+.forge-chat__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.forge-chat__chips button {
+  min-height: 30px;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--text-secondary);
+  font: var(--font-caption);
+}
+
+.forge-chat__chips button:hover:not(:disabled),
+.forge-chat__chips button:focus-visible {
+  border-color: var(--violet);
+  color: var(--violet);
 }
 
 .product-toasts {

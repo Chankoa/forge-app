@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import "@/styles/library.scss";
+import "@/styles/library.css";
 import { LibraryView } from "@/components/library/LibraryView";
 import { loadLibraryItems } from "@/lib/library/library-repository";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
