@@ -14,6 +14,7 @@ const filters: Array<{ id: "all" | CourseRelation; label: string }> = [{ id: "al
 
 function LibraryItem({ course, view }: { course: LibraryCourse; view: LibraryView }) {
   const actionKind = libraryPrimaryAction({ isOwner: course.isOwner, collaborationRole: course.collaborationRole, enrolled: course.enrolled, percentage: course.percentage, hasLesson: Boolean(course.lessonSlug) });
+  const learnerAccessSuspended = course.enrolled && !course.isOwner && !course.collaborationRole && course.status !== "published";
   const learnHref = course.lessonSlug ? `/app/courses/${course.slug}/lessons/${course.lessonSlug}` : `/app/courses/${course.slug}`;
   const manageHref = courseManagePath(course.slug);
   const renderAction = (kind: CourseCardAction) => kind === "manage" ? <Link className="button course-action course-action--manage" href={manageHref}><Settings2 size={16} aria-hidden="true" />Gérer</Link>
@@ -22,19 +23,20 @@ function LibraryItem({ course, view }: { course: LibraryCourse; view: LibraryVie
     : kind === "review" ? <Link className="button button--secondary course-action" href={learnHref}><RotateCcw size={16} aria-hidden="true" />Revoir</Link>
     : <Link className="button button--secondary course-action" href={learnHref}><Eye size={16} aria-hidden="true" />Voir le parcours</Link>;
   const relations = courseRelations(course.enrolled, course.isOwner, course.collaborationRole ?? null, course.collaborationRole ? "active" : null);
-  const menu = <CourseOverflowMenu title={course.title} manageHref={(course.isOwner || course.collaborationRole === "editor") && actionKind !== "manage" ? manageHref : undefined} previewHref={actionKind !== "view" ? `/app/courses/${course.slug}` : undefined} />;
+  const menu = <CourseOverflowMenu title={course.title} manageHref={(course.isOwner || course.collaborationRole === "editor") && actionKind !== "manage" ? manageHref : undefined} previewHref={!learnerAccessSuspended && actionKind !== "view" ? `/app/courses/${course.slug}` : undefined} />;
+  const action = learnerAccessSuspended ? <p className="caption" role="status">Inscription conservée. Accès suspendu jusqu’à la republication.</p> : renderAction(actionKind);
   if (view === "list") {
     return <PersonalCourseRow
       course={course}
       relations={relations}
-      action={renderAction(actionKind)}
+      action={action}
       menu={menu}
     />;
   }
   return <PersonalCourseCard
     course={course}
     relations={relations}
-    action={renderAction(actionKind)}
+    action={action}
     menu={menu}
   />;
 }

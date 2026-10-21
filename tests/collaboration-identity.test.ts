@@ -67,7 +67,7 @@ test("mixed learner collaborator headers retain both relationships and the other
 });
 
 test("missing owner profile uses a safe label in course and list headers", () => {
-  const capabilities = resolveCourseCapabilities({ isOwner: false, isEnrolled: true });
+  const capabilities = resolveCourseCapabilities({ isOwner: false, isEnrolled: true, courseStatus: "published" });
   const header = renderToStaticMarkup(createElement(CourseIdentityHeader, { course: { ...course, author: undefined }, capabilities, overview: false }));
   const card = renderToStaticMarkup(createElement(PersonalCourseCard, { course: { ...baseCard, author: undefined }, relations: ["learn"], action: createElement("a", { href: "/app/courses/shared-course" }, "Voir") }));
   assert.match(header, /Propriétaire non renseigné/);

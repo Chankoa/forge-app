@@ -3,8 +3,8 @@ import test from "node:test";
 import { canAccessLessonMode, resolveCourseCapabilities } from "../lib/capabilities/course-capabilities";
 
 const owner = resolveCourseCapabilities({ isOwner: true, isEnrolled: false });
-const enrolled = resolveCourseCapabilities({ isOwner: false, isEnrolled: true });
-const dual = resolveCourseCapabilities({ isOwner: true, isEnrolled: true });
+const enrolled = resolveCourseCapabilities({ isOwner: false, isEnrolled: true, courseStatus: "published" });
+const dual = resolveCourseCapabilities({ isOwner: true, isEnrolled: true, courseStatus: "published" });
 
 test("owner without enrollment can edit but cannot learn a lesson", () => { assert.equal(canAccessLessonMode(owner, "edit"), true); assert.equal(canAccessLessonMode(owner, "learn"), false); });
 test("owner can preview without enrollment and learner cannot claim owner preview", () => { assert.equal(canAccessLessonMode(owner, "preview"), true); assert.equal(canAccessLessonMode(enrolled, "preview"), false); });

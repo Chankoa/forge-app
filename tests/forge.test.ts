@@ -140,7 +140,7 @@ test("unpublished learning cannot inherit owner source access", async () => {
   const { deps } = fixture();
   const course = await deps.reader.course("course");
   deps.reader.course = async () => ({ ...course!, status: "draft" });
-  assert.deepEqual(await runForge({ ...request, sourceIds: [sourceId] }, deps), { ok: false, error: "source_unavailable" });
+  assert.deepEqual(await runForge({ ...request, sourceIds: [sourceId] }, deps), { ok: false, error: "forbidden" });
 });
 test("edit is proposal only and read port has no writes", async () => {
   const { deps } = fixture();

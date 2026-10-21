@@ -25,7 +25,7 @@ export async function enrollCourseAction(courseId: string, courseSlug: string) {
 export async function completeLessonAction(courseId: string, lessonId: string, courseSlug: string) {
   const { client, user } = await requireUserClient();
   const { data: course } = await client.from("courses").select("status").eq("id", courseId).maybeSingle();
-  if (!course || course.status === "archived") throw new Error("Ce parcours est archivé et n'est plus accessible.");
+  if (!course || course.status !== "published") throw new Error(course?.status === "archived" ? "Ce parcours est archivé et n'est plus accessible." : "Ce parcours n'est pas publié et n'est plus accessible aux apprenants.");
   const { data: enrollment } = await client.from("enrollments").select("id,started_at").eq("course_id", courseId).eq("user_id", user.id).maybeSingle();
   if (!enrollment) throw new Error("L'inscription est requise pour mettre à jour votre progression.");
   const { data: lesson } = await client.from("lessons").select("id").eq("id", lessonId).eq("course_id", courseId).maybeSingle();

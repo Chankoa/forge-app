@@ -130,7 +130,12 @@ export function ForgeRail({ context, availability, course, lessonResources = [] 
     { id: "suggestions" as const, label: "Suggestions", icon: Sparkles },
     { id: "analysis" as const, label: "Analyse", icon: SearchCheck },
     { id: "resources" as const, label: "Ressources", icon: BookOpen },
-  ];
+  ].filter(({ id }) => context.mode === "edit" || id !== "analysis");
+  const chatPrompts = context.mode === "learn"
+    ? context.lessonTitle
+      ? ["Expliquer cette leçon", "Donner un exemple", "Me questionner"]
+      : ["M’expliquer ce parcours", "Clarifier un point", "Me questionner"]
+    : ["Améliorer la structure", "Clarifier les objectifs", "Vérifier la progression", "Proposer des améliorations"];
 
   return <WorkspaceRail panel="forge">
       <h2>{context.mode === "learn" ? "Comprendre avec Forge" : context.lessonSlug ? "Forge pour cette leçon" : "Forge pour ce parcours"}</h2><p className="caption">Contexte : {context.lessonTitle ?? context.courseTitle}{context.moduleTitle ? ` · ${context.moduleTitle}` : ""}</p>
@@ -200,15 +205,12 @@ export function ForgeRail({ context, availability, course, lessonResources = [] 
           </li>)}</ul>}
         </section>}
         {activeTab === "chat" && <section className="forge-chat" aria-label="Conversation contextuelle avec Forge">
-          <p className="caption">Demandez à Forge d’analyser, améliorer ou modifier ce parcours. La conversation est conservée uniquement dans cette session ; une proposition reste toujours à examiner.</p>
+          <p className="caption">{context.mode === "learn"
+            ? `Posez une question sur ${context.lessonTitle ? "cette leçon" : "ce parcours"}. La conversation est conservée uniquement dans cette session.`
+            : "Demandez à Forge d’analyser, améliorer ou modifier ce parcours. La conversation est conservée uniquement dans cette session ; une proposition reste toujours à examiner."}</p>
           <div className="forge-chat__chips" aria-label="Actions contextuelles">
             {coursePlanning ? <button type="button" onClick={() => { setChatMessages((current) => [...current, { role: "user", text: "Analyser le parcours" }]); workflow.generate(); }}>Analyser le parcours</button> : null}
-            {[
-              "Améliorer la structure",
-              "Clarifier les objectifs",
-              "Vérifier la progression",
-              "Proposer des améliorations",
-            ].map((label) => <button key={label} type="button" disabled={pending || workflow.pending} onClick={() => submitChat(label)}>{label}</button>)}
+            {chatPrompts.map((label) => <button key={label} type="button" disabled={pending || workflow.pending} onClick={() => submitChat(label)}>{label}</button>)}
           </div>
           {chatMessages.length > 0 && <ol className="forge-chat__messages" aria-live="polite">{chatMessages.map((message, index) => <li className={`forge-chat__message forge-chat__message--${message.role}`} key={`${index}:${message.role}`}><strong>{message.role === "user" ? "Vous" : "Forge"}</strong><p>{message.text}</p></li>)}</ol>}
           {coursePlanning && course && workflow.data && <section className="forge-chat__plan" aria-label="Proposition Forge à examiner">
@@ -218,7 +220,9 @@ export function ForgeRail({ context, availability, course, lessonResources = [] 
           </section>}
           <form className="forge-chat__form" onSubmit={(event) => { event.preventDefault(); submitChat(chatInput); }}>
             {coursePlanning && workflow.data && !workflow.consumed && <label><input type="checkbox" checked={revisePlan} disabled={workflow.pending} onChange={(event) => setRevisePlan(event.target.checked)} />Utiliser ma consigne pour réviser le plan à examiner</label>}
-            <label htmlFor="forge-chat-input">Votre demande</label><textarea id="forge-chat-input" value={chatInput} onChange={(event) => setChatInput(event.target.value)} maxLength={2000} placeholder={context.lessonTitle ? `Demandez à Forge d’analyser, améliorer ou modifier « ${context.lessonTitle} »…` : "Demandez à Forge d’analyser, améliorer ou modifier ce parcours…"} />
+            <label htmlFor="forge-chat-input">Votre demande</label><textarea id="forge-chat-input" value={chatInput} onChange={(event) => setChatInput(event.target.value)} maxLength={2000} placeholder={context.mode === "learn"
+              ? context.lessonTitle ? `Posez une question sur « ${context.lessonTitle} »…` : "Posez une question sur ce parcours…"
+              : context.lessonTitle ? `Demandez à Forge d’analyser, améliorer ou modifier « ${context.lessonTitle} »…` : "Demandez à Forge d’analyser, améliorer ou modifier ce parcours…"} />
             <button type="submit" className="button button--secondary" disabled={Boolean(pending || workflow.pending || availability === "not_configured" || !chatInput.trim())}>{workflow.pending ? "Révision en cours…" : pending && activeIntent === "ask" ? "Forge répond..." : "Envoyer"}</button>
           </form>
           {coursePlanning && workflow.message && <p role="status">{workflow.message}</p>}
@@ -227,7 +231,7 @@ export function ForgeRail({ context, availability, course, lessonResources = [] 
       </section>
       {pending && <p className="forge-pending" role="status" aria-live="polite" aria-busy="true"><span aria-hidden="true" />{activeIntent === "improve" ? context.lessonSlug ? "Forge prépare une amélioration…" : "Forge améliore le parcours…" : activeIntent === "ask" ? "Forge prépare une réponse…" : "Forge prépare une proposition…"}</p>}{error && !dialogOpen && <p className="form-error" role="alert">{error}</p>}{confirmation && <p className="completion-state" role="status">{confirmation}</p>}
       {result && activeTab !== "chat" && <section className="forge-result"><p className="eyebrow">{proposal ? forgeProposalStates.generated : "Réponse Forge"}</p><div className="forge-result__text" tabIndex={0}>{result.text}</div><button type="button" className="button button--secondary" onClick={() => setDialogOpen(true)}>{proposal ? "Examiner la proposition" : "Ouvrir la réponse"}</button>{result.sourcesUsed.length > 0 && <p className="caption">Contexte utilisé · {result.sourcesUsed.map((source) => source.title).join(", ")}</p>}</section>}
-      <p className="caption">{availability === "not_configured" ? forgeErrorMessages.not_configured : "Forge ne modifie jamais le contenu sans votre application et sauvegarde explicites."}</p>
+      <p className="caption">{availability === "not_configured" ? forgeErrorMessages.not_configured : context.mode === "learn" ? "Forge répond au sujet du parcours sans modifier son contenu." : "Forge ne modifie jamais le contenu sans votre application et sauvegarde explicites."}</p>
       <ForgeProposalDialog result={dialogOpen ? result : null} busy={pending || applying} applying={applying} error={dialogOpen ? error : null} onClose={() => { if (!applyingRef.current) setDialogOpen(false); }} onReject={() => { setDialogOpen(false); setResult(null); setProposal(null); }} onApply={() => { if (!proposal || applyingRef.current) return; applyingRef.current = true; setApplying(true); try { const applied = context.lessonId ? applyLessonProposal(context.lessonId, proposal) : (setProposal(proposal), true); if (!applied) { setError("La modification n'a pas pu être appliquée."); return; } setError(null); setConfirmation(`${forgeProposalStates.applied}. Sauvegardez pour enregistrer.`); if (!context.lessonId) dispatchToast("Modification appliquée au brouillon."); setDialogOpen(false); setResult(null); } catch { setError("La modification n'a pas pu être appliquée."); } finally { applyingRef.current = false; setApplying(false); } }} onRegenerate={() => { if (lastRequest) run(lastRequest.intent, lastRequest.input, true, lastRequest.sourceIds); }} onAdjust={(adjustment) => { if (!lastRequest || !proposal) return; run(lastRequest.intent, `${lastRequest.input ?? ""}\n\nAjustement demandé : ${adjustment}\n\nProposition à améliorer :\n${proposal.proposal.patch.content ?? proposal.proposal.patch.description ?? proposal.text}`, true, lastRequest.sourceIds); }} />
   </WorkspaceRail>;
 }

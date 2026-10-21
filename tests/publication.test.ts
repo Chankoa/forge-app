@@ -8,9 +8,9 @@ const lesson = { id: "lesson-1", slug: "start", title: "Start", description: nul
 
 test("a course without lessons is not publication-ready", () => { const readiness = getPublicationReadiness(baseCourse); assert.equal(readiness.ready, false); assert.equal(readiness.blocking.length, 1); });
 test("a course with a lesson is publication-ready", () => { const readiness = getPublicationReadiness({ ...baseCourse, outline: [{ id: "module-1", moduleTitle: "Start", lessons: [lesson] }] }); assert.equal(readiness.ready, true); });
-test("enrollment does not grant publish capability", () => { const capabilities = resolveCourseCapabilities({ isOwner: false, isEnrolled: true }); assert.equal(capabilities.canPublish, false); });
+test("enrollment does not grant publish capability", () => { const capabilities = resolveCourseCapabilities({ isOwner: false, isEnrolled: true, courseStatus: "published" }); assert.equal(capabilities.canPublish, false); });
 test("owner keeps publish without automatic learning", () => { const capabilities = resolveCourseCapabilities({ isOwner: true, isEnrolled: false }); assert.equal(capabilities.canPublish, true); assert.equal(capabilities.canLearn, false); });
-test("owner enrollment aggregates publishing, editing, and learning", () => { const capabilities = resolveCourseCapabilities({ isOwner: true, isEnrolled: true }); assert.equal(capabilities.canPublish, true); assert.equal(capabilities.canEdit, true); assert.equal(capabilities.canLearn, true); });
+test("owner enrollment aggregates publishing, editing, and learning", () => { const capabilities = resolveCourseCapabilities({ isOwner: true, isEnrolled: true, courseStatus: "published" }); assert.equal(capabilities.canPublish, true); assert.equal(capabilities.canEdit, true); assert.equal(capabilities.canLearn, true); });
 test("archive transitions draft and published courses to private archived state", () => {
 	for (const status of ["draft", "published"]) assert.deepEqual(archiveCourseUpdate(status), { status: "archived", visibility: "private", availability: "preview", published_at: null });
 	assert.equal(archiveCourseUpdate("archived"), null);

@@ -13,12 +13,18 @@ test("Forge rail defaults to conversation and supports secondary contextual tabs
   assert.match(source, /Voir l’analyse dans la conversation/);
   assert.match(source, /<CoursePlanReview data=\{workflow\.data\}/);
   assert.match(source, /<ContentIntelligence/);
+  assert.match(source, /filter\(\(\{ id \}\) => context\.mode === "edit" \|\| id !== "analysis"\)/);
   assert.match(source, /Brouillon local après examen et application explicites/);
   assert.match(source, /Discussion uniquement ; aucun contenu ne sera modifié/);
   assert.match(source, /Médias de cette leçon/);
   assert.match(source, /sourceLocationLabel/);
   assert.match(source, /Analyser le parcours/);
   assert.match(source, /Améliorer la structure/);
+  assert.match(source, /const chatPrompts = context\.mode === "learn"/);
+  assert.match(source, /Expliquer cette leçon/);
+  assert.match(source, /M’expliquer ce parcours/);
+  assert.match(source, /Posez une question sur \$\{context\.lessonTitle \? "cette leçon" : "ce parcours"\}/);
+  assert.match(source, /Forge répond au sujet du parcours sans modifier son contenu/);
 });
 
 test("Forge Chat calls the existing ask action and keeps application behind proposal review", () => {

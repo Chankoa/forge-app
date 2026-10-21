@@ -1,9 +1,23 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { resolveCourseCapabilities } from "../lib/capabilities/course-capabilities";
-test("enrollment can learn but cannot edit", () => { const result = resolveCourseCapabilities({ isOwner: false, isEnrolled: true }); assert.equal(result.canLearn, true); assert.equal(result.canEdit, false); });
+test("a learner can learn an enrolled published course but cannot edit", () => { const result = resolveCourseCapabilities({ isOwner: false, isEnrolled: true, courseStatus: "published" }); assert.equal(result.canLearn, true); assert.equal(result.canEdit, false); });
 test("owner can edit and publish", () => { const result = resolveCourseCapabilities({ isOwner: true, isEnrolled: false }); assert.equal(result.canEdit, true); assert.equal(result.canPublish, true); });
-test("owner enrollment has learning and editing capabilities", () => { const result = resolveCourseCapabilities({ isOwner: true, isEnrolled: true }); assert.equal(result.canLearn, true); assert.equal(result.canEdit, true); });
+test("owner enrollment has learning and editing capabilities on a published course", () => { const result = resolveCourseCapabilities({ isOwner: true, isEnrolled: true, courseStatus: "published" }); assert.equal(result.canLearn, true); assert.equal(result.canEdit, true); });
+test("enrolled learners lose course and lesson access while a course is unpublished", () => {
+	for (const courseStatus of ["draft", "archived"] as const) {
+		const result = resolveCourseCapabilities({ isOwner: false, isEnrolled: true, courseStatus, courseVisibility: "private" });
+		assert.equal(result.canView, false);
+		assert.equal(result.canLearn, false);
+	}
+	const republishedPrivate = resolveCourseCapabilities({ isOwner: false, isEnrolled: true, courseStatus: "published", courseVisibility: "private" });
+	assert.equal(republishedPrivate.canView, true);
+	assert.equal(republishedPrivate.canLearn, true);
+});
+test("published public overview is visible before enrollment; private course access requires a relationship", () => {
+	assert.equal(resolveCourseCapabilities({ isOwner: false, isEnrolled: false, courseStatus: "published", courseVisibility: "public" }).canView, true);
+	assert.equal(resolveCourseCapabilities({ isOwner: false, isEnrolled: false, courseStatus: "published", courseVisibility: "private" }).canView, false);
+});
 test("archived courses retain canonical owner authoring but block publication and learning", () => {
 	const owner = resolveCourseCapabilities({ isOwner: true, isEnrolled: true, courseStatus: "archived" });
 	assert.equal(owner.canView, true); assert.equal(owner.canEdit, true); assert.equal(owner.canPublish, false); assert.equal(owner.canArchive, false); assert.equal(owner.canRestore, true); assert.equal(owner.canLearn, false);

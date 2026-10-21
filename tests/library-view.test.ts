@@ -24,6 +24,14 @@ test("an archived course stays visible and filterable for its owner", () => {
   assert.match(html, /Archivé/);
 });
 
+test("an enrolled learner keeps an unpublished course visible without a lesson or preview link", () => {
+  const unpublished = { ...learner, status: "draft", lessonSlug: "start" };
+  const html = renderToStaticMarkup(createElement(CourseLibrary, { courses: [unpublished] }));
+  assert.match(html, /Inscription conservée\. Accès suspendu jusqu’à la republication\./);
+  assert.doesNotMatch(html, /href="\/app\/courses\/learner\/lessons\/start"/);
+  assert.doesNotMatch(html, /href="\/app\/courses\/learner"/);
+});
+
 test("My Paths starts in accessible List view with editorial columns and a Card toggle", () => {
   const html = renderToStaticMarkup(createElement(CourseLibrary, { courses: [owner, learner] }));
   assert.match(html, /role="table"/);

@@ -116,7 +116,7 @@ for (const [label, isOwner, role, status, allowed] of [
   ["owner without membership", true, null, null, true], ["active editor", false, "editor", "active", true], ["viewer", false, "viewer", "active", false], ["learner", false, null, null, false], ["revoked editor", false, "editor", "revoked", false], ["unrelated", false, null, null, false],
 ] as const) test(`apply access: ${label}`, async () => {
   const db = memory();
-  const capabilities = resolveCourseCapabilities({ isOwner, isEnrolled: label === "learner", membershipRole: role as CourseMembershipRole | null, membershipStatus: status });
+  const capabilities = resolveCourseCapabilities({ isOwner, isEnrolled: label === "learner", courseStatus: "published", membershipRole: role as CourseMembershipRole | null, membershipStatus: status });
   const response = await applyCoursePlan(request, { ...db, load: async () => capabilities.canEdit ? structuredClone(db.state) : null });
   assert.equal(response.status, allowed ? "success" : "permission_denied");
   assert.equal(db.writes.length, allowed ? 2 : 0);

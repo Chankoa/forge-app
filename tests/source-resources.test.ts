@@ -67,7 +67,7 @@ test("Forge source PDF read: owner only, enrollment never grants access, anonymo
 });
 
 test("Forge source RLS removes learner reads from both metadata and Storage", () => {
-  const migration = readFileSync(new URL("../supabase/migrations/20261021140000_harden_forge_sources_owner_only.sql", import.meta.url), "utf8");
+  const migration = readFileSync(new URL("../supabase/migrations/20261021141132_harden_forge_sources_owner_only.sql", import.meta.url), "utf8");
   assert.match(migration, /drop policy if exists "Users can read enrolled ready course sources" on public\.course_sources;/);
   assert.match(migration, /drop policy if exists "Users can read enrolled course source files" on storage\.objects;/);
   assert.doesNotMatch(migration, /create policy/i);

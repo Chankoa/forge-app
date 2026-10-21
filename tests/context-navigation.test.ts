@@ -9,8 +9,8 @@ import { courseClassroomPath, courseEditPath, courseLessonPath, courseManagePath
 const courseSlug = "workflow-ia";
 const lessonSlug = "premiers-pas";
 const owner = resolveCourseCapabilities({ isOwner: true, isEnrolled: false });
-const enrolled = resolveCourseCapabilities({ isOwner: false, isEnrolled: true });
-const dual = resolveCourseCapabilities({ isOwner: true, isEnrolled: true });
+const enrolled = resolveCourseCapabilities({ isOwner: false, isEnrolled: true, courseStatus: "published" });
+const dual = resolveCourseCapabilities({ isOwner: true, isEnrolled: true, courseStatus: "published" });
 
 test("lesson Learn has a canonical back-to-course destination", () => { assert.equal(courseOverviewPath(courseSlug), `/app/courses/${courseSlug}`); assert.equal(getCourseContextLinks(courseSlug, enrolled, lessonSlug)[0].href, `/app/courses/${courseSlug}`); });
 test("lesson Edit has a canonical back-to-course destination", () => { assert.equal(getCourseContextLinks(courseSlug, owner, lessonSlug)[0].href, `/app/courses/${courseSlug}`); });

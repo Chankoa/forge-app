@@ -31,8 +31,8 @@ export default async function CoursePage({ params, searchParams }: { params: Pro
   if (!course) return <p className="env-note">Ce parcours est introuvable ou momentanément indisponible.</p>;
 
   const [state, relationship] = await Promise.all([getLearningState(course), getAuthoringRelationship(course.id)]);
-  const capabilities = resolveCourseCapabilities({ isOwner: relationship.isOwner, isEnrolled: state.enrollment !== null, courseStatus: course.status, membershipRole: relationship.membershipRole, membershipStatus: relationship.membershipStatus });
-  if (course.status === "archived" && !capabilities.canView) return <p className="env-note">Ce parcours est archivé et n&apos;est plus accessible.</p>;
+  const capabilities = resolveCourseCapabilities({ isOwner: relationship.isOwner, isEnrolled: state.enrollment !== null, courseStatus: course.status, courseVisibility: course.visibility, membershipRole: relationship.membershipRole, membershipStatus: relationship.membershipStatus });
+  if (!capabilities.canView) return <p className="env-note">{course.status === "archived" ? "Ce parcours est archivé et n’est plus accessible." : course.status !== "published" ? "Votre inscription est conservée, mais ce parcours n’est pas publié. Vous pourrez y accéder lorsqu’il sera republié." : "Ce parcours privé n’est pas accessible à ce compte."}</p>;
   const collaboratorMode = relationship.isOwner && requestedMode === "collaborators";
   const availabilityMode = relationship.isOwner && requestedMode === "availability";
   const remixMode = relationship.isOwner && requestedMode === "remix";
@@ -47,7 +47,7 @@ export default async function CoursePage({ params, searchParams }: { params: Pro
   const lessonCount = outline.reduce((total, module) => total + module.lessons.length, 0);
   const purpose = course.subtitle?.trim() || course.description?.trim();
   const canRemixPublicCourse = canOfferPublicCourseRemix({ isAuthenticated: relationship.isAuthenticated, isOwner: relationship.isOwner, status: course.status, visibility: course.visibility, hasPublicAuthor: course.hasPublicAuthor });
-  const primaryAction = state.enrollment && continueLesson
+  const primaryAction = capabilities.canLearn && state.enrollment && continueLesson
       ? <StartCourseLink href={`/app/courses/${course.slug}/lessons/${continueLesson.slug}`} label={state.enrollment.status === "completed" ? "Revoir le parcours" : state.percentage ? "Continuer" : "Commencer"} />
       : null;
 
