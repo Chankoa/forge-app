@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { FileText, Pencil, Save } from "lucide-react";
 import type { CourseDetail } from "@/lib/courses/contracts";
 import { Button } from "@/components/ui/Button";
@@ -13,6 +14,7 @@ import type { PublicationReadiness } from "@/lib/courses/publication";
 import type { CourseCapabilities } from "@/lib/capabilities/course-capabilities";
 import { forgeProposalStates } from "@/lib/forge/authoring-ux";
 import { dispatchToast } from "@/lib/ui/toast";
+import { courseDraftPatch } from "@/lib/forge/contracts";
 
 type CockpitTab = "overview" | "information" | "structure" | "sources";
 
@@ -21,6 +23,7 @@ export function CourseEditor({ course, domains, readiness, capabilities, showOve
   const [messageError, setMessageError] = useState(false);
   const [tab, setTab] = useState<CockpitTab>(showOverview ? "overview" : "information");
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
   const [draft, setDraft] = useState({ title: course.title, subtitle: course.subtitle ?? "", description: course.description ?? "", domainId: course.domainId ?? "" });
   const { proposal, setProposal } = useForgeProposal();
 
@@ -30,10 +33,17 @@ export function CourseEditor({ course, domains, readiness, capabilities, showOve
 
   useEffect(() => {
     if (!proposal || proposal.kind === "targeted" || proposal.proposal.target.courseId !== course.id || proposal.proposal.target.lessonId) return;
-    const patch = proposal.proposal.patch;
-    if (!patch.title && !patch.subtitle && !patch.description) return;
+    const patch = courseDraftPatch(proposal.proposal.patch);
+    if (Object.keys(patch).length === 0) {
+      queueMicrotask(() => {
+        setMessage("La proposition ne contient aucune modification exploitable pour ce parcours.");
+        setMessageError(true);
+        setProposal(null);
+      });
+      return;
+    }
     queueMicrotask(() => {
-      setDraft((current) => ({ ...current, ...(patch.title ? { title: patch.title } : {}), ...(patch.subtitle ? { subtitle: patch.subtitle } : {}), ...(patch.description ? { description: patch.description } : {}) }));
+      setDraft((current) => ({ ...current, ...patch }));
       setTab("information");
       setMessage(`${forgeProposalStates.applied}. Sauvegardez pour enregistrer.`);
       dispatchToast("Modification appliquée au brouillon.");
@@ -43,7 +53,7 @@ export function CourseEditor({ course, domains, readiness, capabilities, showOve
   }, [course.id, proposal, setProposal]);
 
   const run = (action: () => Promise<void>, success: string) => startTransition(async () => {
-    try { await action(); setMessage(""); setMessageError(false); dispatchToast(success); } catch (error) { setMessage(error instanceof Error ? error.message : "La sauvegarde a échoué."); setMessageError(true); }
+    try { await action(); setMessage(""); setMessageError(false); dispatchToast(success); router.refresh(); } catch (error) { setMessage(error instanceof Error ? error.message : "La sauvegarde a échoué."); setMessageError(true); }
   });
   const tabs: Array<{ id: CockpitTab; label: string }> = [{ id: "information", label: "Informations" }, { id: "structure", label: "Structure" }, ...(capabilities.canManageSources ? [{ id: "sources" as const, label: "Ressources" }] : [])];
 

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { lessonContentProviderOutputSchema, lessonObjectivesProviderOutputSchema, validateForgePatch } from "../lib/forge/contracts";
+import { courseDraftPatch, lessonContentProviderOutputSchema, lessonObjectivesProviderOutputSchema, validateForgePatch } from "../lib/forge/contracts";
 
 const contentPatch = (content: string | null, extras: Record<string, unknown> = {}) => ({
   title: null, subtitle: null, description: null, content, objectives: null, ...extras,
@@ -22,6 +22,17 @@ test("objectives proposals cannot mutate lesson content", () => {
 
 test("commentary-only content is rejected instead of becoming learner content", () => {
   assert.equal(validateForgePatch("generate_content", "lesson", contentPatch("Je propose de conserver le contenu actuel.")).success, false);
+});
+
+test("null-like provider values are rejected before they reach an editable proposal", () => {
+  assert.equal(validateForgePatch("improve", "course", { title: "null", subtitle: "Résumé", description: "Description valide", content: null, objectives: null }).success, false);
+  assert.equal(validateForgePatch("improve", "course", { title: null, subtitle: null, description: null, content: null, objectives: null }).success, false);
+});
+
+test("the local course draft independently ignores invalid patch values", () => {
+  assert.deepEqual(courseDraftPatch({ title: null, subtitle: undefined, description: "Description valide" }), { description: "Description valide" });
+  assert.deepEqual(courseDraftPatch({ title: "null", subtitle: "Résumé", description: "Description valide" }), { subtitle: "Résumé", description: "Description valide" });
+  assert.deepEqual(courseDraftPatch({ title: "Titre valable", subtitle: "null", description: null }), { title: "Titre valable" });
 });
 
 test("live action schemas keep rationale separate from the patch", () => {

@@ -48,5 +48,9 @@ export function OwnerCourseOverview({ course, readiness, canManageCover = false 
       <div className="owner-overview__section-heading"><div><p className="eyebrow">Publication</p><h2 id="overview-readiness-title">{course.status === "published" ? "Parcours publié" : issueCount ? "À finaliser avant publication" : "Prêt pour la publication"}</h2></div><Link className="owner-overview__section-link" href={publicationHref}>Voir la publication <ArrowRight size={16} /></Link></div>
       <p className="owner-overview__readiness-copy">{readiness.blocking.length ? `${readiness.blocking.length} prérequis bloquant${readiness.blocking.length > 1 ? "s" : ""} à compléter.` : readiness.recommended.length ? `${readiness.recommended.length} amélioration${readiness.recommended.length > 1 ? "s" : ""} recommandée${readiness.recommended.length > 1 ? "s" : ""} ; la publication reste possible.` : course.status === "published" ? "Ce parcours est actuellement publié." : "Les prérequis bloquants sont remplis."}</p>
     </section>
+    <section className="owner-overview__section owner-overview__lifecycle" aria-labelledby="overview-lifecycle-title">
+      <div className="owner-overview__section-heading"><div><p className="eyebrow">Gestion</p><h2 id="overview-lifecycle-title">Disponibilité du parcours</h2></div><Link className="owner-overview__section-link" href={`/app/courses/${course.slug}?mode=availability`}>Gérer la disponibilité <ArrowRight size={16} /></Link></div>
+      <p>Archivez, restaurez ou, pour un brouillon éligible, supprimez définitivement le parcours depuis cet espace.</p>
+    </section>
   </div>;
 }

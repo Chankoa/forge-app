@@ -1,6 +1,15 @@
 import { z } from "zod";
 import { validateRichContent } from "@/lib/courses/lesson-rich-content";
 
+// Providers occasionally serialise an absent JSON value as the literal text
+// "null". It must never become author-visible content or a persisted field.
+export function isForgeEditableText(value: unknown, options: { allowEmpty?: boolean } = {}) {
+  if (typeof value !== "string") return false;
+  const normalized = value.trim();
+  if (normalized.toLocaleLowerCase("fr") === "null") return false;
+  return options.allowEmpty || normalized.length > 0;
+}
+
 export const forgeIntents = {
   learn: ["explain", "clarify", "rephrase", "example", "quiz", "ask"],
   edit: ["structure", "improve", "generate_content", "rephrase", "simplify", "summarize", "objectives", "ask"],
@@ -36,9 +45,12 @@ export type ForgeContext = {
   sources: ForgeSource[];
   warnings: ForgeWarning[];
 };
+const forgeRequiredText = (min: number, max: number) => z.string().trim().min(min).max(max).refine((value) => isForgeEditableText(value), "Valeur Forge invalide");
+const forgeOptionalText = (max: number) => z.string().trim().max(max).refine((value) => isForgeEditableText(value, { allowEmpty: true }), "Valeur Forge invalide");
+
 export const forgePatchSchema = z.object({
-  title: z.string().trim().min(2).max(220).nullable(), subtitle: z.string().trim().max(500).nullable(),
-  description: z.string().trim().min(1).max(4000).nullable(), content: z.string().trim().min(1).max(20000).nullable(),
+  title: forgeRequiredText(2, 220).nullable(), subtitle: forgeOptionalText(500).nullable(),
+  description: forgeRequiredText(1, 4000).nullable(), content: forgeRequiredText(1, 20000).nullable(),
   objectives: z.array(z.string().trim().min(1).max(300)).max(8).nullable(),
 }).strict();
 export const providerOutputSchema = z.object({ text: z.string().trim().min(1).max(12000), patch: forgePatchSchema }).strict();
@@ -96,6 +108,10 @@ export function validateForgePatch(intent: ForgeIntent, scope: "course" | "lesso
     return { success: true as const, patch: parsed.data };
   }
   const populated = Object.entries(parsed.data).filter(([, value]) => value !== null).map(([key]) => key as ForgeTransformField);
+  if (scope === "course" && (
+    (typeof parsed.data.title === "string" && parsed.data.title.length < 3)
+    || (typeof parsed.data.description === "string" && parsed.data.description.length < 3)
+  )) return { success: false as const };
   if (populated.some((field) => !contract.allowed.includes(field)) || (contract.required && !populated.includes(contract.required))) return { success: false as const };
   if ("requireAll" in contract && contract.requireAll && populated.length !== contract.allowed.length) return { success: false as const };
   if (contract.required === null && populated.length === 0) return { success: true as const, patch: parsed.data };
@@ -106,6 +122,19 @@ export function validateForgePatch(intent: ForgeIntent, scope: "course" | "lesso
   if (contract.required !== "content" && typeof parsed.data.content === "string" && (!validateRichContent(parsed.data.content, richContent) || isAuthorCommentaryOnly(parsed.data.content))) return { success: false as const };
   if (contract.required === "objectives" && (!Array.isArray(parsed.data.objectives) || parsed.data.objectives.length === 0)) return { success: false as const };
   return { success: true as const, patch: parsed.data };
+}
+
+// This is deliberately a second boundary. A stale client state or an injected
+// proposal must not be able to overwrite the local course draft with null-ish
+// provider output, even if it bypasses the server response path.
+export function courseDraftPatch(patch: unknown) {
+  if (!patch || typeof patch !== "object") return {};
+  const values = patch as Record<string, unknown>;
+  const draft: { title?: string; subtitle?: string; description?: string } = {};
+  if (typeof values.title === "string" && isForgeEditableText(values.title) && values.title.trim().length >= 3 && values.title.trim().length <= 260) draft.title = values.title.trim();
+  if (typeof values.subtitle === "string" && isForgeEditableText(values.subtitle, { allowEmpty: true }) && values.subtitle.trim().length <= 500) draft.subtitle = values.subtitle.trim();
+  if (typeof values.description === "string" && isForgeEditableText(values.description) && values.description.trim().length >= 3 && values.description.trim().length <= 4000) draft.description = values.description.trim();
+  return draft;
 }
 type ResultBase = { intent: ForgeIntent; text: string; sourcesUsed: Array<Pick<ForgeSource, "id" | "title">>; metadata: { warnings: ForgeWarning[]; finishReason: "stop" } };
 type EditProposal = { target: { courseId: string; lessonId?: string }; patch: z.infer<typeof forgePatchSchema>; application: "explicit_only" };

@@ -35,9 +35,10 @@ test("owner overview stays a synthesis and delegates management to local destina
   assert.match(html, /Modules/);
   assert.match(html, /Collaboration/);
   assert.match(html, /mode=availability/);
+  assert.match(html, /Gérer la disponibilité/);
   assert.match(html, /mode=remix/);
   assert.doesNotMatch(html, /Créer une copie indépendante/);
-  assert.doesNotMatch(html, /Disponibilité du parcours/);
+  assert.doesNotMatch(html, /L’archivage retire le parcours de l’Explorer/);
   assert.doesNotMatch(html, /Collaborateurs/);
   assert.doesNotMatch(html, />Apprenants</);
 });
