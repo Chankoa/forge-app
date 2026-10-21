@@ -127,7 +127,7 @@ test("empty lessons stay compact until writing starts and draft preview uses the
 });
 
 test("avatar and cover dimensions use the approved variants", () => {
-  const styles = readFileSync("styles/globals.scss", "utf8");
+  const styles = readFileSync("styles/globals.css", "utf8");
   for (const [variant, pixels] of [["xs", 32], ["sm", 40], ["md", 48], ["profile", 88]] as const) {
     assert.match(styles, new RegExp(`\\.profile-avatar--${variant}\\s*\\{\\s*width: ${pixels}px;\\s*height: ${pixels}px;\\s*\\}`));
   }

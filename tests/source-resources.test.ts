@@ -66,6 +66,13 @@ test("Forge source PDF read: owner only, enrollment never grants access, anonymo
   assert.equal((await resolvePdfAccess(pdfDeps({ user: null }).deps, { courseSlug: "demo", sourceId: sid }) as { code: string }).code, "unauthenticated");
 });
 
+test("Forge source RLS removes learner reads from both metadata and Storage", () => {
+  const migration = readFileSync(new URL("../supabase/migrations/20261021140000_harden_forge_sources_owner_only.sql", import.meta.url), "utf8");
+  assert.match(migration, /drop policy if exists "Users can read enrolled ready course sources" on public\.course_sources;/);
+  assert.match(migration, /drop policy if exists "Users can read enrolled course source files" on storage\.objects;/);
+  assert.doesNotMatch(migration, /create policy/i);
+});
+
 test("owner deletes a file resource: DB row then Storage object", async () => {
   const { deps, calls } = deleteDeps();
   assert.deepEqual(await deleteSourceResource(deps, { courseSlug: "demo", sourceId: sid }), { ok: true, storageRemoved: true });

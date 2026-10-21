@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const css = readFileSync("styles/globals.scss", "utf8");
+const css = readFileSync("styles/globals.css", "utf8");
 const shell = readFileSync("components/shell/AppShell.tsx", "utf8");
 
 test("mobile discussion enforces container shrinkage instead of hiding page overflow", () => {
