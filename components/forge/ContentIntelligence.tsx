@@ -116,9 +116,12 @@ export function ContentIntelligence({ courseSlug, lessonSlug, lessonId, level, h
               return;
             }
             current.apply(applied.content);
-          } else if (!applyLessonProposal(lessonId, proposal)) {
-            setError("La modification n'a pas pu être appliquée.");
-            return;
+          } else {
+            const applied = applyLessonProposal(lessonId, proposal);
+            if (!applied.ok) {
+              setError(applied.reason === "stale" ? "Le contenu a changé depuis cette proposition. Relancez l’analyse." : "La modification n'a pas pu être appliquée.");
+              return;
+            }
           }
           setError(null);
           setConfirmation(`${forgeProposalStates.applied}. Sauvegardez pour enregistrer.`);

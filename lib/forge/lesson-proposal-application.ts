@@ -3,9 +3,9 @@ import type { LessonDraft } from "@/lib/courses/lesson-draft";
 
 export type LessonProposalApplication =
   | { ok: true; draft: LessonDraft; field: "content" | "objectives" }
-  | { ok: false; reason: "invalid_patch" | "unsupported_patch" };
+  | { ok: false; reason: "invalid_patch" | "unsupported_patch" | "stale" };
 
-export function applyLessonProposalToDraft(draft: LessonDraft, intent: ForgeIntent, patch: unknown): LessonProposalApplication {
+export function applyLessonProposalToDraft(draft: LessonDraft, intent: ForgeIntent, patch: unknown, baseContent?: string | null): LessonProposalApplication {
   const validation = validateForgePatch(intent, "lesson", patch);
   if (!validation.success) return { ok: false, reason: "invalid_patch" };
 
@@ -14,6 +14,7 @@ export function applyLessonProposalToDraft(draft: LessonDraft, intent: ForgeInte
   }
 
   if (forgeTransformContracts[intent]?.required === "content" && validation.patch.content) {
+    if (baseContent !== undefined && draft.content !== baseContent) return { ok: false, reason: "stale" };
     return { ok: true, field: "content", draft: { ...draft, content: validation.patch.content } };
   }
 

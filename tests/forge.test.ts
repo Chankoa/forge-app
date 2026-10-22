@@ -73,6 +73,15 @@ test("free question is allowed in Learn and Edit without an automatic proposal",
   const edit = await runForge({ ...request, mode: "edit", intent: "ask", input: "Que puis-je améliorer ?" }, deps);
   assert.ok(edit.ok && edit.result.mode === "edit" && edit.result.kind === "answer");
 });
+test("each Forge response carries an opaque operation id, and lesson proposals retain their observed base content", async () => {
+  const { deps } = fixture();
+  editOutput(deps);
+  const response = await runForge({ ...request, mode: "edit", intent: "improve" }, deps);
+  assert.ok(response.ok && response.result.kind === "proposal");
+  if (!response.ok || response.result.kind !== "proposal") return;
+  assert.match(response.result.metadata.operationId ?? "", /^[0-9a-f-]{36}$/i);
+  assert.equal(response.result.proposal.baseContent, "REAL LESSON");
+});
 test("provider errors are classified without exposing provider details", () => {
   assert.equal(classifyProviderError({ statusCode: 401 }).code, "provider_auth");
   assert.equal(classifyProviderError({ statusCode: 404 }).code, "provider_not_found");

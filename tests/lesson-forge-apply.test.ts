@@ -54,6 +54,13 @@ test("sequential Forge transformations build on the latest unsaved draft and sav
   assert.notEqual(JSON.stringify(simplified.draft), JSON.stringify(savedDraft));
 });
 
+test("a full-content proposal cannot overwrite a newer local draft", () => {
+  assert.deepEqual(applyLessonProposalToDraft({ ...savedDraft, content: "Contenu modifié manuellement." }, "improve", patch("Contenu Forge."), savedDraft.content), {
+    ok: false,
+    reason: "stale",
+  });
+});
+
 test("invalid and unsupported Forge patches fail closed", () => {
   assert.deepEqual(applyLessonProposalToDraft(savedDraft, "rephrase", patch("Contenu", null, { title: "Titre interdit" })), {
     ok: false,
@@ -75,11 +82,12 @@ test("lesson proposal application is synchronous, local, and reports save to For
   const forgeRail = readFileSync("components/forge/ForgeRail.tsx", "utf8");
   const intelligence = readFileSync("components/forge/ContentIntelligence.tsx", "utf8");
   assert.match(context, /applyLessonProposal\(lessonId: string, proposal: ForgeProposalResult\)/);
-  assert.match(lessonEditor, /applyProposal: \(intent, patch\)/);
+  assert.match(lessonEditor, /applyProposal: \(intent, patch, baseContent\)/);
   assert.doesNotMatch(lessonEditor, /if \(!proposal \|\| proposal\.kind === "targeted"/);
   assert.match(lessonEditor, /new CustomEvent\(forgeLessonSavedEvent/);
   assert.match(forgeRail, /applyLessonProposal\(context\.lessonId, proposal\)/);
   assert.match(intelligence, /applyLessonProposal\(lessonId, proposal\)/);
+  assert.match(`${forgeRail}\n${intelligence}`, /Le contenu a changé depuis cette proposition\. Relancez l’analyse\./);
   assert.match(forgeRail, /setConfirmation\(""\)/);
   assert.match(intelligence, /setConfirmation\(""\)/);
   assert.doesNotMatch(`${lessonEditor}\n${forgeRail}\n${intelligence}`, /set(?:Message|Error)\(error\.message\)/);

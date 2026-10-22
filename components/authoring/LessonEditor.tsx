@@ -59,15 +59,15 @@ function LessonEditorDraft({ courseId, courseSlug, lesson, moduleTitle, moduleNu
       draftRef.current = next;
       setDraft(next);
     },
-    applyProposal: (intent, patch) => {
-      const applied = applyLessonProposalToDraft(draftRef.current, intent, patch);
-      if (!applied.ok) return false;
+    applyProposal: (intent, patch, baseContent) => {
+      const applied = applyLessonProposalToDraft(draftRef.current, intent, patch, baseContent);
+      if (!applied.ok) return applied;
       draftRef.current = applied.draft;
       contentRef.current = applied.draft.content;
       setDraft(applied.draft);
       setTab(applied.field === "content" ? "content" : "info");
       dispatchToast("Modification appliquée au brouillon.");
-      return true;
+      return applied;
     },
   }), [lesson.id, registerLessonDraft]);
   const updateDraft = useCallback((key: keyof typeof draft, value: string) => {

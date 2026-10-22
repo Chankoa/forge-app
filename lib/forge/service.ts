@@ -10,7 +10,8 @@ export type ForgeDependencies = { userId: string; reader: ForgeReader; provider:
 
 export async function runForge(raw: unknown, deps: ForgeDependencies): Promise<ForgeResponse> {
   const started = Date.now();
-  let metrics: Record<string, string | number> = {};
+  const operationId = crypto.randomUUID();
+  let metrics: Record<string, string | number> = { operationId };
   try {
     const parsed = forgeRequestSchema.safeParse(raw);
     if (!parsed.success) throw new ForgeError("invalid_request");
@@ -33,7 +34,7 @@ export async function runForge(raw: unknown, deps: ForgeDependencies): Promise<F
     const patch = value.patch;
     const patchKeys = Object.entries(patch).filter(([, item]) => item !== null).map(([key]) => key).join(",");
     metrics = { ...metrics, finishReason: generated.finishReason, schemaSuccess: 1, patchKeys };
-    const common = { intent: request.intent, text: value.text, sourcesUsed: context.sources.map(({ id, title }) => ({ id, title })), metadata: { warnings: context.warnings, finishReason: "stop" as const } };
+    const common = { intent: request.intent, text: value.text, sourcesUsed: context.sources.map(({ id, title }) => ({ id, title })), metadata: { warnings: context.warnings, finishReason: "stop" as const, operationId } };
     let result: ForgeResult;
     if (request.mode === "learn") {
       if (Object.values(patch).some((item) => item !== null)) throw new ForgeError("invalid_result");
@@ -52,7 +53,7 @@ export async function runForge(raw: unknown, deps: ForgeDependencies): Promise<F
       }
       if (request.intent === "ask") {
         if (Object.values(patch).every((item) => item === null)) result = { ...common, mode: "edit", kind: "answer" };
-        else result = { ...common, mode: "edit", kind: "proposal", proposal: { target: { courseId: context.course.id, lessonId: context.lesson?.id }, patch, application: "explicit_only" } };
+        else result = { ...common, mode: "edit", kind: "proposal", proposal: { target: { courseId: context.course.id, lessonId: context.lesson?.id }, patch, application: "explicit_only", baseContent: patch.content === null ? null : context.lesson?.content ?? null } };
         deps.telemetry?.({ ...metrics, elapsedMs: Date.now() - started, result: "ok" });
         return { ok: true, result };
       }
@@ -60,7 +61,7 @@ export async function runForge(raw: unknown, deps: ForgeDependencies): Promise<F
         deps.telemetry?.({ ...metrics, stage: "proposal_shape", elapsedMs: Date.now() - started, result: "invalid_result" });
         throw new ForgeError("invalid_result");
       }
-      result = { ...common, mode: "edit", kind: "proposal", proposal: { target: { courseId: context.course.id, lessonId: context.lesson?.id }, patch, application: "explicit_only" } };
+      result = { ...common, mode: "edit", kind: "proposal", proposal: { target: { courseId: context.course.id, lessonId: context.lesson?.id }, patch, application: "explicit_only", baseContent: patch.content === null ? null : context.lesson?.content ?? null } };
     }
     deps.telemetry?.({ ...metrics, elapsedMs: Date.now() - started, result: "ok" });
     return { ok: true, result };

@@ -136,8 +136,8 @@ export function courseDraftPatch(patch: unknown) {
   if (typeof values.description === "string" && isForgeEditableText(values.description) && values.description.trim().length >= 3 && values.description.trim().length <= 4000) draft.description = values.description.trim();
   return draft;
 }
-type ResultBase = { intent: ForgeIntent; text: string; sourcesUsed: Array<Pick<ForgeSource, "id" | "title">>; metadata: { warnings: ForgeWarning[]; finishReason: "stop" } };
-type EditProposal = { target: { courseId: string; lessonId?: string }; patch: z.infer<typeof forgePatchSchema>; application: "explicit_only" };
+type ResultBase = { intent: ForgeIntent; text: string; sourcesUsed: Array<Pick<ForgeSource, "id" | "title">>; metadata: { warnings: ForgeWarning[]; finishReason: "stop"; operationId?: string } };
+type EditProposal = { target: { courseId: string; lessonId?: string }; patch: z.infer<typeof forgePatchSchema>; application: "explicit_only"; baseContent?: string | null };
 export type ForgeResult =
   | (ResultBase & { mode: "learn"; kind: "answer" })
   | (ResultBase & { mode: "edit"; kind: "answer" })
