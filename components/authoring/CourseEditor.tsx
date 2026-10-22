@@ -24,7 +24,7 @@ export function CourseEditor({ course, domains, readiness, capabilities, showOve
   const [tab, setTab] = useState<CockpitTab>(showOverview ? "overview" : "information");
   const [pending, startTransition] = useTransition();
   const router = useRouter();
-  const [draft, setDraft] = useState({ title: course.title, subtitle: course.subtitle ?? "", description: course.description ?? "", domainId: course.domainId ?? "" });
+  const [draft, setDraft] = useState({ title: course.title, subtitle: course.subtitle ?? "", description: course.description ?? "", domainId: course.domainId ?? "", visibility: course.visibility === "public" ? "public" : "private" });
   const { proposal, setProposal } = useForgeProposal();
 
   useEffect(() => {
@@ -72,6 +72,7 @@ export function CourseEditor({ course, domains, readiness, capabilities, showOve
         <select id="course-domain-select" name="domainId" value={draft.domainId} onChange={(event) => setDraft((current) => ({ ...current, domainId: event.target.value }))}><option value="">Aucun domaine</option>{domains.map((domain) => <option key={domain.id} value={domain.id}>{domain.name}</option>)}</select>
         <span className="caption">Les domaines disponibles sont gérés dans la taxonomie Forge.</span>
       </div>
+      {capabilities.canPublish && <label>Visibilité<select name="visibility" value={draft.visibility} onChange={(event) => setDraft((current) => ({ ...current, visibility: event.target.value }))}><option value="private">Privé — accessible aux apprenants inscrits après publication</option><option value="public">Public — affiché dans Explorer après publication</option></select><span className="caption">La visibilité prépare la publication ; elle ne publie pas le parcours à elle seule.</span></label>}
       <Button type="submit" disabled={pending}><Save size={17} /> {pending ? "Sauvegarde…" : "Sauvegarder les modifications"}</Button>
     </form>}
     {tab === "structure" && <><CourseStructureEditor course={course} onFeedback={(text, error = false) => { setMessage(text); setMessageError(error); }} /><p className="caption">Pour examiner un plan d’amélioration, ouvrez Forge puis l’onglet Analyse.</p></>}

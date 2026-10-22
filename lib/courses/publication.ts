@@ -3,6 +3,14 @@ import type { CourseDetail } from "./contracts";
 export type PublicationReadiness = { blocking: string[]; recommended: string[]; ready: boolean };
 export type CourseLifecycleStatus = "draft" | "published" | "archived";
 
+export function publishCourseUpdate(visibility: string | null, publishedAt: string) {
+  return { status: "published" as const, visibility: visibility === "public" ? "public" as const : "private" as const, availability: "complete" as const, published_at: publishedAt };
+}
+
+export function unpublishCourseUpdate() {
+  return { status: "draft" as const, availability: "preview" as const, published_at: null };
+}
+
 export function getPublicationReadiness(course: CourseDetail): PublicationReadiness {
   const lessonCount = course.outline.flatMap((module) => module.lessons).length;
   const blocking = lessonCount === 0 ? ["Ajoutez au moins une leçon avant de publier."] : [];

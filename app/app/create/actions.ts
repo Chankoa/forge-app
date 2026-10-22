@@ -3,7 +3,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { courseMetadataSchema, lessonSchema, moduleSchema } from "@/lib/forge/authoring-contracts";
 import { getCourseDetail } from "@/lib/courses/learning-repository";
-import { archiveCourseUpdate, getPublicationReadiness, restoreCourseUpdate } from "@/lib/courses/publication";
+import { archiveCourseUpdate, getPublicationReadiness, publishCourseUpdate, restoreCourseUpdate, unpublishCourseUpdate } from "@/lib/courses/publication";
 import { adjacentSwap, emptyModuleBlocker, nextDisplayOrder, type MoveDirection } from "@/lib/courses/structure-operations";
 import { revalidatePath } from "next/cache";
 import { publicCoursePreviewSchema } from "@/lib/forge/public-contracts";
@@ -17,7 +17,7 @@ import { getCourseStorageDependencyCount } from "@/lib/courses/course-deletion-r
 
 function slugify(value: string) { return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 72) || "nouveau-parcours"; }
 async function authorClient() { const client = await createServerSupabaseClient(); if (!client) throw new Error("Supabase local n'est pas configuré."); const { data: { user } } = await client.auth.getUser(); if (!user) throw new Error("Votre session a expiré. Connectez-vous à nouveau."); return { client, user }; }
-async function requireOwner(courseId: string) { const { client, user } = await authorClient(); const { data: course } = await client.from("courses").select("id,teacher_id,slug,status").eq("id", courseId).maybeSingle(); if (!course || course.teacher_id !== user.id) throw new Error("Vous ne pouvez pas modifier ce parcours."); return { client, user, course }; }
+async function requireOwner(courseId: string) { const { client, user } = await authorClient(); const { data: course } = await client.from("courses").select("id,teacher_id,slug,status,visibility").eq("id", courseId).maybeSingle(); if (!course || course.teacher_id !== user.id) throw new Error("Vous ne pouvez pas modifier ce parcours."); return { client, user, course }; }
 type AuthoringCapability = "canEditMetadata" | "canEditStructure" | "canEditLessons";
 async function requireAuthoringCapability(courseId: string, capability: AuthoringCapability) {
   const { client, user } = await authorClient();
@@ -76,10 +76,13 @@ export async function saveCourseMetadataAction(courseId: string, formData: FormD
     schemaIssues: parsed.success ? [] : parsed.error.issues.map(({ path, code }) => ({ field: path.join("."), code })),
   });
   if (!parsed.success) throw new Error("Les informations du parcours sont invalides.");
-  const { client } = await requireAuthoringCapability(courseId, "canEditMetadata");
+  const { client, capabilities } = await requireAuthoringCapability(courseId, "canEditMetadata");
   const domainId = formData.has("domainId") ? await validatedDomainId(client, formData.get("domainId")) : undefined;
+  const rawVisibility = formData.get("visibility");
+  if (rawVisibility !== null && rawVisibility !== "public" && rawVisibility !== "private") throw new Error("La visibilité sélectionnée est invalide.");
+  if (rawVisibility !== null && !capabilities.canPublish) throw new Error("Seul le propriétaire peut modifier la visibilité du parcours.");
   console.info("[forge] course save update", { courseId, attempted: true });
-  const { data, error } = await client.from("courses").update({ title: parsed.data.title, description: parsed.data.description, subtitle: parsed.data.subtitle || null, ...courseDomainUpdate(domainId) }).eq("id", courseId).select("id,description").maybeSingle();
+  const { data, error } = await client.from("courses").update({ title: parsed.data.title, description: parsed.data.description, subtitle: parsed.data.subtitle || null, ...courseDomainUpdate(domainId), ...(rawVisibility !== null ? { visibility: rawVisibility } : {}) }).eq("id", courseId).select("id,description").maybeSingle();
   const errorStatus = error && typeof error === "object" && "status" in error && typeof error.status === "number" ? error.status : null;
   console.info("[forge] course save result", { courseId, errorCode: error?.code ?? null, errorStatus, rowsAffected: data ? 1 : 0, descriptionChars: data?.description?.length ?? 0 });
   if (error || !data) throw new Error("Les informations n'ont pas pu être sauvegardées.");
@@ -173,9 +176,9 @@ export async function deleteEmptyModuleAction(courseId: string, moduleId: string
   revalidatePath("/app/courses");
 }
 
-export async function publishCourseAction(courseId: string, courseSlug: string) { const { client } = await requireOwner(courseId); const course = await getCourseDetail(courseSlug); if (!course || course.id !== courseId) throw new Error("Le parcours est introuvable."); const readiness = getPublicationReadiness(course); if (!readiness.ready) throw new Error(readiness.blocking[0]); const now = new Date().toISOString(); const [{ error: modulesError }, { error: lessonsError }] = await Promise.all([client.from("course_modules").update({ status: "published" }).eq("course_id", courseId).neq("status", "locked"), client.from("lessons").update({ status: "published" }).eq("course_id", courseId).neq("status", "locked")]); if (modulesError || lessonsError) throw new Error("Les éléments du parcours n'ont pas pu être préparés pour publication."); const { error } = await client.from("courses").update({ status: "published", visibility: "public", availability: "complete", published_at: now }).eq("id", courseId); if (error) throw new Error("Le parcours n'a pas pu être publié."); revalidatePath("/app/explore"); revalidatePath("/app/courses"); revalidatePath(`/app/courses/${courseSlug}`); }
+export async function publishCourseAction(courseId: string, courseSlug: string) { const { client, course: ownedCourse } = await requireOwner(courseId); if (ownedCourse.status !== "draft") throw new Error("Seul un parcours brouillon peut être publié."); const course = await getCourseDetail(courseSlug); if (!course || course.id !== courseId) throw new Error("Le parcours est introuvable."); const readiness = getPublicationReadiness(course); if (!readiness.ready) throw new Error(readiness.blocking[0]); const now = new Date().toISOString(); const [{ error: modulesError }, { error: lessonsError }] = await Promise.all([client.from("course_modules").update({ status: "published" }).eq("course_id", courseId).neq("status", "locked"), client.from("lessons").update({ status: "published" }).eq("course_id", courseId).neq("status", "locked")]); if (modulesError || lessonsError) throw new Error("Les éléments du parcours n'ont pas pu être préparés pour publication."); const { error } = await client.from("courses").update(publishCourseUpdate(ownedCourse.visibility, now)).eq("id", courseId).eq("status", "draft"); if (error) throw new Error("Le parcours n'a pas pu être publié."); revalidatePath("/app/explore"); revalidatePath("/app/courses"); revalidatePath(`/app/courses/${courseSlug}`); revalidatePath(`/app/courses/${courseSlug}/lessons`, "layout"); }
 
-export async function unpublishCourseAction(courseId: string, courseSlug: string) { const { client } = await requireOwner(courseId); const { error } = await client.from("courses").update({ status: "draft", visibility: "private", availability: "preview", published_at: null }).eq("id", courseId); if (error) throw new Error("Le parcours n'a pas pu être dépublié."); revalidatePath("/app/explore"); revalidatePath("/app/courses"); revalidatePath(`/app/courses/${courseSlug}`); }
+export async function unpublishCourseAction(courseId: string, courseSlug: string) { const { client, course } = await requireOwner(courseId); if (course.status !== "published") throw new Error("Seul un parcours publié peut être dépublié."); const { error } = await client.from("courses").update(unpublishCourseUpdate()).eq("id", courseId).eq("status", "published"); if (error) throw new Error("Le parcours n'a pas pu être dépublié."); revalidatePath("/app/explore"); revalidatePath("/app/courses"); revalidatePath(`/app/courses/${courseSlug}`); revalidatePath(`/app/courses/${courseSlug}/lessons`, "layout"); }
 
 export async function archiveCourseAction(courseId: string, courseSlug: string) {
   const { client, course } = await requireOwner(courseId);
