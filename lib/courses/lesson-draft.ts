@@ -14,8 +14,10 @@ export function createLessonDraft(lesson: CourseLesson): LessonDraft {
   return { title: lesson.title, description: lesson.description ?? "", content: lesson.content ?? "", objectives: lesson.objectives.join("\n"), type: lesson.contentType, durationMinutes: lesson.durationMinutes?.toString() ?? "", publishingStatus: lesson.publishingStatus };
 }
 
-export function lessonDraftFormData(draft: LessonDraft): FormData {
+export function lessonDraftFormData(draft: LessonDraft, options: { includePublishingStatus?: boolean } = {}): FormData {
   const data = new FormData();
-  Object.entries(draft).forEach(([key, value]) => data.set(key, value));
+  Object.entries(draft).forEach(([key, value]) => {
+    if (key !== "publishingStatus" || options.includePublishingStatus !== false) data.set(key, value);
+  });
   return data;
 }

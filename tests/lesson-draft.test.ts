@@ -16,3 +16,9 @@ test("lesson draft serializes every persisted field across editor tabs", () => {
   assert.equal(data.get("type"), "reading");
   assert.equal(data.get("publishingStatus"), "draft");
 });
+
+test("editor serialization excludes owner-only lesson publication status", () => {
+  const data = lessonDraftFormData(createLessonDraft(lesson), { includePublishingStatus: false });
+  assert.equal(data.has("publishingStatus"), false);
+  assert.equal(data.get("content"), "Contenu A");
+});

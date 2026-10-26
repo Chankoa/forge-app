@@ -2,15 +2,23 @@
 
 ## État d’audit
 
-Le projet Supabase actif ne contient pas encore de famille de fixtures identifiée
-`[QA]` / `qa-`. Aucun compte existant ne doit être réutilisé : les quatre profils
-nécessaires sont donc **non provisionnés**. Le dépôt ne contient volontairement ni
-identifiants QA, ni clé `service_role`.
+Les quatre identités Auth et profils actifs ont été confirmés le 25 octobre 2026.
+Le contrôle initial a établi qu'elles étaient sans relation de cours ; le
+provisionnement ci-dessous est réalisé exclusivement avec leurs identifiants Auth
+exacts. Les
+adresses Auth sont des alias QA contrôlés, mais ne sont pas reproduites ici. Le
+dépôt ne contient volontairement ni identifiants QA, ni clé `service_role`.
 
-Le flux d’authentification disponible est l’inscription email/mot de passe avec
-confirmation. La création des comptes requiert donc quatre adresses de test
-contrôlées et une session d’administration Supabase ou une confirmation email
-manuelle. Ne jamais enregistrer les mots de passe, liens de confirmation ou clés
+| Identité logique | Profil canonique | État confirmé |
+| --- | --- | --- |
+| `QA_OWNER` | `qa-owner` | propriétaire confirmé du cours QA |
+| `QA_EDITOR` | `qa-editor` | membership `editor` / `active` confirmé |
+| `QA_VIEWER` | `qa-viewer` | membership `viewer` / `active` confirmé |
+| `QA_LEARNER` | `qa-learner` | enrollment confirmé, sans membership ni ownership |
+
+Le flux d’authentification disponible est l’inscription et connexion email/mot de
+passe. Les sessions QA doivent être ouvertes manuellement depuis les secrets locaux
+contrôlés. Ne jamais enregistrer les mots de passe, liens de confirmation ou clés
 admin dans le dépôt, les tests, les captures ou les logs.
 
 ## Contrat canonique
@@ -23,13 +31,20 @@ admin dans le dépôt, les tests, les captures ou les logs.
 | `QA_LEARNER` | apprenant | `enrollments` seulement |
 
 Le cours unique est **`[QA] Forge Reliability Course`**, avec le slug
-`qa-forge-reliability-course`. Tous les éléments QA doivent porter le préfixe
-`[QA]` ou un chemin de stockage `qa/`; cette convention est une garde de sécurité,
-pas une autorisation pour une suppression par motif large.
+`qa-forge-reliability-course`. Il est créé par le flux Creator, en visibilité
+`private`, avec le domaine actif *Creation web*. Sa structure effective comprend
+trois modules et six leçons : les trois leçons de scénario (`Media QA`, `Resource
+QA`, `Completion QA`) et trois leçons générées conservées comme contenu QA
+supplémentaire. Tous les éléments QA doivent porter le préfixe `[QA]` ou un chemin
+de stockage `qa/`; cette convention est une garde de sécurité, pas une autorisation
+pour une suppression par motif large.
 
-État final attendu : cours `published`, `private`, domaine actif valide, trois
-leçons réparties sur deux modules, apprenant inscrit à 0 %, membres actifs intacts,
-et une ressource PDF, un média image et une source Forge conservés.
+Les artefacts canoniques déjà présents sont : une image privée référencée par la
+directive de `Media QA` (avec texte alternatif et légende), le PDF pédagogique
+`qa-resource-fixture.pdf` dans `Resource QA`, et la source propriétaire
+`qa-forge-source-fixture.md`. État final attendu : cours `published`, `private`,
+domaine actif valide, apprenant inscrit à 0 %, membres actifs intacts, et ces trois
+artefacts conservés.
 
 ## Provisioning sûr (à réaliser avec accès autorisé)
 
