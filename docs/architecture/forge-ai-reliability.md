@@ -16,6 +16,12 @@ Course-plan application is different: selected operations are server-persisted s
 
 Targeted lesson operations validate the selected range at application. Full lesson-content proposals now retain the observed base content and compare it with the current local draft before applying. A mismatch is rejected with: “Le contenu a changé depuis cette proposition. Relancez l’analyse.” No newer local draft is overwritten.
 
+## Analyze output contract
+
+Lesson Analyze transformations have a minimal four-field envelope: a complete `rationale`, `title: null`, complete replacement `content`, and `addition: null`. Additive and targeted operations have their own bounded schemas; diagnostic coherence reviews return a summary plus zero to four findings and never contain a patch. The provider receives an explicit instruction for every required null field, so a structurally valid transformation is not rejected merely because an optional-looking field was omitted.
+
+An incomplete or malformed mutation is never applied. A normal diagnostic review can remain visible when it has passed its own schema. A non-`stop` provider completion with `length` is classified as `truncated_output` and shown as: “Forge n’a pas terminé son analyse. Aucun changement n’a été appliqué.” Other invalid shapes remain a retryable incomplete analysis. Each retry is a new request and emits a new opaque operation ID; no invalid proposal is reused.
+
 ## Retry rules
 
 Provider failures and timeouts have an explicit user retry path. Provider adapters set `maxRetries: 0`; retries are always initiated by the user and generate a new operation ID. Apply is deliberately not retried automatically: a network failure can follow a write. Course-plan apply is consumed after its first attempt and requires a fresh analysis before another application.

@@ -52,6 +52,7 @@ test("improve reuses a lesson-only explicit proposal and selected source context
   assert.ok(response.ok && response.kind === "proposal");
   assert.equal(response.result.proposal.patch.content, "Contenu amélioré.");
   assert.equal(response.result.proposal.patch.title, null);
+  assert.equal(response.result.proposal.baseContent, "Contenu initial");
   assert.deepEqual(response.result.proposal.target, { courseId: "course-id", lessonId: "lesson-id" });
   assert.deepEqual(response.result.sourcesUsed, [{ id: sourceId, title: "Source réelle" }]);
   assert.equal(response.result.proposal.application, "explicit_only");
@@ -211,7 +212,7 @@ test("invalid review, incomplete generation and provider errors never become suc
   deps.provider.generate = async () => ({ output: { summary: "x", findings: [{ bogus: true }] }, finishReason: "stop" });
   assert.deepEqual(await runContentIntelligence({ ...input, task: "coherence_review" }, deps), { ok: false, error: "invalid_result" });
   deps.provider.generate = async () => ({ output: transform, finishReason: "length" });
-  assert.deepEqual(await runContentIntelligence(input, deps), { ok: false, error: "invalid_result" });
+  assert.deepEqual(await runContentIntelligence(input, deps), { ok: false, error: "truncated_output" });
   deps.provider.generate = async () => { throw Object.assign(new Error("internal secret"), { code: "provider_error" }); };
   assert.deepEqual(await runContentIntelligence(input, deps), { ok: false, error: "provider_error" });
 });
@@ -234,4 +235,18 @@ test("content intelligence remains read-only and cannot save or mutate course da
     assert.doesNotMatch(code, /\.(insert|update|upsert|delete|remove)\(/);
     assert.doesNotMatch(code, /saveLessonAction|service_role/);
   }
+});
+
+test("full Analyze proposals retain the observed baseline and expose safe diagnostics", async () => {
+  const { deps, calls } = fixture();
+  const events: Array<Record<string, string | number>> = [];
+  deps.telemetry = (event) => events.push(event);
+  const response = await runContentIntelligence(input, deps);
+  assert.ok(response.ok && response.kind === "proposal");
+  assert.equal(response.result.proposal.baseContent, "Contenu initial");
+  assert.match(String(response.result.metadata.operationId), /^[0-9a-f-]{36}$/);
+  assert.match(calls.at(-1) ?? "", /title: null/);
+  assert.match(calls.at(-1) ?? "", /addition: null/);
+  assert.match(String(events.at(-1)?.operationId), /^[0-9a-f-]{36}$/);
+  assert.equal(events.at(-1)?.validationFailure, "none");
 });

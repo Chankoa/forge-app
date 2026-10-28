@@ -23,7 +23,7 @@ const findingLabels: Record<ContentReview["findings"][number]["type"], string> =
   excessive_complexity: "Complexité excessive", insufficient_depth: "Approfondissement souhaitable",
 };
 const importanceLabels = { info: "Information", attention: "À examiner", important: "Important" };
-const errorMessages: Record<string, string> = { ...forgeErrorMessages, target_required: "Cette leçon est trop longue pour une réécriture complète fiable. Sélectionnez un passage à améliorer." };
+const errorMessages: Record<string, string> = { ...forgeErrorMessages, truncated_output: "Forge n’a pas terminé son analyse. Aucun changement n’a été appliqué.", target_required: "Cette leçon est trop longue pour une réécriture complète fiable. Sélectionnez un passage à améliorer." };
 
 export function ContentIntelligence({ courseSlug, lessonSlug, lessonId, level, hasContent, sourceIds, availability }: {
   courseSlug: string; lessonSlug: string; lessonId: string; level?: string | null; hasContent: boolean; sourceIds: string[]; availability: ForgeAvailability;

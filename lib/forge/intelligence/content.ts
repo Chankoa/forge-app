@@ -9,7 +9,7 @@ export type ContentResponse =
   | { ok: true; kind: "proposal"; result: Extract<ForgeResult, { kind: "proposal" }> }
   | { ok: true; kind: "targeted"; result: { target: { courseId: string; lessonId: string }; operation: TargetedOperation; text: string; sourcesUsed: Array<{ id: string; title: string }> } }
   | { ok: true; kind: "review"; result: ContentReview; sourcesUsed: Array<{ id: string; title: string }> }
-  | { ok: false; error: ForgeErrorCode | "target_required" };
+  | { ok: false; error: ForgeErrorCode | "target_required" | "truncated_output" };
 
 export type ContentProvider = {
   availability: "configured" | "not_configured";
@@ -49,7 +49,8 @@ export async function runContentIntelligence(raw: unknown, deps: ContentDeps): P
   const request = parsed.data;
   let validationFailure = "none";
   let targeted = false;
-  const report = (result: string, validationFailure = "none", targeted = false) => deps.telemetry?.({ capability: "content_intelligence", task: request.task, result, validationFailure, targeted: String(targeted), sourceAware: String(request.sourceIds.length > 0), elapsedMs: Date.now() - started });
+  const operationId = crypto.randomUUID();
+  const report = (result: string, validationFailure = "none", targeted = false) => deps.telemetry?.({ operationId, capability: "content_intelligence", task: request.task, result, validationFailure, targeted: String(targeted), sourceAware: String(request.sourceIds.length > 0), elapsedMs: Date.now() - started });
   try {
     if (!deps.userId) throw new ForgeError("unauthenticated");
     const rawContext = await buildForgeContext(deps.reader, deps.userId, {
@@ -83,13 +84,13 @@ export async function runContentIntelligence(raw: unknown, deps: ContentDeps): P
       ? { course: context.course, module: context.module, lesson: { ...context.lesson, content: undefined }, target: targetContext, sources: context.sources.map((source) => ({ ...source, text: source.text.slice(0, 1800) })) }
       : { course: context.course, module: context.module, lesson: request.task === "coherence_review" && isLong ? { ...context.lesson, content: lessonContent.slice(0, 3000), contentPartial: true } : context.lesson, sources: context.sources };
     const messages = {
-      system: `${capabilityDefinitions.content_intelligence.system}\n${taskInstructions[request.task]}\nPour ${request.task}, vise ${contentTaskPolicy[request.task].target}. La limite stricte est ${contentTaskPolicy[request.task].maxChars} caractères pour ${request.task === "coherence_review" ? "l'ensemble du texte de la revue" : request.task === "add_example" || request.task === "suggest_activity" ? "addition ou remplacement" : "content"}. ${targeted ? "Retourne uniquement replacement et rationale pour le passage ciblé. N'écris jamais une réécriture complète de la leçon." : "Retourne une proposition complète de contenu."} Pour une transformation, rationale doit être une ou deux phrases complètes et brèves (idéalement moins de 350 caractères). Ne tronque jamais une phrase, un paragraphe ou une liste pour tenir dans la limite. Ne retourne que le résultat structuré, sans prose hors schéma.`,
+      system: `${capabilityDefinitions.content_intelligence.system}\n${taskInstructions[request.task]}\nPour ${request.task}, vise ${contentTaskPolicy[request.task].target}. La limite stricte est ${contentTaskPolicy[request.task].maxChars} caractères pour ${request.task === "coherence_review" ? "l'ensemble du texte de la revue" : request.task === "add_example" || request.task === "suggest_activity" ? "addition ou remplacement" : "content"}. ${targeted ? "Retourne uniquement replacement et rationale pour le passage ciblé. N'écris jamais une réécriture complète de la leçon." : "Pour une transformation complète, retourne exactement rationale, title: null, content (texte complet) et addition: null. Ne laisse aucun de ces quatre champs absent."} Pour une transformation, rationale doit être une ou deux phrases complètes et brèves (idéalement moins de 350 caractères). Ne tronque jamais une phrase, un paragraphe ou une liste pour tenir dans la limite. Ne retourne que le résultat structuré, sans prose hors schéma.`,
       prompt: JSON.stringify({ task: request.task, targetLevel: request.targetLevel ?? null, input: request.input ?? "", knowledge }),
     };
     if (messages.system.length + messages.prompt.length > deps.maxInputChars) throw new ForgeError("context_unavailable");
     deps.consumeRateLimit(deps.userId);
     const generated = await deps.provider.generate(request.task, targeted, messages);
-    if (generated.finishReason !== "stop") { validationFailure = generated.finishReason === "length" ? "output_limit" : "malformed_output"; throw new ForgeError("invalid_result"); }
+    if (generated.finishReason !== "stop") { validationFailure = generated.finishReason === "length" ? "output_limit" : "malformed_output"; throw new ForgeError(generated.finishReason === "length" ? "result_too_long" : "invalid_result"); }
     const sourcesUsed = context.sources.map(({ id, title }) => ({ id, title }));
     if (request.task === "coherence_review") {
       const checked = contentReviewSchema.safeParse(generated.output);
@@ -116,27 +117,27 @@ export async function runContentIntelligence(raw: unknown, deps: ContentDeps): P
       return { ok: true, kind: "targeted", result: { target: { courseId: context.course.id, lessonId: context.lesson.id }, operation, text: operation.rationale, sourcesUsed } };
     }
     const checked = contentTransformSchema.safeParse(generated.output);
-    if (!checked.success) throw new ForgeError("invalid_result");
+    if (!checked.success) { validationFailure = "content_transform_schema"; throw new ForgeError("invalid_result"); }
     const { title, content, addition, rationale } = checked.data;
-    if (!completeContentText(rationale, "improve")) throw new ForgeError("invalid_result");
+    if (!completeContentText(rationale, "improve")) { validationFailure = "rationale_incomplete"; throw new ForgeError("invalid_result"); }
     const additive = additiveTasks.has(request.task);
     if (additive ? !addition || content !== null || title !== null : !content || addition !== null) {
       validationFailure = "proposal_shape"; throw new ForgeError("invalid_result");
     }
     const generatedText = additive ? addition! : content!;
-    if (!completeContentText(generatedText, request.task)) throw new ForgeError("invalid_result");
+    if (!completeContentText(generatedText, request.task)) { validationFailure = "content_incomplete"; throw new ForgeError("invalid_result"); }
     const nextContent = additive ? [context.lesson.content.trimEnd(), addition].filter(Boolean).join("\n\n") : content!;
     if (nextContent.length > contentTaskPolicy.improve.maxChars) throw new ForgeError("invalid_result");
     const result: Extract<ForgeResult, { kind: "proposal" }> = {
       mode: "edit", kind: "proposal", intent: "improve", text: rationale, sourcesUsed,
-      metadata: { warnings: context.warnings, finishReason: "stop" },
+      metadata: { warnings: context.warnings, finishReason: "stop", operationId },
       proposal: { target: { courseId: context.course.id, lessonId: context.lesson.id },
-        patch: { title: null, subtitle: null, description: null, content: nextContent, objectives: null }, application: "explicit_only" },
+        patch: { title: null, subtitle: null, description: null, content: nextContent, objectives: null }, application: "explicit_only", baseContent: context.lesson.content },
     };
     report("ok", "none", targeted);
     return { ok: true, kind: "proposal", result };
   } catch (error) {
-    const code = failureCode(error);
+    const code = error instanceof ForgeError && error.code === "result_too_long" && validationFailure === "output_limit" ? "truncated_output" : failureCode(error);
     report(code, code === "invalid_result" ? (validationFailure === "none" ? "malformed_output" : validationFailure) : "none", targeted);
     return { ok: false, error: code };
   }
