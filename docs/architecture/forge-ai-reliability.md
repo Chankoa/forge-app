@@ -18,9 +18,11 @@ Targeted lesson operations validate the selected range at application. Full less
 
 ## Analyze output contract
 
-Lesson Analyze transformations have a minimal four-field envelope: a complete `rationale`, `title: null`, complete replacement `content`, and `addition: null`. Additive and targeted operations have their own bounded schemas; diagnostic coherence reviews return a summary plus zero to four findings and never contain a patch. The provider receives an explicit instruction for every required null field, so a structurally valid transformation is not rejected merely because an optional-looking field was omitted.
+Lesson Analyze transformations have a minimal two-field envelope: a complete `rationale` and complete replacement `content`. `title`, `addition`, and `suggestions` are not part of this contract: title changes are out of scope, and additive work uses the separate bounded targeted-operation schema. Diagnostic coherence reviews return a summary plus zero to four findings and never contain a patch. The task instructions and native schema use this same envelope; this removes the contradictory `addition: null` instruction that previously made otherwise usable structured output fail validation.
 
 An incomplete or malformed mutation is never applied. A normal diagnostic review can remain visible when it has passed its own schema. A non-`stop` provider completion with `length` is classified as `truncated_output` and shown as: “Forge n’a pas terminé son analyse. Aucun changement n’a été appliqué.” Other invalid shapes remain a retryable incomplete analysis. Each retry is a new request and emits a new opaque operation ID; no invalid proposal is reused.
+
+For complete structured provider output, the application separately records a safe completion category (`unfinished_list`, `unfinished_ending`, `unclosed_fence`, or `at_limit`) without recording generated text. Short lesson rewrites request a concise proportional result rather than a large fixed-length expansion; the 3,800-character hard limit remains unchanged.
 
 ## Retry rules
 

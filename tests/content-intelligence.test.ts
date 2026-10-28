@@ -4,14 +4,14 @@ import test from "node:test";
 import { capabilityDefinitions, capabilityModel, resolveCapability } from "../lib/forge/intelligence/capabilities";
 import { contentRequestSchema, contentReviewSchema, contentTransformSchema, type ContentTask } from "../lib/forge/intelligence/contracts";
 import { runContentIntelligence, type ContentDeps } from "../lib/forge/intelligence/content";
-import { completeContentText, contentTaskPolicy } from "../lib/forge/intelligence/content-policy";
+import { completeContentText, contentCompletionFailure, contentTaskPolicy } from "../lib/forge/intelligence/content-policy";
 import { applyTargetedOperation } from "../lib/forge/intelligence/content-operations";
 import { forgeResultAfterResponse } from "../lib/forge/result-state";
 import type { ForgeReader } from "../lib/forge/context";
 
 const sourceId = "11111111-1111-4111-8111-111111111111";
 const input = { courseSlug: "cours", lessonSlug: "lecon", task: "improve" as ContentTask, sourceIds: [] as string[] };
-const transform = { rationale: "La progression est plus claire.", title: null, content: "Contenu amélioré.", addition: null };
+const transform = { rationale: "La progression est plus claire.", content: "Contenu amélioré." };
 function fixture(content = "Contenu initial", level: string | null = "beginner") {
   const calls: string[] = [];
   const reader: ForgeReader = {
@@ -63,16 +63,13 @@ test("improve reuses a lesson-only explicit proposal and selected source context
   assert.ok(!calls.join(" ").includes("entire course body"));
 });
 
-test("lesson improvement never proposes a title change", async () => {
+test("lesson improvement rejects fields outside its transformation contract", async () => {
   const { deps } = fixture();
   deps.provider.generate = async () => ({
     output: { ...transform, title: "Titre généré hors périmètre" },
     finishReason: "stop",
   });
-  const response = await runContentIntelligence(input, deps);
-  assert.ok(response.ok && response.kind === "proposal");
-  assert.equal(response.result.proposal.patch.title, null);
-  assert.equal(response.result.proposal.patch.content, transform.content);
+  assert.deepEqual(await runContentIntelligence(input, deps), { ok: false, error: "invalid_result" });
 });
 
 for (const task of ["clarify", "adapt_level"] as const) test(`${task} returns a scoped content patch`, async () => {
@@ -113,6 +110,8 @@ test("task-specific limits and conservative completion checks reject cutoff endi
   assert.equal(completeContentText("Texte coupé au milieu", "suggest_activity"), false);
   assert.equal(completeContentText("x".repeat(2499) + ".", "suggest_activity"), false);
   assert.equal(completeContentText("Une activité courte et terminée.", "suggest_activity"), true);
+  assert.equal(contentCompletionFailure("Une activité\n-", "suggest_activity"), "unfinished_list");
+  assert.equal(contentCompletionFailure("Une activité incomplète de", "improve"), "unfinished_ending");
   for (const unfinished of ["Une phrase,", "Une phrase :", "Une phrase et", "Une activité\n-", "Une activité\n2)", "Une activité\n- Étape :", "Une activité\n```code"]) {
     assert.equal(completeContentText(unfinished, "suggest_activity"), false, unfinished);
   }
@@ -245,8 +244,8 @@ test("full Analyze proposals retain the observed baseline and expose safe diagno
   assert.ok(response.ok && response.kind === "proposal");
   assert.equal(response.result.proposal.baseContent, "Contenu initial");
   assert.match(String(response.result.metadata.operationId), /^[0-9a-f-]{36}$/);
-  assert.match(calls.at(-1) ?? "", /title: null/);
-  assert.match(calls.at(-1) ?? "", /addition: null/);
+  assert.match(calls.at(-1) ?? "", /exactement rationale et content/);
+  assert.doesNotMatch(calls.at(-1) ?? "", /addition doit être null/);
   assert.match(String(events.at(-1)?.operationId), /^[0-9a-f-]{36}$/);
   assert.equal(events.at(-1)?.validationFailure, "none");
 });

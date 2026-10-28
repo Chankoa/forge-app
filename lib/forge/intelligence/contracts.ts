@@ -78,9 +78,7 @@ export const contentRequestSchema = z.object({
 export type ContentRequest = z.infer<typeof contentRequestSchema>;
 export const contentTransformSchema = z.object({
   rationale: z.string().trim().min(1).max(700),
-  title: z.string().trim().min(2).max(220).nullable(),
   content: z.string().trim().min(1).max(3800).nullable(),
-  addition: z.string().trim().min(1).max(2500).nullable(),
 }).strict();
 export const targetedOperationGenerationSchema = z.object({
   replacement: z.string().trim().min(1).max(3800),

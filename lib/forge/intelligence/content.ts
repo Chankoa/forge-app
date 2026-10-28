@@ -3,7 +3,7 @@ import { ForgeError, type ForgeErrorCode, type ForgeResult } from "../contracts"
 import { capabilityDefinitions } from "./capabilities";
 import { contentRequestSchema, contentReviewSchema, contentTransformSchema, targetedOperationGenerationSchema, type ContentReview, type ContentTask, type TargetedOperation } from "./contracts";
 import { applyTargetedOperation, resolveTarget } from "./content-operations";
-import { completeContentText, contentTaskPolicy, fullRewriteThreshold, reviewTextLength } from "./content-policy";
+import { completeContentText, contentCompletionFailure, contentTaskPolicy, fullRewriteThreshold, reviewTextLength } from "./content-policy";
 
 export type ContentResponse =
   | { ok: true; kind: "proposal"; result: Extract<ForgeResult, { kind: "proposal" }> }
@@ -22,9 +22,9 @@ export type ContentDeps = {
 };
 
 const taskInstructions: Record<ContentTask, string> = {
-  improve: "Améliore la clarté, les transitions et la progression de la leçon sans changer son sens. Retourne le contenu complet modifié dans content ; addition doit être null.",
-  clarify: "Clarifie les passages difficiles sans abaisser le niveau demandé ni toucher aux sections sans rapport. Retourne le contenu complet modifié dans content ; addition doit être null.",
-  adapt_level: "Adapte explicitement la leçon au targetLevel fourni, sans perdre son objectif ni inventer de faits. Retourne le contenu complet modifié dans content ; addition doit être null.",
+  improve: "Améliore la clarté, les transitions et la progression de la leçon sans changer son sens. Retourne le contenu complet modifié dans content.",
+  clarify: "Clarifie les passages difficiles sans abaisser le niveau demandé ni toucher aux sections sans rapport. Retourne le contenu complet modifié dans content.",
+  adapt_level: "Adapte explicitement la leçon au targetLevel fourni, sans perdre son objectif ni inventer de faits. Retourne le contenu complet modifié dans content.",
   add_example: "Propose UN exemple concret lié à l'objectif et au domaine. Les chiffres éventuels doivent être explicitement hypothétiques. Termine par une phrase complète. Retourne uniquement le nouveau passage dans addition ; content et title doivent être null. Il sera ajouté au brouillon existant.",
   suggest_activity: "Propose UNE activité concise et complète liée à l'objectif, avec une consigne, des étapes et un résultat attendu, sans moteur d'évaluation ni champ nouveau. Termine par une phrase complète et ne commence pas d'étape que tu ne peux pas achever. Retourne uniquement le nouveau passage dans addition ; content et title doivent être null. Il sera ajouté au brouillon existant.",
   coherence_review: "Examine seulement l'alignement du titre, des objectifs, du contenu, du module et du niveau. Retourne summary et au plus quatre findings distincts ; zéro finding est valide si la leçon est cohérente. Aucun patch ni réécriture.",
@@ -84,7 +84,7 @@ export async function runContentIntelligence(raw: unknown, deps: ContentDeps): P
       ? { course: context.course, module: context.module, lesson: { ...context.lesson, content: undefined }, target: targetContext, sources: context.sources.map((source) => ({ ...source, text: source.text.slice(0, 1800) })) }
       : { course: context.course, module: context.module, lesson: request.task === "coherence_review" && isLong ? { ...context.lesson, content: lessonContent.slice(0, 3000), contentPartial: true } : context.lesson, sources: context.sources };
     const messages = {
-      system: `${capabilityDefinitions.content_intelligence.system}\n${taskInstructions[request.task]}\nPour ${request.task}, vise ${contentTaskPolicy[request.task].target}. La limite stricte est ${contentTaskPolicy[request.task].maxChars} caractères pour ${request.task === "coherence_review" ? "l'ensemble du texte de la revue" : request.task === "add_example" || request.task === "suggest_activity" ? "addition ou remplacement" : "content"}. ${targeted ? "Retourne uniquement replacement et rationale pour le passage ciblé. N'écris jamais une réécriture complète de la leçon." : "Pour une transformation complète, retourne exactement rationale, title: null, content (texte complet) et addition: null. Ne laisse aucun de ces quatre champs absent."} Pour une transformation, rationale doit être une ou deux phrases complètes et brèves (idéalement moins de 350 caractères). Ne tronque jamais une phrase, un paragraphe ou une liste pour tenir dans la limite. Ne retourne que le résultat structuré, sans prose hors schéma.`,
+      system: `${capabilityDefinitions.content_intelligence.system}\n${taskInstructions[request.task]}\nPour ${request.task}, vise ${contentTaskPolicy[request.task].target}. La limite stricte est ${contentTaskPolicy[request.task].maxChars} caractères pour ${request.task === "coherence_review" ? "l'ensemble du texte de la revue" : request.task === "add_example" || request.task === "suggest_activity" ? "addition ou remplacement" : "content"}. ${targeted ? "Retourne uniquement replacement et rationale pour le passage ciblé. N'écris jamais une réécriture complète de la leçon." : "Pour une transformation complète, retourne exactement rationale et content (texte complet). N’ajoute aucun autre champ."} Pour une transformation, rationale doit être une ou deux phrases complètes et brèves (idéalement moins de 350 caractères). Ne tronque jamais une phrase, un paragraphe ou une liste pour tenir dans la limite. Ne retourne que le résultat structuré, sans prose hors schéma.`,
       prompt: JSON.stringify({ task: request.task, targetLevel: request.targetLevel ?? null, input: request.input ?? "", knowledge }),
     };
     if (messages.system.length + messages.prompt.length > deps.maxInputChars) throw new ForgeError("context_unavailable");
@@ -118,15 +118,15 @@ export async function runContentIntelligence(raw: unknown, deps: ContentDeps): P
     }
     const checked = contentTransformSchema.safeParse(generated.output);
     if (!checked.success) { validationFailure = "content_transform_schema"; throw new ForgeError("invalid_result"); }
-    const { title, content, addition, rationale } = checked.data;
+    const { content, rationale } = checked.data;
     if (!completeContentText(rationale, "improve")) { validationFailure = "rationale_incomplete"; throw new ForgeError("invalid_result"); }
-    const additive = additiveTasks.has(request.task);
-    if (additive ? !addition || content !== null || title !== null : !content || addition !== null) {
+    if (!content) {
       validationFailure = "proposal_shape"; throw new ForgeError("invalid_result");
     }
-    const generatedText = additive ? addition! : content!;
-    if (!completeContentText(generatedText, request.task)) { validationFailure = "content_incomplete"; throw new ForgeError("invalid_result"); }
-    const nextContent = additive ? [context.lesson.content.trimEnd(), addition].filter(Boolean).join("\n\n") : content!;
+    const generatedText = content;
+    const completionFailure = contentCompletionFailure(generatedText, request.task);
+    if (completionFailure) { validationFailure = `content_incomplete_${completionFailure}`; throw new ForgeError("invalid_result"); }
+    const nextContent = content;
     if (nextContent.length > contentTaskPolicy.improve.maxChars) throw new ForgeError("invalid_result");
     const result: Extract<ForgeResult, { kind: "proposal" }> = {
       mode: "edit", kind: "proposal", intent: "improve", text: rationale, sourcesUsed,
