@@ -24,6 +24,10 @@ An incomplete or malformed mutation is never applied. A normal diagnostic review
 
 For complete structured provider output, the application separately records a safe completion category (`unfinished_list`, `unfinished_ending`, `unclosed_fence`, or `at_limit`) without recording generated text. Short lesson rewrites request a concise proportional result rather than a large fixed-length expansion; the 3,800-character hard limit remains unchanged.
 
+### Analyse recovery diagnostic (Sprint 17.1)
+
+`finishReason: stop` confirms that the provider ended its structured response; it does not itself prove that the pedagogical text is complete. The `content_incomplete_unfinished_ending` category therefore means the strict transformation envelope was valid, but `content` ended without a terminal sentence delimiter. It is neither a transport truncation nor a missing-field/schema failure. Full-transform prompts now explicitly require the final `content` line to end with `.`, `!`, `?`, or `…`; the server-side completion check remains the authority and still refuses incomplete content. A deterministic test covers an incomplete response refusal followed by a new operation, a refreshed server baseline, and explicit local application of the valid replacement. No generated content is retained in telemetry.
+
 ## Retry rules
 
 Provider failures and timeouts have an explicit user retry path. Provider adapters set `maxRetries: 0`; retries are always initiated by the user and generate a new operation ID. Apply is deliberately not retried automatically: a network failure can follow a write. Course-plan apply is consumed after its first attempt and requires a fresh analysis before another application.

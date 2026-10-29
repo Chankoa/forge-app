@@ -6,6 +6,7 @@ import { contentRequestSchema, contentReviewSchema, contentTransformSchema, type
 import { runContentIntelligence, type ContentDeps } from "../lib/forge/intelligence/content";
 import { completeContentText, contentCompletionFailure, contentTaskPolicy } from "../lib/forge/intelligence/content-policy";
 import { applyTargetedOperation } from "../lib/forge/intelligence/content-operations";
+import { applyLessonProposalToDraft } from "../lib/forge/lesson-proposal-application";
 import { forgeResultAfterResponse } from "../lib/forge/result-state";
 import type { ForgeReader } from "../lib/forge/context";
 
@@ -248,4 +249,33 @@ test("full Analyze proposals retain the observed baseline and expose safe diagno
   assert.doesNotMatch(calls.at(-1) ?? "", /addition doit être null/);
   assert.match(String(events.at(-1)?.operationId), /^[0-9a-f-]{36}$/);
   assert.equal(events.at(-1)?.validationFailure, "none");
+});
+
+test("an incomplete transformation is refused, then a fresh analysis safely applies against the refreshed baseline", async () => {
+  const { deps } = fixture("Contenu initial.");
+  const events: Array<Record<string, string | number>> = [];
+  deps.telemetry = (event) => events.push(event);
+  deps.provider.generate = async () => ({
+    output: { rationale: "La formulation est plus directe.", content: "Contenu qui se termine sans ponctuation" },
+    finishReason: "stop",
+  });
+
+  const incomplete = await runContentIntelligence({ ...input, task: "clarify" }, deps);
+  assert.deepEqual(incomplete, { ok: false, error: "invalid_result" });
+  assert.equal(events.at(-1)?.validationFailure, "content_incomplete_unfinished_ending");
+
+  deps.reader.lesson = async () => ({ id: "lesson-id", course_id: "course-id", module_id: "module-id", title: "Leçon", description: "Résumé", content: "Contenu édité manuellement.", objectives: ["Comprendre les bases"] });
+  deps.provider.generate = async () => ({
+    output: { rationale: "La clarification respecte maintenant le contexte actuel.", content: "Contenu clarifié à partir de l’édition actuelle." },
+    finishReason: "stop",
+  });
+
+  const recovered = await runContentIntelligence({ ...input, task: "clarify" }, deps);
+  assert.ok(recovered.ok && recovered.kind === "proposal");
+  if (!recovered.ok || recovered.kind !== "proposal") return;
+  assert.equal(recovered.result.proposal.baseContent, "Contenu édité manuellement.");
+  assert.notEqual(recovered.result.metadata.operationId, events.at(0)?.operationId);
+  const applied = applyLessonProposalToDraft({ title: "Leçon", description: "Résumé", content: "Contenu édité manuellement.", objectives: "Comprendre les bases", type: "reading", durationMinutes: "10", publishingStatus: "draft" }, "improve", recovered.result.proposal.patch, recovered.result.proposal.baseContent);
+  assert.ok(applied.ok);
+  if (applied.ok) assert.equal(applied.draft.content, "Contenu clarifié à partir de l’édition actuelle.");
 });

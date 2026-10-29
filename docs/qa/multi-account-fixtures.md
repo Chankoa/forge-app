@@ -100,3 +100,55 @@ préfixe seul ni effacer les comptes Auth dans un reset courant.
 Les contrôles navigateur à exécuter avec ces sessions couvrent aussi publication /
 dépublication / republication, visibilité publique temporaire, source non exposée,
 responsive (390, 430, 768, 1100, 1440), thème sombre et navigation clavier.
+
+## Exécution Sprint 17 — Analyse Forge et récupération
+
+Exécuté le 29 octobre 2026 avec `QA_OWNER`, sur **Resource QA** du cours
+`qa-forge-reliability-course`. Le contenu de la fixture a été restauré et
+sauvegardé à son état canonique après les essais :
+
+```md
+# Resource QA
+
+Validation d’enregistrement par QA_EDITOR.
+```
+
+| Scénario | Preuve observée | Résultat |
+| --- | --- | --- |
+| Analyse `clarify` initiale | opération `34616563-c307-42e4-b471-596fdef652b3`, `finishReason: stop`, validation `none` | proposition structurée affichée, sans mutation automatique |
+| Double soumission | tous les boutons Analyse désactivés pendant la requête | une seconde requête concurrente ne peut pas être déclenchée par l’interface |
+| Proposition obsolète | modification locale après la proposition, puis application | rejet visible : « Le contenu a changé depuis cette proposition. Relancez l’analyse. » ; l’édition locale est restée intacte |
+| Relance après sauvegarde explicite | deux opérations distinctes après sauvegarde | deux sorties refusées sans mutation, catégorie `content_incomplete_unfinished_ending` |
+| Restauration fixture | notification « Sauvegardée » et état d’éditeur sauvegardé | contenu canonique restauré ; cours toujours publié et privé |
+
+Les deux opérations de relance (`ffb8b4b6-171d-46e0-9a8a-a91a59274698` et
+`0034e91d-aec7-4d5e-9c30-1abf35812e86`) se sont arrêtées normalement côté
+provider (`finishReason: stop`), mais ont été refusées par le contrôle local de
+fin de contenu. Aucun texte de leçon, prompt, source privée, URL signée ou secret
+n’est conservé dans cette documentation. Après ces deux échecs consécutifs, aucun
+autre appel réel n’a été tenté.
+
+Limite connue : le navigateur empêche les requêtes Analyse concurrentes ; le test
+de réponses qui arriveraient réellement dans le désordre n’est donc pas exécutable
+par l’interface actuelle. Le verrou `pendingRef` est la protection contractuelle
+de ce cas. Toute réanalyse de contenu doit suivre une sauvegarde explicite si elle
+doit utiliser le brouillon local comme nouveau contexte serveur.
+
+## Sprint 17.1 — Diagnostic déterministe des réponses incomplètes
+
+Le 29 octobre 2026, l’analyse du pipeline a confirmé que les deux échecs Sprint 17
+ne correspondaient pas à une troncature provider : chaque opération avait
+`finishReason: stop` et avait produit l’enveloppe structurée attendue. Elles ont
+été refusées parce que la dernière ligne de `content` ne portait pas de ponctuation
+de phrase terminale, ce qui déclenche volontairement
+`content_incomplete_unfinished_ending`. Aucun contenu généré n’est documenté ou
+journalisé.
+
+Une couverture déterministe simule ensuite la séquence suivante : réponse
+structurée incomplète refusée, changement du contenu serveur, nouvelle réponse
+structurée complète, proposition avec une nouvelle `operationId` et `baseContent`
+actualisé, puis application locale explicite. Elle vérifie que l’ancienne réponse
+ne peut pas être appliquée et que la récupération utilise uniquement le contexte
+rechargé. Les réponses réellement désordonnées restent inatteignables par
+l’interface à requête unique ; ce verrou est conservé et cette limite n’est pas
+présentée comme une validation navigateur.
