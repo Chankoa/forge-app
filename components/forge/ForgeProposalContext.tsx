@@ -4,11 +4,12 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 import type { ForgeIntent, ForgeResult } from "@/lib/forge/contracts";
 import type { TargetedOperation } from "@/lib/forge/intelligence/contracts";
 import type { LessonProposalApplication } from "@/lib/forge/lesson-proposal-application";
+import { lessonAnalysisState, type LessonAnalysisSnapshot } from "@/lib/forge/lesson-analysis-state";
 
 type ForgeProposalResult = Extract<ForgeResult, { proposal: unknown }>;
 export type TargetedContentProposal = { kind: "targeted"; target: { courseId: string; lessonId: string }; operation: TargetedOperation; text: string; sourcesUsed: Array<{ id: string; title: string }> };
 export type ForgeLocalProposal = ForgeProposalResult | TargetedContentProposal;
-export type LessonDraftBridge = { lessonId: string; getContent(): string; applyContent(content: string): void; applyProposal(intent: ForgeIntent, patch: unknown, baseContent?: string | null): LessonProposalApplication };
+export type LessonDraftBridge = { lessonId: string; getContent(): string; getAnalysisSnapshot(): LessonAnalysisSnapshot; applyContent(content: string): void; applyProposal(intent: ForgeIntent, patch: unknown, baseContent?: string | null): LessonProposalApplication };
 export type LessonSelection = { text: string; start: number; end: number };
 type ForgeProposalContextValue = {
   proposal: ForgeLocalProposal | null;
@@ -16,7 +17,7 @@ type ForgeProposalContextValue = {
   registerLessonDraft(bridge: LessonDraftBridge): () => void;
   applyLessonProposal(lessonId: string, proposal: ForgeProposalResult): LessonProposalApplication;
   setLessonSelection(lessonId: string, selection: LessonSelection | null): void;
-  lessonDraft(lessonId: string): { content: string; selection: LessonSelection | null; apply(content: string): void } | null;
+  lessonDraft(lessonId: string): ({ content: string; selection: LessonSelection | null; apply(content: string): void } & ReturnType<typeof lessonAnalysisState>) | null;
 };
 
 const ForgeProposalContext = createContext<ForgeProposalContextValue | null>(null);
@@ -36,7 +37,7 @@ export function ForgeProposalProvider({ children }: { children: ReactNode }) {
   const lessonDraft = useCallback((lessonId: string) => {
     const bridge = bridges[lessonId];
     if (!bridge) return null;
-    return { content: bridge.getContent(), selection: selections[lessonId] ?? null, apply: bridge.applyContent };
+    return { ...lessonAnalysisState(bridge.getAnalysisSnapshot()), content: bridge.getContent(), selection: selections[lessonId] ?? null, apply: bridge.applyContent };
   }, [bridges, selections]);
   const setLessonSelection = useCallback((lessonId: string, selection: LessonSelection | null) => setSelections((current) => ({ ...current, [lessonId]: selection })), []);
   const value = useMemo<ForgeProposalContextValue>(() => ({ proposal, setProposal, registerLessonDraft, applyLessonProposal, setLessonSelection, lessonDraft }), [applyLessonProposal, lessonDraft, proposal, registerLessonDraft, setLessonSelection]);

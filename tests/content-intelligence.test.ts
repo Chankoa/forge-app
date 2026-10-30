@@ -9,6 +9,8 @@ import { applyTargetedOperation } from "../lib/forge/intelligence/content-operat
 import { applyLessonProposalToDraft } from "../lib/forge/lesson-proposal-application";
 import { forgeResultAfterResponse } from "../lib/forge/result-state";
 import type { ForgeReader } from "../lib/forge/context";
+import { lessonAnalysisState, lessonResultIsStale } from "../lib/forge/lesson-analysis-state";
+import type { LessonDraft } from "../lib/courses/lesson-draft";
 
 const sourceId = "11111111-1111-4111-8111-111111111111";
 const input = { courseSlug: "cours", lessonSlug: "lecon", task: "improve" as ContentTask, sourceIds: [] as string[] };
@@ -29,6 +31,54 @@ function fixture(content = "Contenu initial", level: string | null = "beginner")
   return { deps, calls, reader };
 }
 
+test("saved-draft analysis lifecycle: dirty guard, explicit save, provider failure, fresh operation and explicit apply", async () => {
+  const { deps, calls } = fixture("Contenu initial.");
+  let saved: LessonDraft = { title: "Leçon", description: "Résumé", content: "Contenu initial.", objectives: "Comprendre les bases", type: "reading", durationMinutes: "", publishingStatus: "draft" };
+  let draft = { ...saved, content: "Contenu édité." };
+  assert.ok(lessonAnalysisState({ draft, savedDraft: saved, saving: false }).blockedReason);
+  assert.equal(calls.length, 0);
+
+  // Simulate confirmation from the existing explicit save action.
+  saved = { ...draft };
+  deps.reader.lesson = async () => ({ id: "lesson-id", course_id: "course-id", module_id: "module-id", title: saved.title, description: saved.description, content: saved.content, objectives: [saved.objectives] });
+  const baseline = lessonAnalysisState({ draft, savedDraft: saved, saving: false });
+  assert.equal(baseline.blockedReason, null);
+  const first = await runContentIntelligence(input, deps);
+  assert.ok(first.ok && first.kind === "proposal");
+  assert.equal(first.result.proposal.baseContent, draft.content);
+  assert.equal(draft.content, "Contenu édité.");
+
+  draft = { ...draft, content: "Nouvelle édition pendant ou après la demande." };
+  assert.ok(lessonResultIsStale(baseline.fingerprint, lessonAnalysisState({ draft, savedDraft: saved, saving: false })));
+  assert.deepEqual(applyLessonProposalToDraft(draft, first.result.intent, first.result.proposal.patch, first.result.proposal.baseContent), { ok: false, reason: "stale" });
+  saved = { ...draft };
+  const nextBaseline = lessonAnalysisState({ draft, savedDraft: saved, saving: false });
+  assert.ok(lessonResultIsStale(baseline.fingerprint, nextBaseline));
+
+  const telemetry: Array<Record<string, string | number>> = [];
+  deps.telemetry = (event) => telemetry.push(event);
+  deps.provider.generate = async () => { throw Object.assign(new Error("provider unavailable"), { code: "provider_network" }); };
+  const failed = await runContentIntelligence(input, deps);
+  assert.deepEqual(failed, { ok: false, error: "provider_network" });
+  assert.equal(draft.content, saved.content);
+  assert.ok(lessonResultIsStale(baseline.fingerprint, nextBaseline));
+
+  deps.provider.generate = async () => ({ output: transform, finishReason: "stop" });
+  const fresh = await runContentIntelligence(input, deps);
+  assert.ok(fresh.ok && fresh.kind === "proposal");
+  assert.notEqual(fresh.result.metadata.operationId, first.result.metadata.operationId);
+  assert.notEqual(telemetry[0].operationId, telemetry[1].operationId);
+  assert.equal(fresh.result.proposal.baseContent, saved.content);
+  assert.equal(lessonResultIsStale(nextBaseline.fingerprint, lessonAnalysisState({ draft, savedDraft: saved, saving: false })), false);
+  assert.equal(draft.content, saved.content);
+  const applied = applyLessonProposalToDraft(draft, fresh.result.intent, fresh.result.proposal.patch, fresh.result.proposal.baseContent);
+  assert.ok(applied.ok);
+  draft = applied.draft;
+  assert.equal(draft.content, transform.content);
+  assert.equal(saved.content, "Nouvelle édition pendant ou après la demande.");
+  assert.ok(lessonAnalysisState({ draft, savedDraft: saved, saving: false }).blockedReason);
+});
+
 test("content capability resolves with separate prompt, schema, context and model override", () => {
   const capability = resolveCapability("content_intelligence");
   assert.equal(capability?.contextPolicy, "owned_lesson_with_selected_sources");
@@ -36,6 +86,18 @@ test("content capability resolves with separate prompt, schema, context and mode
   assert.match(capabilityDefinitions.content_intelligence.system, /plus petit changement/);
   assert.equal(capabilityModel("content_intelligence", { FORGE_CONTENT_INTELLIGENCE_MODEL: "special" }, "default"), "special");
   assert.equal(capabilityModel("curriculum_analysis", {}, "default"), "default");
+});
+
+test("saved-draft content analysis preserves active Editor access and rejects Viewer before provider execution", async () => {
+  const { deps, reader, calls } = fixture("Contenu sauvegardé.");
+  deps.userId = "collaborator";
+  reader.membership = async () => ({ role: "editor", status: "active" });
+  const editor = await runContentIntelligence(input, deps);
+  assert.ok(editor.ok && editor.kind === "proposal");
+  calls.length = 0;
+  reader.membership = async () => ({ role: "viewer", status: "active" });
+  assert.deepEqual(await runContentIntelligence(input, deps), { ok: false, error: "forbidden" });
+  assert.equal(calls.length, 0);
 });
 
 test("request enforces a real lesson, supported target level and bounded sources", () => {

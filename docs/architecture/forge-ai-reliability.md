@@ -16,6 +16,16 @@ Course-plan application is different: selected operations are server-persisted s
 
 Targeted lesson operations validate the selected range at application. Full lesson-content proposals now retain the observed base content and compare it with the current local draft before applying. A mismatch is rejected with: “Le contenu a changé depuis cette proposition. Relancez l’analyse.” No newer local draft is overwritten.
 
+### Local draft / saved context (Sprint 18)
+
+Lesson generation and analysis still read the persisted lesson through the server reader, never the unsaved editor text. The editor bridge now exposes its live draft, last successfully submitted save snapshot, and save-in-progress flag. Its registration is refreshed when these states change, so Forge panels react to typing, local proposal application, and save completion, not just text selection.
+
+All lesson-scoped authoring requests (Analyze tasks, suggestions, Conversation, regeneration/adjustment, and empty-lesson generation) require a clean draft and a completed explicit save. The UI explains the prerequisite and disables the relevant controls; request handlers also recheck live bridge state. The normal save action remains the sole persistence path. Edits made while a save is in flight remain dirty because only the submitted snapshot is acknowledged.
+
+Each successful local result retains a request-time fingerprint of the entire lesson draft in client memory. Later changes to content or lesson information mark proposals and coherence reviews obsolete, including changes made while the provider was running. Saving those edits does not make the old result current again. Obsolete proposals remain readable, but apply is disabled and guarded; a fresh successful request replaces the corresponding baseline. A failed regeneration preserves the previous result and its original baseline. The existing `baseContent` and selected-range checks remain independent application safeguards, including a sticky obsolete state when they report a conflict. The fingerprint is not sent to the server, persisted, logged, or used as an operation ID.
+
+Course-level planning, learning mode, permission checks, publication, provider configuration, output validation, timeouts, and explicit retry policy are unchanged. This is a local UX consistency guard, not a cross-tab or multi-user versioning protocol. See the [Sprint 18 audit and executed scenarios](../audits/sprint-18-local-draft-forge-coherence.md).
+
 ## Analyze output contract
 
 Lesson Analyze transformations have a minimal two-field envelope: a complete `rationale` and complete replacement `content`. `title`, `addition`, and `suggestions` are not part of this contract: title changes are out of scope, and additive work uses the separate bounded targeted-operation schema. Diagnostic coherence reviews return a summary plus zero to four findings and never contain a patch. The task instructions and native schema use this same envelope; this removes the contradictory `addition: null` instruction that previously made otherwise usable structured output fail validation.

@@ -50,3 +50,20 @@ test("incomplete regeneration preserves the previous result; complete regenerati
   const replacement: ForgeResult = { ...proposal, text: "Proposition régénérée" };
   assert.equal(forgeResultAfterResponse(proposal, { ok: true, result: replacement }), replacement);
 });
+
+test("stale proposals remain readable but cannot apply; regeneration requires a saved lesson", () => {
+  const renderState = (generationBlocked: boolean) => renderToStaticMarkup(createElement(ForgeProposalDialog, {
+    result: proposal, busy: false, applying: false, error: null, stale: true, generationBlocked,
+    onClose() {}, onApply() {}, onReject() {}, onRegenerate() {}, onAdjust() {},
+  }));
+  const dirty = renderState(true);
+  assert.match(dirty, /Proposition obsolète/);
+  assert.match(dirty, /Proposition précédente utilisable/);
+  for (const label of ["Appliquer au brouillon", "Régénérer", "Demander un ajustement"]) {
+    assert.match(dirty, new RegExp(`disabled=""[^>]*>${label}`));
+  }
+  const clean = renderState(false);
+  assert.match(clean, /disabled=""[^>]*>Appliquer au brouillon/);
+  assert.doesNotMatch(clean, /disabled=""[^>]*>Régénérer/);
+  assert.doesNotMatch(clean, /disabled=""[^>]*>Rejeter/);
+});

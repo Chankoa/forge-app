@@ -22,6 +22,7 @@ import type { MediaPresentation } from "@/lib/courses/media-contracts";
 import { forgeLessonContentEvent, forgeLessonSavedEvent } from "@/lib/forge/lesson-content-event";
 import { forgeContextLabels, forgeErrorMessages, forgeProposalStates } from "@/lib/forge/authoring-ux";
 import { dispatchToast } from "@/lib/ui/toast";
+import { lessonAnalysisMessages, lessonResultIsStale } from "@/lib/forge/lesson-analysis-state";
 
 const learnIntents: Array<{ label: string; value: ForgeIntent }> = [
   { label: "Expliquer", value: "explain" }, { label: "Clarifier", value: "clarify" }, { label: "Reformuler", value: "rephrase" }, { label: "Donner un exemple", value: "example" }, { label: "Me questionner", value: "quiz" },
@@ -50,6 +51,9 @@ export function ForgeRail({ context, availability, course, lessonResources = [] 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [applying, setApplying] = useState(false);
   const applyingRef = useRef(false);
+  const pendingRef = useRef(false);
+  const [resultBaseline, setResultBaseline] = useState<string | null>(null);
+  const [staleConflict, setStaleConflict] = useState(false);
   const [confirmation, setConfirmation] = useState("");
   const [lastRequest, setLastRequest] = useState<{ intent: ForgeIntent; input?: string; sourceIds: string[] } | null>(null);
   const [activeTab, setActiveTab] = useState<"suggestions" | "analysis" | "resources" | "chat">("chat");
@@ -63,7 +67,11 @@ export function ForgeRail({ context, availability, course, lessonResources = [] 
     if (activeTab !== "analysis" || !focusedOperation) return;
     document.querySelector<HTMLElement>(`[data-plan-operation="${focusedOperation}"]`)?.focus();
   }, [activeTab, focusedOperation]);
-  const { setProposal, applyLessonProposal } = useForgeProposal();
+  const { setProposal, applyLessonProposal, lessonDraft } = useForgeProposal();
+  const lessonScope = context.mode === "edit" && Boolean(context.lessonId);
+  const currentDraft = lessonScope && context.lessonId ? lessonDraft(context.lessonId) : null;
+  const blockedReason = lessonScope ? currentDraft ? currentDraft.blockedReason : lessonAnalysisMessages.unavailable : null;
+  const resultStale = lessonScope && (staleConflict || lessonResultIsStale(resultBaseline, currentDraft));
 
   useEffect(() => {
     if (!context.lessonId) return;
@@ -85,19 +93,28 @@ export function ForgeRail({ context, availability, course, lessonResources = [] 
   }, [context.courseSlug, context.mode]);
 
 
-  const run = (intent: ForgeIntent, freeInput?: string, keepCurrent = false, requestedSourceIds = sourceIds, onResponse?: (response: ForgeResult) => void) => startTransition(async () => {
-    setActiveIntent(intent); setError(null); setConfirmation(""); if (!keepCurrent) { setResult(null); setProposal(null); }
-    try {
-      const response: ForgeResponse = await generateForgeAction({ mode: context.mode, intent, courseSlug: context.courseSlug, lessonSlug: context.lessonSlug, sourceIds: requestedSourceIds, input: freeInput });
-      setResult((current) => forgeResultAfterResponse(current, response));
-      if (!response.ok) { setError(response.error === "result_too_long" ? forgeErrorMessages.result_too_long : response.error === "invalid_result" ? "La proposition n’a pas pu être générée complètement. Vous pouvez réessayer." : errors[response.error]); return; }
-      setLastRequest({ intent, input: freeInput, sourceIds: requestedSourceIds });
-      onResponse?.(response.result);
-      if (response.result.mode === "edit" && "proposal" in response.result) setDialogOpen(true);
-    } catch {
-      setError("Forge n’a pas pu terminer la demande. Vous pouvez réessayer.");
-    } finally { setActiveIntent(null); }
-  });
+  const run = (intent: ForgeIntent, freeInput?: string, keepCurrent = false, requestedSourceIds = sourceIds, onResponse?: (response: ForgeResult) => void) => {
+    if (pendingRef.current) return;
+    const latest = lessonScope && context.lessonId ? lessonDraft(context.lessonId) : null;
+    if (lessonScope && (!latest || latest.blockedReason)) { setError(latest?.blockedReason ?? lessonAnalysisMessages.unavailable); return; }
+    const baseline = latest?.fingerprint ?? null;
+    pendingRef.current = true;
+    startTransition(async () => {
+      setActiveIntent(intent); setError(null); setConfirmation(""); if (!keepCurrent) { setResult(null); setProposal(null); }
+      try {
+        const response: ForgeResponse = await generateForgeAction({ mode: context.mode, intent, courseSlug: context.courseSlug, lessonSlug: context.lessonSlug, sourceIds: requestedSourceIds, input: freeInput });
+        setResult((current) => forgeResultAfterResponse(current, response));
+        if (!response.ok) { setError(response.error === "result_too_long" ? forgeErrorMessages.result_too_long : response.error === "invalid_result" ? "La proposition n’a pas pu être générée complètement. Vous pouvez réessayer." : errors[response.error]); return; }
+        setResultBaseline(baseline);
+        setStaleConflict(false);
+        setLastRequest({ intent, input: freeInput, sourceIds: requestedSourceIds });
+        onResponse?.(response.result);
+        if (response.result.mode === "edit" && "proposal" in response.result) setDialogOpen(true);
+      } catch {
+        setError("Forge n’a pas pu terminer la demande. Vous pouvez réessayer.");
+      } finally { pendingRef.current = false; setActiveIntent(null); }
+    });
+  };
   useEffect(() => {
     const generate = () => {
       if (context.mode !== "edit" || !context.lessonSlug || pending) return;
@@ -115,6 +132,7 @@ export function ForgeRail({ context, availability, course, lessonResources = [] 
   const submitChat = (value: string) => {
     const question = value.trim();
     if (!question || pending || workflow.pending) return;
+    if (blockedReason) { setError(blockedReason); return; }
     setActiveTab("chat");
     setChatMessages((current) => [...current, { role: "user", text: question }]);
     setChatInput("");
@@ -139,6 +157,8 @@ export function ForgeRail({ context, availability, course, lessonResources = [] 
 
   return <WorkspaceRail panel="forge">
       <h2>{context.mode === "learn" ? "Comprendre avec Forge" : context.lessonSlug ? "Forge pour cette leçon" : "Forge pour ce parcours"}</h2><p className="caption">Contexte : {context.lessonTitle ?? context.courseTitle}{context.moduleTitle ? ` · ${context.moduleTitle}` : ""}</p>
+      {lessonScope && <p className="caption" role="status" aria-live="polite">{blockedReason ?? (availability !== "configured" ? forgeErrorMessages.not_configured : pending ? "Analyse en cours sur la version sauvegardée." : lessonAnalysisMessages.ready)}</p>}
+      {result && resultStale && <p className="form-error" role="status">{lessonAnalysisMessages.stale}</p>}
       <div className="forge-context-tabs" role="tablist" aria-label="Espaces Forge">
         {tabs.map(({ id, label, icon: Icon }) => <button key={id} id={`forge-tab-${id}`} type="button" role="tab" aria-selected={activeTab === id} aria-controls="forge-panel-content" tabIndex={activeTab === id ? 0 : -1} onKeyDown={(event) => {
           if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
@@ -172,7 +192,7 @@ export function ForgeRail({ context, availability, course, lessonResources = [] 
             <p className="caption"><strong>Cible :</strong> {suggestion.target}</p>
             <p className="caption"><strong>Changement prévu :</strong> {suggestion.intendedChange}</p>
             <p className="caption"><strong>Application :</strong> {suggestion.application === "local_draft" ? "Brouillon local après examen et application explicites." : "Discussion uniquement ; aucun contenu ne sera modifié."}</p>
-            <button type="button" className="button button--secondary" disabled={Boolean(pending || availability === "not_configured")} onClick={() => suggestion.action === "ask"
+            <button type="button" className="button button--secondary" disabled={Boolean(blockedReason || pending || availability === "not_configured")} onClick={() => suggestion.action === "ask"
               ? submitChat(`À propos de ${suggestion.target} : ${suggestion.explanation} ${suggestion.evidence} ${suggestion.intendedChange}`)
               : run(suggestion.action, undefined, false, suggestion.action === "generate_content" ? generationSourceIds : sourceIds)}>{suggestion.actionLabel}</button>
           </article>)}
@@ -210,7 +230,7 @@ export function ForgeRail({ context, availability, course, lessonResources = [] 
             : "Demandez à Forge d’analyser, améliorer ou modifier ce parcours. La conversation est conservée uniquement dans cette session ; une proposition reste toujours à examiner."}</p>
           <div className="forge-chat__chips" aria-label="Actions contextuelles">
             {coursePlanning ? <button type="button" onClick={() => { setChatMessages((current) => [...current, { role: "user", text: "Analyser le parcours" }]); workflow.generate(); }}>Analyser le parcours</button> : null}
-            {chatPrompts.map((label) => <button key={label} type="button" disabled={pending || workflow.pending} onClick={() => submitChat(label)}>{label}</button>)}
+            {chatPrompts.map((label) => <button key={label} type="button" disabled={Boolean(blockedReason) || pending || workflow.pending} onClick={() => submitChat(label)}>{label}</button>)}
           </div>
           {chatMessages.length > 0 && <ol className="forge-chat__messages" aria-live="polite">{chatMessages.map((message, index) => <li className={`forge-chat__message forge-chat__message--${message.role}`} key={`${index}:${message.role}`}><strong>{message.role === "user" ? "Vous" : "Forge"}</strong><p>{message.text}</p></li>)}</ol>}
           {coursePlanning && course && workflow.data && <section className="forge-chat__plan" aria-label="Proposition Forge à examiner">
@@ -223,7 +243,7 @@ export function ForgeRail({ context, availability, course, lessonResources = [] 
             <label htmlFor="forge-chat-input">Votre demande</label><textarea id="forge-chat-input" value={chatInput} onChange={(event) => setChatInput(event.target.value)} maxLength={2000} placeholder={context.mode === "learn"
               ? context.lessonTitle ? `Posez une question sur « ${context.lessonTitle} »…` : "Posez une question sur ce parcours…"
               : context.lessonTitle ? `Demandez à Forge d’analyser, améliorer ou modifier « ${context.lessonTitle} »…` : "Demandez à Forge d’analyser, améliorer ou modifier ce parcours…"} />
-            <button type="submit" className="button button--secondary" disabled={Boolean(pending || workflow.pending || availability === "not_configured" || !chatInput.trim())}>{workflow.pending ? "Révision en cours…" : pending && activeIntent === "ask" ? "Forge répond..." : "Envoyer"}</button>
+            <button type="submit" className="button button--secondary" disabled={Boolean(blockedReason || pending || workflow.pending || availability === "not_configured" || !chatInput.trim())}>{workflow.pending ? "Révision en cours…" : pending && activeIntent === "ask" ? "Forge répond..." : "Envoyer"}</button>
           </form>
           {coursePlanning && workflow.message && <p role="status">{workflow.message}</p>}
           {coursePlanning && workflow.data && <button className="button button--secondary" type="button" onClick={() => setActiveTab("analysis")}>Examiner le plan actuel</button>}
@@ -232,6 +252,35 @@ export function ForgeRail({ context, availability, course, lessonResources = [] 
       {pending && <p className="forge-pending" role="status" aria-live="polite" aria-busy="true"><span aria-hidden="true" />{activeIntent === "improve" ? context.lessonSlug ? "Forge prépare une amélioration…" : "Forge améliore le parcours…" : activeIntent === "ask" ? "Forge prépare une réponse…" : "Forge prépare une proposition…"}</p>}{error && !dialogOpen && <p className="form-error" role="alert">{error}</p>}{confirmation && <p className="completion-state" role="status">{confirmation}</p>}
       {result && activeTab !== "chat" && <section className="forge-result"><p className="eyebrow">{proposal ? forgeProposalStates.generated : "Réponse Forge"}</p><div className="forge-result__text" tabIndex={0}>{result.text}</div><button type="button" className="button button--secondary" onClick={() => setDialogOpen(true)}>{proposal ? "Examiner la proposition" : "Ouvrir la réponse"}</button>{result.sourcesUsed.length > 0 && <p className="caption">Contexte utilisé · {result.sourcesUsed.map((source) => source.title).join(", ")}</p>}</section>}
       <p className="caption">{availability === "not_configured" ? forgeErrorMessages.not_configured : context.mode === "learn" ? "Forge répond au sujet du parcours sans modifier son contenu." : "Forge ne modifie jamais le contenu sans votre application et sauvegarde explicites."}</p>
-      <ForgeProposalDialog result={dialogOpen ? result : null} busy={pending || applying} applying={applying} error={dialogOpen ? error : null} onClose={() => { if (!applyingRef.current) setDialogOpen(false); }} onReject={() => { setDialogOpen(false); setResult(null); setProposal(null); }} onApply={() => { if (!proposal || applyingRef.current) return; applyingRef.current = true; setApplying(true); try { if (context.lessonId) { const applied = applyLessonProposal(context.lessonId, proposal); if (!applied.ok) { setError(applied.reason === "stale" ? "Le contenu a changé depuis cette proposition. Relancez l’analyse." : "La modification n'a pas pu être appliquée."); return; } } else { setProposal(proposal); dispatchToast("Modification appliquée au brouillon."); } setError(null); setConfirmation(`${forgeProposalStates.applied}. Sauvegardez pour enregistrer.`); setDialogOpen(false); setResult(null); } catch { setError("La modification n'a pas pu être appliquée."); } finally { applyingRef.current = false; setApplying(false); } }} onRegenerate={() => { if (lastRequest) run(lastRequest.intent, lastRequest.input, true, lastRequest.sourceIds); }} onAdjust={(adjustment) => { if (!lastRequest || !proposal) return; run(lastRequest.intent, `${lastRequest.input ?? ""}\n\nAjustement demandé : ${adjustment}\n\nProposition à améliorer :\n${proposal.proposal.patch.content ?? proposal.proposal.patch.description ?? proposal.text}`, true, lastRequest.sourceIds); }} />
+      <ForgeProposalDialog result={dialogOpen ? result : null} busy={pending || applying} applying={applying} error={dialogOpen ? error : null} stale={resultStale} generationBlocked={Boolean(blockedReason)}
+        onClose={() => { if (!applyingRef.current) setDialogOpen(false); }}
+        onReject={() => { setDialogOpen(false); setResult(null); setProposal(null); }}
+        onApply={() => {
+          if (!proposal || pendingRef.current || applyingRef.current) return;
+          if (lessonScope && context.lessonId) {
+            const latest = lessonDraft(context.lessonId);
+            if (staleConflict || lessonResultIsStale(resultBaseline, latest)) { setError(lessonAnalysisMessages.stale); return; }
+            if (!latest || latest.blockedReason) { setError(latest?.blockedReason ?? lessonAnalysisMessages.unavailable); return; }
+          }
+          applyingRef.current = true;
+          setApplying(true);
+          try {
+            if (context.lessonId) {
+              const applied = applyLessonProposal(context.lessonId, proposal);
+              if (!applied.ok) {
+                if (applied.reason === "stale") setStaleConflict(true);
+                setError(applied.reason === "stale" ? "Le contenu a changé depuis cette proposition. Relancez l’analyse." : "La modification n'a pas pu être appliquée.");
+                return;
+              }
+            } else { setProposal(proposal); dispatchToast("Modification appliquée au brouillon."); }
+            setError(null);
+            setConfirmation(`${forgeProposalStates.applied}. Sauvegardez pour enregistrer.`);
+            setDialogOpen(false);
+            setResult(null);
+          } catch { setError("La modification n'a pas pu être appliquée."); }
+          finally { applyingRef.current = false; setApplying(false); }
+        }}
+        onRegenerate={() => { if (lastRequest) run(lastRequest.intent, lastRequest.input, true, lastRequest.sourceIds); }}
+        onAdjust={(adjustment) => { if (!lastRequest || !proposal) return; run(lastRequest.intent, `${lastRequest.input ?? ""}\n\nAjustement demandé : ${adjustment}\n\nProposition à améliorer :\n${proposal.proposal.patch.content ?? proposal.proposal.patch.description ?? proposal.text}`, true, lastRequest.sourceIds); }} />
   </WorkspaceRail>;
 }
