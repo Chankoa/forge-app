@@ -4,6 +4,7 @@
   --background: #fbfafc;
   --surface: #ffffff;
   --surface-soft: #f1f5f9;
+  --surface-muted: var(--surface-soft);
 
   /* Forge panel */
   --surface-ai: #f8f6ff;
@@ -15,6 +16,7 @@
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-muted: #64748b;
+  --text: var(--text-primary);
 
   /* Borders */
   --border: #e2e8f0;
@@ -23,6 +25,10 @@
   --violet: #7c3aed;
   --violet-soft: #ede9fe;
   --pink: #ec4899;
+  --accent: var(--violet);
+
+  /* Elevation */
+  --shadow-md: 0 8px 26px rgb(15 23 42 / .14);
 
   /* States */
   --success: #15803d;
@@ -41,6 +47,7 @@
   --background: #0f1117;
   --surface: #161a23;
   --surface-soft: #1d212b;
+  --surface-muted: var(--surface-soft);
 
   /* Forge panel */
   --surface-ai: #17152b;
@@ -52,6 +59,7 @@
   --text-primary: #f1f5f9;
   --text-secondary: #cbd5e1;
   --text-muted: #9aa5b7;
+  --text: var(--text-primary);
 
   /* Borders */
   --border: #2a3142;
@@ -60,6 +68,10 @@
   --violet: #8b5cf6;
   --violet-soft: #2e2360;
   --pink: #ec4899;
+  --accent: var(--violet);
+
+  /* Elevation */
+  --shadow-md: 0 8px 26px rgb(0 0 0 / .35);
 
   /* States */
   --success: #4ade80;
