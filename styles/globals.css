@@ -559,19 +559,6 @@ button {
   margin-bottom: var(--space-4);
 }
 
-.mode-switch a {
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  font: var(--font-label);
-}
-
-.mode-switch a:hover {
-  color: var(--violet);
-  border-color: var(--violet);
-}
-
 .editor-tabs {
   display: flex;
   gap: var(--space-4);
