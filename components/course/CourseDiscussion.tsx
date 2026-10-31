@@ -19,7 +19,7 @@ function formatTime(value: string) {
 
 export function DiscussionFilter({ value, onChange }: { value: Filter; onChange: (value: Filter) => void }) {
   const filters: Array<{ value: Filter; label: string }> = [{ value: "all", label: "Tout" }, { value: "course", label: "Parcours" }, { value: "module", label: "Modules" }, { value: "lesson", label: "Leçons" }];
-  return <div className="discussion-filter" role="tablist" aria-label="Filtrer les messages">{filters.map((filter) => <button type="button" key={filter.value} role="tab" aria-selected={filter.value === value} onClick={() => onChange(filter.value)}>{filter.label}</button>)}</div>;
+  return <div className="discussion-filter" role="group" aria-label="Filtrer les messages">{filters.map((filter) => <button type="button" key={filter.value} aria-pressed={filter.value === value} onClick={() => onChange(filter.value)}>{filter.label}</button>)}</div>;
 }
 
 export function DiscussionMessage({ message, access, outline, courseSlug, onEdit, onDelete }: { message: CourseDiscussionMessage; access: CourseDiscussionAccess; outline: OutlineItem[]; courseSlug: string; onEdit: (message: CourseDiscussionMessage) => void; onDelete: (messageId: string) => void }) {

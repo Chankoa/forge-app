@@ -8,3 +8,11 @@ export function positionCourseOverflowMenu(anchor: MenuAnchor, viewport: { width
     top: opensBelow ? anchor.bottom + menu.gap : Math.max(menu.gap, anchor.top - menu.height - menu.gap),
   };
 }
+
+export function adjacentMenuItem(index: number, key: string, count: number) {
+  if (key === "Home") return 0;
+  if (key === "End") return count - 1;
+  if (key === "ArrowDown") return (index + 1) % count;
+  if (key === "ArrowUp") return (index + count - 1) % count;
+  return index;
+}

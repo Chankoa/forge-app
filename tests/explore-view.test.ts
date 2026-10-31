@@ -7,7 +7,7 @@ import { CourseFacts, PersonalCourseCard } from "../components/course/CoursePres
 import { ExploreCatalog, featuredActionLabel } from "../components/course/ExploreCatalog";
 import { courseLevelLabel, exploreDomains, selectExploreCourses, type DiscoverableCourse } from "../lib/courses/explore-view";
 import type { LibraryCourse } from "../lib/courses/library-view";
-import { positionCourseOverflowMenu } from "../lib/courses/overflow-menu";
+import { adjacentMenuItem, positionCourseOverflowMenu } from "../lib/courses/overflow-menu";
 
 const courses: DiscoverableCourse[] = [
   { id: "a", slug: "a", title: "Écologie alpine", description: "Découvrir la montagne", domain: "Environnement", status: "published", durationMinutes: 90, enrolled: true },
@@ -38,6 +38,14 @@ test("public catalogue rows retain visibility independently from the current use
 
 test("overflow menus stay inside the viewport near bottom and right edges", () => {
   assert.deepEqual(positionCourseOverflowMenu({ top: 740, bottom: 772, left: 970, right: 1000 }, { width: 1024, height: 800 }), { left: 770, top: 628 });
+});
+
+test("overflow menu keyboard navigation wraps and supports Home and End", () => {
+  assert.equal(adjacentMenuItem(0, "ArrowUp", 2), 1);
+  assert.equal(adjacentMenuItem(1, "ArrowDown", 2), 0);
+  assert.equal(adjacentMenuItem(1, "Home", 2), 0);
+  assert.equal(adjacentMenuItem(0, "End", 2), 1);
+  assert.equal(adjacentMenuItem(0, "Enter", 2), 0);
 });
 
 test("Explorer renders discovery actions and never exposes personal management", () => {

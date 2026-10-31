@@ -15,6 +15,7 @@ import type { CourseCapabilities } from "@/lib/capabilities/course-capabilities"
 import { forgeProposalStates } from "@/lib/forge/authoring-ux";
 import { dispatchToast } from "@/lib/ui/toast";
 import { courseDraftPatch } from "@/lib/forge/contracts";
+import { adjacentTab } from "@/lib/courses/workspace-layout";
 
 type CockpitTab = "overview" | "information" | "structure" | "sources";
 
@@ -56,13 +57,21 @@ export function CourseEditor({ course, domains, readiness, capabilities, showOve
     try { await action(); setMessage(""); setMessageError(false); dispatchToast(success); router.refresh(); } catch (error) { setMessage(error instanceof Error ? error.message : "La sauvegarde a échoué."); setMessageError(true); }
   });
   const tabs: Array<{ id: CockpitTab; label: string }> = [{ id: "information", label: "Informations" }, { id: "structure", label: "Structure" }, ...(capabilities.canManageSources ? [{ id: "sources" as const, label: "Ressources" }] : [])];
+  const moveTab = (index: number, key: string) => {
+    const next = adjacentTab(index, key, tabs.length);
+    if (next === index) return false;
+    setTab(tabs[next].id);
+    requestAnimationFrame(() => document.getElementById(`course-tab-${tabs[next].id}`)?.focus());
+    return true;
+  };
 
   if (tab === "overview") return <OwnerCourseOverview course={course} readiness={readiness} canManageCover={capabilities.canViewClassroom} />;
 
   return <div className="editor-stack course-cockpit">
     <div className="cockpit-heading"><div><p className="eyebrow">Cockpit du parcours</p><h2>Piloter le parcours</h2><p className="caption">Structure, informations et sources du parcours. Les propositions Forge modifient le brouillon local ; seule la sauvegarde enregistre les informations.</p></div><span className={`cockpit-status cockpit-status--${course.status === "published" ? "published" : course.status === "archived" ? "archived" : "draft"}`}>{course.status === "published" ? "Publié" : course.status === "archived" ? "Archivé" : "Brouillon"}</span></div>
     {message && <p className={messageError ? "form-error" : "completion-state"} role="status">{message}</p>}
-    <div className="editor-tabs" role="tablist" aria-label="Cockpit du parcours">{tabs.map((item) => <button id={`course-tab-${item.id}`} key={item.id} type="button" role="tab" aria-selected={tab === item.id} tabIndex={tab === item.id ? 0 : -1} onClick={() => setTab(item.id)}>{item.label}</button>)}</div>
+    <div className="editor-tabs" role="tablist" aria-label="Cockpit du parcours">{tabs.map((item, index) => <button id={`course-tab-${item.id}`} key={item.id} type="button" role="tab" aria-controls={`course-panel-${item.id}`} aria-selected={tab === item.id} tabIndex={tab === item.id ? 0 : -1} onKeyDown={(event) => { if (moveTab(index, event.key)) event.preventDefault(); }} onClick={() => setTab(item.id)}>{item.label}</button>)}</div>
+    <section id={`course-panel-${tab}`} role="tabpanel" aria-labelledby={`course-tab-${tab}`}>
     {tab === "information" && <form className="form authoring-form cockpit-form" onSubmit={(event) => { event.preventDefault(); const formData = new FormData(event.currentTarget); run(() => saveCourseMetadataAction(course.id, formData), forgeProposalStates.saved); }}>
       <label>Titre du parcours<input name="title" value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} required /></label>
       <label>Résumé court<input name="subtitle" value={draft.subtitle} onChange={(event) => setDraft((current) => ({ ...current, subtitle: event.target.value }))} /></label>
@@ -77,5 +86,6 @@ export function CourseEditor({ course, domains, readiness, capabilities, showOve
     </form>}
     {tab === "structure" && <><CourseStructureEditor course={course} onFeedback={(text, error = false) => { setMessage(text); setMessageError(error); }} /><p className="caption">Pour examiner un plan d’amélioration, ouvrez Forge puis l’onglet Analyse.</p></>}
     {tab === "sources" && <section className="cockpit-sources" aria-labelledby="cockpit-sources-title"><div className="section-heading"><div><p className="eyebrow"><FileText size={15} /> Sources</p><h2 id="cockpit-sources-title">Sources du parcours</h2></div></div><ForgeSourceResources courseSlug={course.slug} /></section>}
+    </section>
   </div>;
 }
