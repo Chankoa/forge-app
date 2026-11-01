@@ -18,3 +18,12 @@ test("learner lesson keeps content primary and exposes adjacent navigation", () 
   assert.match(html, /Leçon suivante/);
   assert.match(html, /mode=preview/);
 });
+
+test("completed learner lessons expose the shared success status", () => {
+  const html = renderToStaticMarkup(createElement(LearnerLesson, {
+    courseId: "course-1", courseSlug: "course", lesson, moduleTitle: "Module", moduleNumber: 1, lessonNumber: 2,
+    position: 2, total: 3, preview: false, completed: true,
+  }));
+
+  assert.match(html, /class="completion-state" role="status">.*Leçon terminée/);
+});

@@ -14,7 +14,7 @@ export function EnrollButton({ courseId, courseSlug }: { courseId: string; cours
 
 export function CompleteLessonButton({ courseId, lessonId, courseSlug, completed }: { courseId: string; lessonId: string; courseSlug: string; completed: boolean }) {
   const [pending, startTransition] = useTransition(); const [error, setError] = useState("");
-  if (completed) return <p className="completion-state"><Check size={17} /> Leçon terminée</p>;
+  if (completed) return <InlineFeedback tone="success"><Check size={17} /> Leçon terminée</InlineFeedback>;
   return <div><Button type="button" onClick={() => startTransition(async () => { try { setError(""); await completeLessonAction(courseId, lessonId, courseSlug); } catch (reason) { setError(reason instanceof Error ? reason.message : "La progression n'a pas pu être enregistrée."); } })}>{pending ? "Enregistrement..." : <><Check size={17} /> Marquer comme terminée</>}</Button>{error && <InlineFeedback tone="error">{error}</InlineFeedback>}</div>;
 }
 
