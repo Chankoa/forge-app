@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FileText, Pencil, Save } from "lucide-react";
 import type { CourseDetail } from "@/lib/courses/contracts";
 import { Button } from "@/components/ui/Button";
+import { InlineFeedback } from "@/components/ui/InlineFeedback";
 import { saveCourseMetadataAction } from "@/app/app/create/actions";
 import { CourseStructureEditor } from "./CourseStructureEditor";
 import { ForgeSourceResources } from "@/components/forge/ForgeSourceResources";
@@ -69,7 +70,7 @@ export function CourseEditor({ course, domains, readiness, capabilities, showOve
 
   return <div className="editor-stack course-cockpit">
     <div className="cockpit-heading"><div><p className="eyebrow">Cockpit du parcours</p><h2>Piloter le parcours</h2><p className="caption">Structure, informations et sources du parcours. Les propositions Forge modifient le brouillon local ; seule la sauvegarde enregistre les informations.</p></div><span className={`cockpit-status cockpit-status--${course.status === "published" ? "published" : course.status === "archived" ? "archived" : "draft"}`}>{course.status === "published" ? "Publié" : course.status === "archived" ? "Archivé" : "Brouillon"}</span></div>
-    {message && <p className={messageError ? "form-error" : "completion-state"} role="status">{message}</p>}
+    {message && <InlineFeedback tone={messageError ? "error" : "success"}>{message}</InlineFeedback>}
     <div className="editor-tabs" role="tablist" aria-label="Cockpit du parcours">{tabs.map((item, index) => <button id={`course-tab-${item.id}`} key={item.id} type="button" role="tab" aria-controls={`course-panel-${item.id}`} aria-selected={tab === item.id} tabIndex={tab === item.id ? 0 : -1} onKeyDown={(event) => { if (moveTab(index, event.key)) event.preventDefault(); }} onClick={() => setTab(item.id)}>{item.label}</button>)}</div>
     <section id={`course-panel-${tab}`} role="tabpanel" aria-labelledby={`course-tab-${tab}`}>
     {tab === "information" && <form className="form authoring-form cockpit-form" onSubmit={(event) => { event.preventDefault(); const formData = new FormData(event.currentTarget); run(() => saveCourseMetadataAction(course.id, formData), forgeProposalStates.saved); }}>

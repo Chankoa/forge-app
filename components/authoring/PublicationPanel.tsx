@@ -9,6 +9,7 @@ import type { PublicationReadiness } from "@/lib/courses/publication";
 import { publicationCorrectionPath } from "@/lib/courses/context-navigation";
 import { publishCourseAction, unpublishCourseAction } from "@/app/app/create/actions";
 import { Button } from "@/components/ui/Button";
+import { InlineFeedback } from "@/components/ui/InlineFeedback";
 import { dispatchToast } from "@/lib/ui/toast";
 
 export function PublicationPanel({ course, readiness }: { course: CourseDetail; readiness: PublicationReadiness }) {
@@ -34,7 +35,7 @@ export function PublicationPanel({ course, readiness }: { course: CourseDetail; 
       <div className="publication-journey__issues">{readiness.blocking.map((issue) => <div className="publication-journey__issue" key={issue}><AlertCircle size={18} aria-hidden="true" /><div><strong>{issue}</strong><small>Structure du parcours</small></div><Link href={structureHref}>Corriger <ArrowRight size={15} aria-hidden="true" /></Link></div>)}{readiness.recommended.map((issue) => <div className="publication-journey__issue" key={issue}><BookOpen size={18} aria-hidden="true" /><div><strong>{issue}</strong><small>{firstIncomplete ? firstIncomplete.title : "Leçons du parcours"}</small></div><Link href={publicationCorrectionPath(course.slug, "recommended", firstIncomplete?.slug)}>Compléter <ArrowRight size={15} aria-hidden="true" /></Link></div>)}{readiness.blocking.length === 0 && readiness.recommended.length === 0 && <p className="publication-journey__ready"><Check size={17} aria-hidden="true" />Aucun élément à finaliser.</p>}</div>
     </section>
     <section className="publication-journey__action" aria-label="Action de publication"><div><h3>{published ? "Publication active" : "Publier le parcours"}</h3><p>{published ? "La dépublication conserve la visibilité choisie, les relations et les progrès existants." : readiness.ready ? course.visibility === "public" ? "La publication rendra ce parcours visible dans Explorer." : "La publication rendra ce parcours accessible aux apprenants inscrits, sans l’afficher dans Explorer." : "Corrigez les prérequis bloquants pour activer la publication."}</p></div>{published ? <Button type="button" variant="secondary" disabled={pending} onClick={() => mutate(() => unpublishCourseAction(course.id, course.slug), "Parcours dépublié. Les relations, progrès et la visibilité sont conservés.")}>{pending ? "Dépublication..." : "Dépublier"}</Button> : <Button type="button" onClick={() => mutate(() => publishCourseAction(course.id, course.slug), course.visibility === "public" ? "Parcours publié et visible dans Explorer." : "Parcours publié en privé pour les apprenants inscrits.")} disabled={!readiness.ready || pending}><Upload size={17} aria-hidden="true" />{pending ? "Publication..." : "Publier"}</Button>}</section>
-    {message && <p className={failed ? "form-error" : "completion-state"} role={failed ? "alert" : "status"}>{message}</p>}
+    {message && <InlineFeedback tone={failed ? "error" : "success"}>{message}</InlineFeedback>}
     <Link className="publication-journey__back" href={`/app/courses/${course.slug}`}>Retour à la vue d’ensemble <ArrowRight size={15} aria-hidden="true" /></Link>
   </article>;
 }

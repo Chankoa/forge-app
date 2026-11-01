@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { ImagePlus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { InlineFeedback } from "@/components/ui/InlineFeedback";
 import { removeCourseCoverAction, setCourseCoverAction } from "@/app/app/courses/cover-actions";
 import { coverGuidance, validateCourseCoverUpload, type CoverPresentation } from "@/lib/courses/cover-contracts";
 import { CourseCover } from "./CourseCoverVisual";
@@ -60,7 +61,7 @@ export function CourseCoverManager({ courseId, cover, domain }: { courseId: stri
         </div>
         {studio && <CoverForgeEntry courseId={courseId} onDone={() => setStudio(false)} />}
         {pending && <p className="caption" role="status">Traitement en cours…</p>}
-        {message && <p className={error ? "form-error" : "completion-state"} role="status">{message}</p>}
+        {message && <InlineFeedback tone={error ? "error" : "success"}>{message}</InlineFeedback>}
       </div>
     </div>
   </section>;

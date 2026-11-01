@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Search, UserPlus, UserRoundCheck, UserRoundX } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { InlineFeedback } from "@/components/ui/InlineFeedback";
 import { addCourseCollaboratorAction, changeCourseCollaboratorRoleAction, searchCourseCollaboratorCandidatesAction, setCourseCollaboratorStatusAction } from "@/app/app/courses/collaborator-actions";
 import type { CollaboratorCandidate, CollaboratorRole, CourseCollaborator } from "@/lib/courses/collaborators";
 import type { CourseCollaborationRequest } from "@/lib/courses/collaboration-requests";
@@ -20,7 +21,7 @@ export function CourseCollaboratorManager({ courseId, courseTitle, initialCollab
   const search = () => run(async () => { const results = await searchCourseCollaboratorCandidatesAction(courseId, query); setCandidates(results); setSelected(null); }, "");
   return <section className="collaborator-manager" aria-labelledby="collaborator-manager-title">
     <header className="collaborator-manager__heading"><div><p className="eyebrow">Équipe du parcours</p><h2 id="collaborator-manager-title">Collaborateurs</h2><p>Ajoutez des membres Forge existants pour consulter ou modifier « {courseTitle} ».</p></div></header>
-    {message && <p className={error ? "form-error" : "completion-state"} role="status">{message}</p>}
+    {message && <InlineFeedback tone={error ? "error" : "success"}>{message}</InlineFeedback>}
     <CourseCollaborationRequestsPanel courseId={courseId} enabled={collaborationRequestsEnabled} available={requestsAvailable} requests={requests} onFeedback={(text, hasError = false) => { setMessage(text); setError(hasError); router.refresh(); }} />
     {!available && <p className="env-note">La gestion des collaborateurs sera disponible après l&apos;application de la migration I.2.D.</p>}
     {available && <>
